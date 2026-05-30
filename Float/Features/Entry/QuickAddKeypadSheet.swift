@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct QuickAddKeypadSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -16,8 +16,13 @@ struct QuickAddKeypadSheet: View {
     @State private var note = ""
     @State private var timestamp = Date()
 
-    private var amountMinor: Int64 { MoneyParser.parseMinorUnits(from: keypadText) }
-    private var visibleCategories: [CategoryItem] { categories.filter { !$0.archived && $0.isIncome != isExpense }.prefix(8).map { $0 } }
+    private var amountMinor: Int64 {
+        MoneyParser.parseMinorUnits(from: keypadText)
+    }
+    private var visibleCategories: [CategoryItem] {
+        categories.filter { !$0.archived && $0.isIncome != isExpense }.prefix(8)
+            .map { $0 }
+    }
 
     var body: some View {
         NavigationStack {
@@ -29,11 +34,16 @@ struct QuickAddKeypadSheet: View {
                     }
                     .pickerStyle(.segmented)
 
-                    Text(MoneyFormatter.string(minorUnits: amountMinor, currencyCode: appState.selectedCurrencyCode))
-                        .moneyStyle(size: 46, weight: .bold)
-                        .contentTransition(.numericText())
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                    Text(
+                        MoneyFormatter.string(
+                            minorUnits: amountMinor,
+                            currencyCode: appState.selectedCurrencyCode
+                        )
+                    )
+                    .moneyStyle(size: 46, weight: .bold)
+                    .contentTransition(.numericText())
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
 
                     keypad
 
@@ -45,7 +55,11 @@ struct QuickAddKeypadSheet: View {
                                     selectedCategory = category
                                     Haptics.tick()
                                 } label: {
-                                    CategoryChip(category: category, isSelected: selectedCategory?.id == category.id)
+                                    CategoryChip(
+                                        category: category,
+                                        isSelected: selectedCategory?.id
+                                            == category.id
+                                    )
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -54,21 +68,40 @@ struct QuickAddKeypadSheet: View {
 
                     GlassCard {
                         VStack(spacing: 12) {
-                            AccountPicker(selectedAccount: $selectedAccount, accounts: accounts.filter { !$0.archived })
+                            AccountPicker(
+                                selectedAccount: $selectedAccount,
+                                accounts: accounts.filter { !$0.archived }
+                            )
                             Divider()
                             TextField("Note", text: $note, axis: .vertical)
                                 .textFieldStyle(.plain)
-                            DatePicker("Date", selection: $timestamp, displayedComponents: [.date])
+                            DatePicker(
+                                "Date",
+                                selection: $timestamp,
+                                displayedComponents: [.date]
+                            )
                         }
                     }
 
                     Button(action: save) {
-                        Label(transactionToEdit == nil ? "Save transaction" : "Save changes", systemImage: "checkmark.circle.fill")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(amountMinor > 0 ? Color(hex: "#0E7C7B") : Color.secondary.opacity(0.3), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                            .foregroundStyle(.white)
+                        Label(
+                            transactionToEdit == nil
+                                ? "Save transaction" : "Save changes",
+                            systemImage: "checkmark.circle.fill"
+                        )
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            amountMinor > 0
+                                ? Color(hex: "#0E7C7B")
+                                : Color.secondary.opacity(0.3),
+                            in: RoundedRectangle(
+                                cornerRadius: 20,
+                                style: .continuous
+                            )
+                        )
+                        .foregroundStyle(.white)
                     }
                     .disabled(amountMinor == 0)
                 }
@@ -76,30 +109,56 @@ struct QuickAddKeypadSheet: View {
             }
             .navigationTitle(transactionToEdit == nil ? "Add" : "Edit")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") { dismiss() }
+                }
+            }
             .floatBackground()
             .onAppear(perform: configureDefaults)
         }
     }
 
     private var keypad: some View {
-        let keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0", "delete.left"]
-        return LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
+        let keys = [
+            "1", "2", "3", "4", "5", "6", "7", "8", "9", "00", "0",
+            "delete.left",
+        ]
+        return LazyVGrid(
+            columns: Array(
+                repeating: GridItem(.flexible(), spacing: 10),
+                count: 3
+            ),
+            spacing: 10
+        ) {
             ForEach(keys, id: \.self) { key in
                 Button {
                     if key == "delete.left" {
                         keypadText = MoneyParser.deleteLast(from: keypadText)
                     } else {
-                        keypadText = MoneyParser.keypadText(afterAppending: key, to: keypadText)
+                        keypadText = MoneyParser.keypadText(
+                            afterAppending: key,
+                            to: keypadText
+                        )
                     }
                     Haptics.tick()
                 } label: {
                     Group {
-                        if key == "delete.left" { Image(systemName: key) } else { Text(key) }
+                        if key == "delete.left" {
+                            Image(systemName: key)
+                        } else {
+                            Text(key)
+                        }
                     }
                     .font(.title2.weight(.semibold))
                     .frame(maxWidth: .infinity, minHeight: 58)
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .background(
+                        .thinMaterial,
+                        in: RoundedRectangle(
+                            cornerRadius: 20,
+                            style: .continuous
+                        )
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -117,8 +176,13 @@ struct QuickAddKeypadSheet: View {
             timestamp = transactionToEdit.timestamp
             return
         }
-        selectedCategory = categories.first { $0.id.uuidString == appState.lastUsedCategoryID } ?? categories.first { $0.name == "Other" && !$0.isIncome } ?? categories.first { !$0.isIncome }
-        selectedAccount = accounts.first { $0.id.uuidString == appState.lastUsedAccountID } ?? accounts.first { !$0.archived }
+        selectedCategory =
+            categories.first { $0.id.uuidString == appState.lastUsedCategoryID }
+            ?? categories.first { $0.name == "Other" && !$0.isIncome }
+            ?? categories.first { !$0.isIncome }
+        selectedAccount =
+            accounts.first { $0.id.uuidString == appState.lastUsedAccountID }
+            ?? accounts.first { !$0.archived }
     }
 
     private func save() {
@@ -132,7 +196,14 @@ struct QuickAddKeypadSheet: View {
             transactionToEdit.note = cleanNote.isEmpty ? nil : cleanNote
             transactionToEdit.updatedAt = Date()
         } else {
-            let transaction = TransactionItem(amountMinor: amountMinor, isExpense: isExpense, timestamp: timestamp, category: selectedCategory, account: selectedAccount, note: cleanNote.isEmpty ? nil : cleanNote)
+            let transaction = TransactionItem(
+                amountMinor: amountMinor,
+                isExpense: isExpense,
+                timestamp: timestamp,
+                category: selectedCategory,
+                account: selectedAccount,
+                note: cleanNote.isEmpty ? nil : cleanNote
+            )
             modelContext.insert(transaction)
         }
         appState.lastUsedCategoryID = selectedCategory?.id.uuidString ?? ""
@@ -155,7 +226,10 @@ struct FlowLayout<Content: View>: View {
     var body: some View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: spacing) { content }
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: spacing)], spacing: spacing) { content }
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 120), spacing: spacing)],
+                spacing: spacing
+            ) { content }
         }
     }
 }

@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct ContentView: View {
     var body: some View {
@@ -9,6 +9,12 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: [AccountItem.self, CategoryItem.self, TransactionItem.self, RecurringRuleItem.self, GoalItem.self, BudgetPeriodItem.self], inMemory: true)
+        .modelContainer(
+            for: [
+                AccountItem.self, CategoryItem.self, TransactionItem.self,
+                RecurringRuleItem.self, GoalItem.self, BudgetPeriodItem.self,
+            ],
+            inMemory: true
+        )
         .environmentObject(AppState())
 }

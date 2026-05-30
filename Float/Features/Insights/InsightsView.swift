@@ -1,10 +1,11 @@
-import SwiftUI
-import SwiftData
 import Charts
+import SwiftData
+import SwiftUI
 
 struct InsightsView: View {
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \TransactionItem.timestamp, order: .reverse) private var transactions: [TransactionItem]
+    @Query(sort: \TransactionItem.timestamp, order: .reverse) private
+        var transactions: [TransactionItem]
     @Query private var budgets: [BudgetPeriodItem]
     @Query private var recurringRules: [RecurringRuleItem]
 
@@ -14,48 +15,83 @@ struct InsightsView: View {
         Color(hex: "#3B82F6"),
         Color(hex: "#8B5CF6"),
         Color(hex: "#B4613B"),
-        Color(hex: "#EC4899")
+        Color(hex: "#EC4899"),
     ]
 
     private var period: BudgetPeriod {
-        BudgetPeriodCalculator.currentPeriod(for: budgets.first { $0.isActive } ?? budgets.first)
+        BudgetPeriodCalculator.currentPeriod(
+            for: budgets.first { $0.isActive } ?? budgets.first
+        )
     }
 
     private var currentTransactions: [TransactionItem] {
-        transactions.filter { period.start <= $0.timestamp && $0.timestamp <= Calendar.current.endOfDay(for: period.end) }
+        transactions.filter {
+            period.start <= $0.timestamp
+                && $0.timestamp <= Calendar.current.endOfDay(for: period.end)
+        }
     }
 
     private var categoryInsights: [CategoryInsight] {
-        Dictionary(grouping: currentTransactions.filter(\.isExpense), by: { $0.category?.name ?? "Other" })
-            .map { name, items in (name, items.reduce(Int64(0)) { $0 + $1.amountMinor }) }
-            .sorted { $0.1 > $1.1 }
-            .prefix(6)
-            .enumerated()
-            .map { index, item in
-                CategoryInsight(name: item.0, amountMinor: item.1, color: palette[index % palette.count])
-            }
+        Dictionary(
+            grouping: currentTransactions.filter(\.isExpense),
+            by: { $0.category?.name ?? "Other" }
+        )
+        .map { name, items in
+            (name, items.reduce(Int64(0)) { $0 + $1.amountMinor })
+        }
+        .sorted { $0.1 > $1.1 }
+        .prefix(6)
+        .enumerated()
+        .map { index, item in
+            CategoryInsight(
+                name: item.0,
+                amountMinor: item.1,
+                color: palette[index % palette.count]
+            )
+        }
     }
 
     private var dailyInsights: [DailyInsight] {
-        let grouped = Dictionary(grouping: currentTransactions.filter(\.isExpense), by: { Calendar.current.startOfDay(for: $0.timestamp) })
-        return grouped
-            .map { day, items in DailyInsight(day: day, amountMinor: items.reduce(Int64(0)) { $0 + $1.amountMinor }) }
+        let grouped = Dictionary(
+            grouping: currentTransactions.filter(\.isExpense),
+            by: { Calendar.current.startOfDay(for: $0.timestamp) }
+        )
+        return
+            grouped
+            .map { day, items in
+                DailyInsight(
+                    day: day,
+                    amountMinor: items.reduce(Int64(0)) { $0 + $1.amountMinor }
+                )
+            }
             .sorted { $0.day < $1.day }
     }
 
     private var cashFlowInsights: [CashFlowInsight] {
         [
-            CashFlowInsight(name: "Income", amountMinor: incomeTotal, color: Color(hex: "#1B8A5A")),
-            CashFlowInsight(name: "Expense", amountMinor: expenseTotal, color: Color(hex: "#0E7C7B"))
+            CashFlowInsight(
+                name: "Income",
+                amountMinor: incomeTotal,
+                color: Color(hex: "#1B8A5A")
+            ),
+            CashFlowInsight(
+                name: "Expense",
+                amountMinor: expenseTotal,
+                color: Color(hex: "#0E7C7B")
+            ),
         ]
     }
 
     private var incomeTotal: Int64 {
-        currentTransactions.filter { !$0.isExpense }.reduce(0) { $0 + $1.amountMinor }
+        currentTransactions.filter { !$0.isExpense }.reduce(0) {
+            $0 + $1.amountMinor
+        }
     }
 
     private var expenseTotal: Int64 {
-        currentTransactions.filter(\.isExpense).reduce(0) { $0 + $1.amountMinor }
+        currentTransactions.filter(\.isExpense).reduce(0) {
+            $0 + $1.amountMinor
+        }
     }
 
     private var dailyAverage: Int64 {
@@ -85,27 +121,53 @@ struct InsightsView: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Current period")
                             .font(.headline)
-                        Text(period.start.formatted(date: .abbreviated, time: .omitted) + " - " + period.end.formatted(date: .abbreviated, time: .omitted))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        Text(
+                            period.start.formatted(
+                                date: .abbreviated,
+                                time: .omitted
+                            ) + " - "
+                                + period.end.formatted(
+                                    date: .abbreviated,
+                                    time: .omitted
+                                )
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 4) {
-                        Text(MoneyFormatter.string(minorUnits: expenseTotal, currencyCode: appState.selectedCurrencyCode))
-                            .moneyStyle(size: 22, weight: .bold)
+                        Text(
+                            MoneyFormatter.string(
+                                minorUnits: expenseTotal,
+                                currencyCode: appState.selectedCurrencyCode
+                            )
+                        )
+                        .moneyStyle(size: 22, weight: .bold)
                         Text("spent")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
 
-                Text(categoryInsights.first.map { "\($0.name) is your top category this period." } ?? "Your period is ready for its first transaction.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                Text(
+                    categoryInsights.first.map {
+                        "\($0.name) is your top category this period."
+                    } ?? "Your period is ready for its first transaction."
+                )
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
 
                 HStack(spacing: 12) {
-                    metricPill(title: "Income", amount: incomeTotal, tint: Color(hex: "#1B8A5A"))
-                    metricPill(title: "Recurring", amount: recurringExpenseTotal, tint: Color(hex: "#B4613B"))
+                    metricPill(
+                        title: "Income",
+                        amount: incomeTotal,
+                        tint: Color(hex: "#1B8A5A")
+                    )
+                    metricPill(
+                        title: "Recurring",
+                        amount: recurringExpenseTotal,
+                        tint: Color(hex: "#B4613B")
+                    )
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -113,9 +175,16 @@ struct InsightsView: View {
     }
 
     private var categoryCard: some View {
-        insightCard(title: "Top categories", subtitle: "Share of spending this period") {
+        insightCard(
+            title: "Top categories",
+            subtitle: "Share of spending this period"
+        ) {
             if categoryInsights.isEmpty {
-                EmptyStateView(icon: "chart.pie", title: "No spending yet", message: "Charts update as your period fills in.")
+                EmptyStateView(
+                    icon: "chart.pie",
+                    title: "No spending yet",
+                    message: "Charts update as your period fills in."
+                )
             } else {
                 VStack(spacing: 18) {
                     ZStack {
@@ -134,9 +203,14 @@ struct InsightsView: View {
                             Text("Total")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                            Text(MoneyFormatter.string(minorUnits: expenseTotal, currencyCode: appState.selectedCurrencyCode))
-                                .moneyStyle(size: 20, weight: .bold)
-                                .minimumScaleFactor(0.75)
+                            Text(
+                                MoneyFormatter.string(
+                                    minorUnits: expenseTotal,
+                                    currencyCode: appState.selectedCurrencyCode
+                                )
+                            )
+                            .moneyStyle(size: 20, weight: .bold)
+                            .minimumScaleFactor(0.75)
                         }
                     }
                     .frame(height: 250)
@@ -152,9 +226,17 @@ struct InsightsView: View {
     }
 
     private var dailyCard: some View {
-        insightCard(title: "Daily spending", subtitle: "A calmer view of your period rhythm") {
+        insightCard(
+            title: "Daily spending",
+            subtitle: "A calmer view of your period rhythm"
+        ) {
             if dailyInsights.isEmpty {
-                EmptyStateView(icon: "chart.xyaxis.line", title: "No daily trend yet", message: "Add a few transactions to see the line take shape.")
+                EmptyStateView(
+                    icon: "chart.xyaxis.line",
+                    title: "No daily trend yet",
+                    message:
+                        "Add a few transactions to see the line take shape."
+                )
             } else {
                 Chart {
                     ForEach(dailyInsights) { item in
@@ -164,7 +246,10 @@ struct InsightsView: View {
                         )
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [Color(hex: "#0E7C7B").opacity(0.28), Color(hex: "#0E7C7B").opacity(0.02)],
+                                colors: [
+                                    Color(hex: "#0E7C7B").opacity(0.28),
+                                    Color(hex: "#0E7C7B").opacity(0.02),
+                                ],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -175,7 +260,13 @@ struct InsightsView: View {
                             y: .value("Amount", item.amountMinor)
                         )
                         .foregroundStyle(Color(hex: "#0E7C7B"))
-                        .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                        .lineStyle(
+                            StrokeStyle(
+                                lineWidth: 3,
+                                lineCap: .round,
+                                lineJoin: .round
+                            )
+                        )
 
                         PointMark(
                             x: .value("Day", item.day),
@@ -194,7 +285,10 @@ struct InsightsView: View {
                     AxisMarks(values: .automatic(desiredCount: 4))
                 }
                 .chartYAxis {
-                    AxisMarks(position: .leading, values: .automatic(desiredCount: 4))
+                    AxisMarks(
+                        position: .leading,
+                        values: .automatic(desiredCount: 4)
+                    )
                 }
                 .frame(height: 240)
             }
@@ -202,7 +296,10 @@ struct InsightsView: View {
     }
 
     private var cashFlowCard: some View {
-        insightCard(title: "Income vs expense", subtitle: "Money in and out for this period") {
+        insightCard(
+            title: "Income vs expense",
+            subtitle: "Money in and out for this period"
+        ) {
             Chart(cashFlowInsights) { item in
                 BarMark(
                     x: .value("Type", item.name),
@@ -214,22 +311,39 @@ struct InsightsView: View {
             }
             .chartLegend(.hidden)
             .chartYAxis {
-                AxisMarks(position: .leading, values: .automatic(desiredCount: 4))
+                AxisMarks(
+                    position: .leading,
+                    values: .automatic(desiredCount: 4)
+                )
             }
             .frame(height: 220)
 
             HStack(spacing: 12) {
-                metricPill(title: "Income", amount: incomeTotal, tint: Color(hex: "#1B8A5A"))
-                metricPill(title: "Expense", amount: expenseTotal, tint: Color(hex: "#0E7C7B"))
+                metricPill(
+                    title: "Income",
+                    amount: incomeTotal,
+                    tint: Color(hex: "#1B8A5A")
+                )
+                metricPill(
+                    title: "Expense",
+                    amount: expenseTotal,
+                    tint: Color(hex: "#0E7C7B")
+                )
             }
         }
     }
 
     private var recurringExpenseTotal: Int64 {
-        recurringRules.filter { $0.active && $0.isExpense }.reduce(0) { $0 + $1.amountMinor }
+        recurringRules.filter { $0.active && $0.isExpense }.reduce(0) {
+            $0 + $1.amountMinor
+        }
     }
 
-    private func insightCard<Content: View>(title: String, subtitle: String, @ViewBuilder content: () -> Content) -> some View {
+    private func insightCard<Content: View>(
+        title: String,
+        subtitle: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
@@ -245,7 +359,13 @@ struct InsightsView: View {
     }
 
     private func categoryLegendRow(_ item: CategoryInsight) -> some View {
-        let percent = expenseTotal == 0 ? 0 : Int((Double(item.amountMinor) / Double(expenseTotal) * 100).rounded())
+        let percent =
+            expenseTotal == 0
+            ? 0
+            : Int(
+                (Double(item.amountMinor) / Double(expenseTotal) * 100)
+                    .rounded()
+            )
         return HStack(spacing: 10) {
             Circle()
                 .fill(item.color)
@@ -256,25 +376,40 @@ struct InsightsView: View {
             Text("\(percent)%")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
-            Text(MoneyFormatter.string(minorUnits: item.amountMinor, currencyCode: appState.selectedCurrencyCode))
-                .moneyStyle(size: 14, weight: .semibold)
-                .frame(minWidth: 88, alignment: .trailing)
+            Text(
+                MoneyFormatter.string(
+                    minorUnits: item.amountMinor,
+                    currencyCode: appState.selectedCurrencyCode
+                )
+            )
+            .moneyStyle(size: 14, weight: .semibold)
+            .frame(minWidth: 88, alignment: .trailing)
         }
     }
 
-    private func metricPill(title: String, amount: Int64, tint: Color) -> some View {
+    private func metricPill(title: String, amount: Int64, tint: Color)
+        -> some View
+    {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text(MoneyFormatter.string(minorUnits: amount, currencyCode: appState.selectedCurrencyCode))
-                .moneyStyle(size: 15, weight: .semibold)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
+            Text(
+                MoneyFormatter.string(
+                    minorUnits: amount,
+                    currencyCode: appState.selectedCurrencyCode
+                )
+            )
+            .moneyStyle(size: 15, weight: .semibold)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(
+            tint.opacity(0.12),
+            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+        )
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .strokeBorder(tint.opacity(0.18), lineWidth: 1)
@@ -302,9 +437,12 @@ private struct CashFlowInsight: Identifiable {
     let color: Color
 }
 
-private extension Calendar {
-    func endOfDay(for date: Date) -> Date {
+extension Calendar {
+    fileprivate func endOfDay(for date: Date) -> Date {
         let start = startOfDay(for: date)
-        return self.date(byAdding: DateComponents(day: 1, second: -1), to: start) ?? date
+        return self.date(
+            byAdding: DateComponents(day: 1, second: -1),
+            to: start
+        ) ?? date
     }
 }

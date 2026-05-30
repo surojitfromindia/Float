@@ -1,5 +1,5 @@
-import SwiftUI
 import SwiftData
+import SwiftUI
 
 struct AppRootView: View {
     @Environment(\.modelContext) private var modelContext
@@ -11,24 +11,40 @@ struct AppRootView: View {
         Group {
             if !appState.hasCompletedOnboarding {
                 OnboardingView()
-            } else if appState.isBiometricLockEnabled && !authManager.isUnlocked {
+                    .environmentObject(authManager)
+            } else if appState.isBiometricLockEnabled && !authManager.isUnlocked
+            {
                 LockScreenView()
                     .environmentObject(authManager)
             } else {
                 MainTabView()
+                    .environmentObject(authManager)
             }
         }
         .preferredColorScheme(appState.colorScheme)
         .task {
-            SeedData.ensureSeedData(modelContext: modelContext, currencyCode: appState.selectedCurrencyCode)
-            MaterializeRecurringTransactionsUseCase.run(modelContext: modelContext)
+            SeedData.ensureSeedData(
+                modelContext: modelContext,
+                currencyCode: appState.selectedCurrencyCode
+            )
+            MaterializeRecurringTransactionsUseCase.run(
+                modelContext: modelContext
+            )
+            if appState.hasCompletedOnboarding
+                && appState.isBiometricLockEnabled
+                && !authManager.isUnlocked
+            {
+                Task { _ = await authManager.authenticate() }
+            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background, appState.isBiometricLockEnabled {
                 authManager.lock()
             }
             if newPhase == .active {
-                MaterializeRecurringTransactionsUseCase.run(modelContext: modelContext)
+                MaterializeRecurringTransactionsUseCase.run(
+                    modelContext: modelContext
+                )
                 if appState.isBiometricLockEnabled && !authManager.isUnlocked {
                     Task { _ = await authManager.authenticate() }
                 }
@@ -54,12 +70,18 @@ struct LockScreenView: View {
             Button {
                 Task { _ = await authManager.authenticate() }
             } label: {
-                Label("Unlock", systemImage: "faceid")
+                Label("Unlock", systemImage: "lock.open.fill")
                     .font(.headline)
                     .padding(.horizontal, 28)
                     .padding(.vertical, 14)
                     .background(Color(hex: "#0E7C7B"), in: Capsule())
                     .foregroundStyle(.white)
+            }
+            if let message = authManager.lastErrorMessage {
+                Text(message)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
         }
         .padding(32)

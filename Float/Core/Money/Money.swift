@@ -9,7 +9,9 @@ enum MoneyParser {
         return Int64(trimmed) ?? Int64.max
     }
 
-    static func keypadText(afterAppending input: String, to current: String) -> String {
+    static func keypadText(afterAppending input: String, to current: String)
+        -> String
+    {
         guard input.allSatisfy(\.isNumber) else { return current }
         let raw = current.filter(\.isNumber) + input
         let trimmed = String(raw.drop(while: { $0 == "0" }))
@@ -29,7 +31,12 @@ enum MoneyFormatter {
         return "USD"
     }
 
-    static func string(minorUnits: Int64, currencyCode: String, locale: Locale = .current, showsSign: Bool = false) -> String {
+    static func string(
+        minorUnits: Int64,
+        currencyCode: String,
+        locale: Locale = .current,
+        showsSign: Bool = false
+    ) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = currencyCode
@@ -39,7 +46,8 @@ enum MoneyFormatter {
         let divisor = pow(10.0, Double(fractionDigits(for: currencyCode)))
         let value = Decimal(minorUnits) / Decimal(divisor)
         let number = NSDecimalNumber(decimal: value)
-        let formatted = formatter.string(from: number) ?? "\(currencyCode) \(minorUnits)"
+        let formatted =
+            formatter.string(from: number) ?? "\(currencyCode) \(minorUnits)"
         guard showsSign, minorUnits > 0 else { return formatted }
         return "+\(formatted)"
     }

@@ -10,7 +10,9 @@ struct MainTabView: View {
             NavigationStack { TransactionsView() }
                 .tabItem { Label("List", systemImage: "list.bullet") }
             NavigationStack { InsightsView() }
-                .tabItem { Label("Stats", systemImage: "chart.line.uptrend.xyaxis") }
+                .tabItem {
+                    Label("Stats", systemImage: "chart.line.uptrend.xyaxis")
+                }
             NavigationStack { SettingsView() }
                 .tabItem { Label("More", systemImage: "gearshape.fill") }
         }

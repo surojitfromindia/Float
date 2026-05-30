@@ -10,10 +10,19 @@ struct GlassCard<Content: View>: View {
     var body: some View {
         content
             .padding(20)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: FloatTheme.radius, style: .continuous))
+            .background(
+                .ultraThinMaterial,
+                in: RoundedRectangle(
+                    cornerRadius: FloatTheme.radius,
+                    style: .continuous
+                )
+            )
             .overlay(
-                RoundedRectangle(cornerRadius: FloatTheme.radius, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                RoundedRectangle(
+                    cornerRadius: FloatTheme.radius,
+                    style: .continuous
+                )
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
             )
             .shadow(color: Color.black.opacity(0.08), radius: 24, x: 0, y: 14)
     }
@@ -34,8 +43,14 @@ struct GlassButton<Label: View>: View {
                 .font(.headline)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color.primary.opacity(0.08)))
+                .background(
+                    .thinMaterial,
+                    in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.primary.opacity(0.08))
+                )
         }
         .buttonStyle(.plain)
     }
@@ -49,7 +64,10 @@ struct GlassTextField: View {
         TextField(title, text: $text)
             .textFieldStyle(.plain)
             .padding(14)
-            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .background(
+                .thinMaterial,
+                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+            )
     }
 }
 
@@ -63,10 +81,16 @@ struct FloatProgressRing: View {
             Circle().stroke(.primary.opacity(0.08), lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: min(max(progress, 0), 1))
-                .stroke(tint, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
+                .stroke(
+                    tint,
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                )
                 .rotationEffect(.degrees(-90))
         }
-        .animation(.spring(response: 0.5, dampingFraction: 0.85), value: progress)
+        .animation(
+            .spring(response: 0.5, dampingFraction: 0.85),
+            value: progress
+        )
     }
 }
 
@@ -80,10 +104,31 @@ struct SectionHeader: View {
             Text(title).font(.headline)
             Spacer()
             if let actionTitle, let action {
-                Button(actionTitle, action: action).font(.subheadline.weight(.medium))
+                Button(actionTitle, action: action).font(
+                    .subheadline.weight(.medium)
+                )
             }
         }
         .foregroundStyle(.primary)
+    }
+}
+
+struct CurrencyAmountPreview: View {
+    let minorUnits: Int64
+    let currencyCode: String
+
+    var body: some View {
+        Text(
+            MoneyFormatter.string(
+                minorUnits: minorUnits,
+                currencyCode: currencyCode
+            )
+        )
+        .font(.caption.monospacedDigit())
+        .foregroundStyle(.secondary)
+        .lineLimit(1)
+        .minimumScaleFactor(0.75)
+        .accessibilityLabel("Formatted amount")
     }
 }
 
@@ -118,7 +163,12 @@ struct FloatingAddButton: View {
                 .foregroundStyle(.white)
                 .frame(width: 64, height: 64)
                 .background(Color(hex: "#0E7C7B"), in: Circle())
-                .shadow(color: Color(hex: "#0E7C7B").opacity(0.32), radius: 22, x: 0, y: 12)
+                .shadow(
+                    color: Color(hex: "#0E7C7B").opacity(0.32),
+                    radius: 22,
+                    x: 0,
+                    y: 12
+                )
         }
         .accessibilityLabel("Add transaction")
     }
@@ -136,7 +186,12 @@ struct CategoryChip: View {
         .font(.subheadline.weight(.medium))
         .padding(.horizontal, 12)
         .padding(.vertical, 9)
-        .background(isSelected ? Color(hex: category.colorHex).opacity(0.22) : Color.primary.opacity(0.06), in: Capsule())
+        .background(
+            isSelected
+                ? Color(hex: category.colorHex).opacity(0.22)
+                : Color.primary.opacity(0.06),
+            in: Capsule()
+        )
         .foregroundStyle(isSelected ? Color(hex: category.colorHex) : .primary)
     }
 }
@@ -148,24 +203,47 @@ struct TransactionRowView: View {
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
-                Circle().fill(Color(hex: transaction.category?.colorHex ?? "#0E7C7B").opacity(0.16))
-                Image(systemName: transaction.category?.iconKey ?? "square.grid.2x2.fill")
-                    .foregroundStyle(Color(hex: transaction.category?.colorHex ?? "#0E7C7B"))
+                Circle().fill(
+                    Color(hex: transaction.category?.colorHex ?? "#0E7C7B")
+                        .opacity(0.16)
+                )
+                Image(
+                    systemName: transaction.category?.iconKey
+                        ?? "square.grid.2x2.fill"
+                )
+                .foregroundStyle(
+                    Color(hex: transaction.category?.colorHex ?? "#0E7C7B")
+                )
             }
             .frame(width: 42, height: 42)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(transaction.category?.name ?? "Other")
                     .font(.subheadline.weight(.semibold))
-                Text(transaction.note?.isEmpty == false ? transaction.note ?? "" : transaction.timestamp.formatted(date: .abbreviated, time: .shortened))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                Text(
+                    transaction.note?.isEmpty == false
+                        ? transaction.note ?? ""
+                        : transaction.timestamp.formatted(
+                            date: .abbreviated,
+                            time: .shortened
+                        )
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
             }
             Spacer()
-            Text((transaction.isExpense ? "" : "+") + MoneyFormatter.string(minorUnits: transaction.amountMinor, currencyCode: currencyCode))
-                .moneyStyle(size: 15, weight: .semibold)
-                .foregroundStyle(transaction.isExpense ? .primary : Color(hex: "#1B8A5A"))
+            Text(
+                (transaction.isExpense ? "" : "+")
+                    + MoneyFormatter.string(
+                        minorUnits: transaction.amountMinor,
+                        currencyCode: currencyCode
+                    )
+            )
+            .moneyStyle(size: 15, weight: .semibold)
+            .foregroundStyle(
+                transaction.isExpense ? .primary : Color(hex: "#1B8A5A")
+            )
         }
         .padding(.vertical, 6)
     }
@@ -176,9 +254,17 @@ struct AccountPicker: View {
     let accounts: [AccountItem]
 
     var body: some View {
-        Picker("Account", selection: Binding(get: { selectedAccount?.id }, set: { id in selectedAccount = accounts.first { $0.id == id } })) {
+        Picker(
+            "Account",
+            selection: Binding(
+                get: { selectedAccount?.id },
+                set: { id in selectedAccount = accounts.first { $0.id == id } }
+            )
+        ) {
             ForEach(accounts) { account in
-                Label(account.name, systemImage: account.type.icon).tag(Optional(account.id))
+                Label(account.name, systemImage: account.type.icon).tag(
+                    Optional(account.id)
+                )
             }
         }
         .pickerStyle(.menu)

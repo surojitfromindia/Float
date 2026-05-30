@@ -38,16 +38,29 @@ enum BudgetCadence: String, Codable, CaseIterable, Identifiable {
 
 @Model
 final class AccountItem {
-    @Attribute(.unique) var id: UUID
-    var name: String
-    var type: AccountType
-    var openingBalanceMinor: Int64
-    var currencyCode: String
-    var archived: Bool
-    var createdAt: Date
-    var updatedAt: Date
+    var id: UUID = UUID()
+    var name: String = ""
+    var type: AccountType = AccountType.cash
+    var openingBalanceMinor: Int64 = 0
+    var currencyCode: String = "USD"
+    var archived: Bool = false
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+    @Relationship(inverse: \TransactionItem.account) var transactions:
+        [TransactionItem]?
+    @Relationship(inverse: \RecurringRuleItem.account) var recurringRules:
+        [RecurringRuleItem]?
 
-    init(id: UUID = UUID(), name: String, type: AccountType = .cash, openingBalanceMinor: Int64 = 0, currencyCode: String, archived: Bool = false, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(
+        id: UUID = UUID(),
+        name: String,
+        type: AccountType = .cash,
+        openingBalanceMinor: Int64 = 0,
+        currencyCode: String,
+        archived: Bool = false,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
         self.id = id
         self.name = name
         self.type = type
@@ -61,16 +74,29 @@ final class AccountItem {
 
 @Model
 final class CategoryItem {
-    @Attribute(.unique) var id: UUID
-    var name: String
-    var iconKey: String
-    var colorHex: String
-    var isIncome: Bool
-    var sortOrder: Int
-    var archived: Bool
-    var isDefault: Bool
+    var id: UUID = UUID()
+    var name: String = ""
+    var iconKey: String = "square.grid.2x2.fill"
+    var colorHex: String = "#0E7C7B"
+    var isIncome: Bool = false
+    var sortOrder: Int = 0
+    var archived: Bool = false
+    var isDefault: Bool = false
+    @Relationship(inverse: \TransactionItem.category) var transactions:
+        [TransactionItem]?
+    @Relationship(inverse: \RecurringRuleItem.category) var recurringRules:
+        [RecurringRuleItem]?
 
-    init(id: UUID = UUID(), name: String, iconKey: String, colorHex: String, isIncome: Bool = false, sortOrder: Int = 0, archived: Bool = false, isDefault: Bool = false) {
+    init(
+        id: UUID = UUID(),
+        name: String,
+        iconKey: String,
+        colorHex: String,
+        isIncome: Bool = false,
+        sortOrder: Int = 0,
+        archived: Bool = false,
+        isDefault: Bool = false
+    ) {
         self.id = id
         self.name = name
         self.iconKey = iconKey
@@ -84,18 +110,29 @@ final class CategoryItem {
 
 @Model
 final class TransactionItem {
-    @Attribute(.unique) var id: UUID
-    var amountMinor: Int64
-    var isExpense: Bool
-    var timestamp: Date
+    var id: UUID = UUID()
+    var amountMinor: Int64 = 0
+    var isExpense: Bool = true
+    var timestamp: Date = Date()
     var category: CategoryItem?
     var account: AccountItem?
     var note: String?
     var recurringRule: RecurringRuleItem?
-    var createdAt: Date
-    var updatedAt: Date
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
-    init(id: UUID = UUID(), amountMinor: Int64, isExpense: Bool = true, timestamp: Date = Date(), category: CategoryItem? = nil, account: AccountItem? = nil, note: String? = nil, recurringRule: RecurringRuleItem? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(
+        id: UUID = UUID(),
+        amountMinor: Int64,
+        isExpense: Bool = true,
+        timestamp: Date = Date(),
+        category: CategoryItem? = nil,
+        account: AccountItem? = nil,
+        note: String? = nil,
+        recurringRule: RecurringRuleItem? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
         self.id = id
         self.amountMinor = max(0, amountMinor)
         self.isExpense = isExpense
@@ -111,21 +148,37 @@ final class TransactionItem {
 
 @Model
 final class RecurringRuleItem {
-    @Attribute(.unique) var id: UUID
-    var amountMinor: Int64
-    var isExpense: Bool
+    var id: UUID = UUID()
+    var amountMinor: Int64 = 0
+    var isExpense: Bool = true
     var category: CategoryItem?
     var account: AccountItem?
     var note: String?
-    var cadence: RecurringCadence
-    var intervalCount: Int
-    var nextRunDate: Date
+    var cadence: RecurringCadence = RecurringCadence.monthly
+    var intervalCount: Int = 1
+    var nextRunDate: Date = Date()
     var endDate: Date?
-    var active: Bool
-    var createdAt: Date
-    var updatedAt: Date
+    var active: Bool = true
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+    @Relationship(inverse: \TransactionItem.recurringRule) var transactions:
+        [TransactionItem]?
 
-    init(id: UUID = UUID(), amountMinor: Int64, isExpense: Bool = true, category: CategoryItem? = nil, account: AccountItem? = nil, note: String? = nil, cadence: RecurringCadence = .monthly, intervalCount: Int = 1, nextRunDate: Date = Date(), endDate: Date? = nil, active: Bool = true, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(
+        id: UUID = UUID(),
+        amountMinor: Int64,
+        isExpense: Bool = true,
+        category: CategoryItem? = nil,
+        account: AccountItem? = nil,
+        note: String? = nil,
+        cadence: RecurringCadence = .monthly,
+        intervalCount: Int = 1,
+        nextRunDate: Date = Date(),
+        endDate: Date? = nil,
+        active: Bool = true,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
         self.id = id
         self.amountMinor = max(0, amountMinor)
         self.isExpense = isExpense
@@ -144,17 +197,27 @@ final class RecurringRuleItem {
 
 @Model
 final class GoalItem {
-    @Attribute(.unique) var id: UUID
-    var name: String
-    var targetMinor: Int64
-    var savedMinor: Int64
+    var id: UUID = UUID()
+    var name: String = ""
+    var targetMinor: Int64 = 0
+    var savedMinor: Int64 = 0
     var targetDate: Date?
-    var colorHex: String
-    var achieved: Bool
-    var createdAt: Date
-    var updatedAt: Date
+    var colorHex: String = "#0E7C7B"
+    var achieved: Bool = false
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
-    init(id: UUID = UUID(), name: String, targetMinor: Int64, savedMinor: Int64 = 0, targetDate: Date? = nil, colorHex: String = "#0E7C7B", achieved: Bool = false, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(
+        id: UUID = UUID(),
+        name: String,
+        targetMinor: Int64,
+        savedMinor: Int64 = 0,
+        targetDate: Date? = nil,
+        colorHex: String = "#0E7C7B",
+        achieved: Bool = false,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
         self.id = id
         self.name = name
         self.targetMinor = max(0, targetMinor)
@@ -169,17 +232,27 @@ final class GoalItem {
 
 @Model
 final class BudgetPeriodItem {
-    @Attribute(.unique) var id: UUID
-    var cadence: BudgetCadence
+    var id: UUID = UUID()
+    var cadence: BudgetCadence = BudgetCadence.monthly
     var startDayOfMonth: Int?
     var startDayOfWeek: Int?
-    var expectedIncomeMinor: Int64
-    var currencyCode: String
-    var isActive: Bool
-    var createdAt: Date
-    var updatedAt: Date
+    var expectedIncomeMinor: Int64 = 0
+    var currencyCode: String = "USD"
+    var isActive: Bool = true
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
 
-    init(id: UUID = UUID(), cadence: BudgetCadence = .monthly, startDayOfMonth: Int? = 1, startDayOfWeek: Int? = nil, expectedIncomeMinor: Int64 = 0, currencyCode: String, isActive: Bool = true, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    init(
+        id: UUID = UUID(),
+        cadence: BudgetCadence = .monthly,
+        startDayOfMonth: Int? = 1,
+        startDayOfWeek: Int? = nil,
+        expectedIncomeMinor: Int64 = 0,
+        currencyCode: String,
+        isActive: Bool = true,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
         self.id = id
         self.cadence = cadence
         self.startDayOfMonth = startDayOfMonth

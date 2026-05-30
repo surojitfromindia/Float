@@ -3,24 +3,43 @@ import SwiftData
 
 enum MaterializeRecurringTransactionsUseCase {
     @MainActor
-    static func run(modelContext: ModelContext, today: Date = Date(), calendar: Calendar = .current) {
+    static func run(
+        modelContext: ModelContext,
+        today: Date = Date(),
+        calendar: Calendar = .current
+    ) {
         let descriptor = FetchDescriptor<RecurringRuleItem>()
         guard let rules = try? modelContext.fetch(descriptor) else { return }
         for rule in rules where rule.active {
-            materialize(rule: rule, modelContext: modelContext, today: today, calendar: calendar)
+            materialize(
+                rule: rule,
+                modelContext: modelContext,
+                today: today,
+                calendar: calendar
+            )
         }
         try? modelContext.save()
     }
 
     @MainActor
-    private static func materialize(rule: RecurringRuleItem, modelContext: ModelContext, today: Date, calendar: Calendar) {
+    private static func materialize(
+        rule: RecurringRuleItem,
+        modelContext: ModelContext,
+        today: Date,
+        calendar: Calendar
+    ) {
         let todayStart = calendar.startOfDay(for: today)
         while calendar.startOfDay(for: rule.nextRunDate) <= todayStart {
             if let endDate = rule.endDate, rule.nextRunDate > endDate {
                 rule.active = false
                 break
             }
-            if !transactionExists(for: rule, on: rule.nextRunDate, modelContext: modelContext, calendar: calendar) {
+            if !transactionExists(
+                for: rule,
+                on: rule.nextRunDate,
+                modelContext: modelContext,
+                calendar: calendar
+            ) {
                 let transaction = TransactionItem(
                     amountMinor: rule.amountMinor,
                     isExpense: rule.isExpense,
@@ -32,18 +51,32 @@ enum MaterializeRecurringTransactionsUseCase {
                 )
                 modelContext.insert(transaction)
             }
-            guard let next = SafeToSpendUseCase.advance(rule.nextRunDate, cadence: rule.cadence, intervalCount: rule.intervalCount, calendar: calendar) else { break }
+            guard
+                let next = SafeToSpendUseCase.advance(
+                    rule.nextRunDate,
+                    cadence: rule.cadence,
+                    intervalCount: rule.intervalCount,
+                    calendar: calendar
+                )
+            else { break }
             rule.nextRunDate = next
             rule.updatedAt = Date()
         }
     }
 
     @MainActor
-    private static func transactionExists(for rule: RecurringRuleItem, on date: Date, modelContext: ModelContext, calendar: Calendar) -> Bool {
+    private static func transactionExists(
+        for rule: RecurringRuleItem,
+        on date: Date,
+        modelContext: ModelContext,
+        calendar: Calendar
+    ) -> Bool {
         let descriptor = FetchDescriptor<TransactionItem>()
         let all = (try? modelContext.fetch(descriptor)) ?? []
         return all.contains { item in
-            item.recurringRule?.id == rule.id && calendar.isDate(item.timestamp, inSameDayAs: date) && item.amountMinor == rule.amountMinor
+            item.recurringRule?.id == rule.id
+                && calendar.isDate(item.timestamp, inSameDayAs: date)
+                && item.amountMinor == rule.amountMinor
         }
     }
 }

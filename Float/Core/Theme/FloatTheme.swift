@@ -23,7 +23,9 @@ enum FloatTheme {
 
 extension Color {
     init(hex: String) {
-        let cleaned = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        let cleaned = hex.trimmingCharacters(
+            in: CharacterSet.alphanumerics.inverted
+        )
         var value: UInt64 = 0
         Scanner(string: cleaned).scanHexInt64(&value)
         let red: UInt64
@@ -39,7 +41,13 @@ extension Color {
             green = 124
             blue = 123
         }
-        self.init(.sRGB, red: Double(red) / 255, green: Double(green) / 255, blue: Double(blue) / 255, opacity: 1)
+        self.init(
+            .sRGB,
+            red: Double(red) / 255,
+            green: Double(green) / 255,
+            blue: Double(blue) / 255,
+            opacity: 1
+        )
     }
 }
 
@@ -47,7 +55,10 @@ extension View {
     func floatBackground() -> some View {
         background(
             LinearGradient(
-                colors: [Color(.systemBackground), Color(.secondarySystemBackground).opacity(0.7)],
+                colors: [
+                    Color(.systemBackground),
+                    Color(.secondarySystemBackground).opacity(0.7),
+                ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -55,7 +66,11 @@ extension View {
         )
     }
 
-    func moneyStyle(size: CGFloat, weight: Font.Weight = .semibold) -> some View {
-        font(.system(size: size, weight: weight, design: .rounded).monospacedDigit())
+    func moneyStyle(size: CGFloat, weight: Font.Weight = .semibold) -> some View
+    {
+        font(
+            .system(size: size, weight: weight, design: .rounded)
+                .monospacedDigit()
+        )
     }
 }
