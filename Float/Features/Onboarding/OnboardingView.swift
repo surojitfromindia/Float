@@ -101,7 +101,7 @@ struct OnboardingView: View {
     {
         VStack(spacing: 18) {
             Image(systemName: icon).font(.system(size: 56, weight: .semibold))
-                .foregroundStyle(Color(hex: "#0E7C7B"))
+                .foregroundStyle(appState.themePalette.accent)
             Text(title).font(.largeTitle.bold())
             Text(message).font(.body).foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

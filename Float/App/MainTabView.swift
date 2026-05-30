@@ -16,7 +16,7 @@ struct MainTabView: View {
             NavigationStack { SettingsView() }
                 .tabItem { Label("More", systemImage: "gearshape.fill") }
         }
-        .tint(Color(hex: "#0E7C7B"))
+        .tint(appState.themePalette.accent)
         .toolbarBackground(.thinMaterial, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .sheet(isPresented: $appState.isEntrySheetPresented) {

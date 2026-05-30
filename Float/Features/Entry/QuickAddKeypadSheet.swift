@@ -19,6 +19,10 @@ struct QuickAddKeypadSheet: View {
     @State private var timestamp = Date()
     @State private var validationMessage: String?
 
+    private var palette: FloatThemePalette {
+        appState.themePalette
+    }
+
     private var amountMinor: Int64 {
         MoneyParser.parseMinorUnits(from: keypadText)
     }
@@ -116,7 +120,7 @@ struct QuickAddKeypadSheet: View {
                             .padding(.vertical, 16)
                             .background(
                                 amountMinor > 0
-                                    ? Color(hex: "#0E7C7B")
+                                    ? palette.accent
                                     : Color.secondary.opacity(0.3),
                                 in: RoundedRectangle(
                                     cornerRadius: 20,

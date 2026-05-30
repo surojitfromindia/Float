@@ -1,6 +1,35 @@
 import Combine
 import SwiftUI
 
+enum AppLanguage: String, CaseIterable, Identifiable {
+    case system
+    case en
+    case es
+    case hi
+    case bn
+
+    var id: String { rawValue }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .system: "Use device language"
+        case .en: "English"
+        case .es: "Spanish"
+        case .hi: "Hindi"
+        case .bn: "Bengali"
+        }
+    }
+
+    var locale: Locale {
+        switch self {
+        case .system:
+            Locale.autoupdatingCurrent
+        default:
+            Locale(identifier: rawValue)
+        }
+    }
+}
+
 @MainActor
 final class AppState: ObservableObject {
     // User preferences persisted across app launches.
@@ -9,6 +38,7 @@ final class AppState: ObservableObject {
         MoneyFormatter.currencyCodeFromLocale()
     @AppStorage("selectedAppearance") var selectedAppearance = "system"
     @AppStorage("selectedThemeMode") var selectedThemeMode = "float"
+    @AppStorage("selectedLanguageCode") var selectedLanguageCode = "system"
     @AppStorage("lastUsedCategoryID") var lastUsedCategoryID = ""
     @AppStorage("lastUsedAccountID") var lastUsedAccountID = ""
 
@@ -23,6 +53,14 @@ final class AppState: ObservableObject {
         case "dark": .dark
         default: nil
         }
+    }
+
+    var themePalette: FloatThemePalette {
+        FloatTheme.palette(for: selectedThemeMode)
+    }
+
+    var selectedLanguage: AppLanguage {
+        AppLanguage(rawValue: selectedLanguageCode) ?? .system
     }
 
     // Opens the entry sheet with empty state for a new transaction.

@@ -46,10 +46,6 @@ final class AccountItem {
     var archived: Bool = false
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
-    @Relationship(inverse: \TransactionItem.account) var transactions:
-        [TransactionItem]?
-    @Relationship(inverse: \RecurringRuleItem.account) var recurringRules:
-        [RecurringRuleItem]?
 
     init(
         id: UUID = UUID(),
@@ -84,10 +80,6 @@ final class CategoryItem {
     var isDefault: Bool = false
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
-    @Relationship(inverse: \TransactionItem.category) var transactions:
-        [TransactionItem]?
-    @Relationship(inverse: \RecurringRuleItem.category) var recurringRules:
-        [RecurringRuleItem]?
 
     init(
         id: UUID = UUID(),
@@ -167,8 +159,6 @@ final class RecurringRuleItem {
     var active: Bool = true
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
-    @Relationship(inverse: \TransactionItem.recurringRule) var transactions:
-        [TransactionItem]?
 
     init(
         id: UUID = UUID(),

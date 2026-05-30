@@ -154,7 +154,12 @@ struct EmptyStateView: View {
 }
 
 struct FloatingAddButton: View {
+    @AppStorage("selectedThemeMode") private var selectedThemeMode = "float"
     let action: () -> Void
+
+    private var accent: Color {
+        FloatTheme.palette(for: selectedThemeMode).accent
+    }
 
     var body: some View {
         Button(action: action) {
@@ -162,9 +167,9 @@ struct FloatingAddButton: View {
                 .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(.white)
                 .frame(width: 64, height: 64)
-                .background(Color(hex: "#0E7C7B"), in: Circle())
+                .background(accent, in: Circle())
                 .shadow(
-                    color: Color(hex: "#0E7C7B").opacity(0.32),
+                    color: accent.opacity(0.32),
                     radius: 22,
                     x: 0,
                     y: 12

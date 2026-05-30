@@ -247,8 +247,13 @@ struct HomeView: View {
 }
 
 struct SafeToSpendHeroCard: View {
+    @AppStorage("selectedThemeMode") private var selectedThemeMode = "float"
     let result: SafeToSpendResult
     let currencyCode: String
+
+    private var palette: FloatThemePalette {
+        FloatTheme.palette(for: selectedThemeMode)
+    }
 
     var body: some View {
         GlassCard {
@@ -274,7 +279,7 @@ struct SafeToSpendHeroCard: View {
                         .font(.subheadline)
                         .foregroundStyle(
                             result.overAmountMinor > 0
-                                ? Color(hex: "#B4613B") : Color(hex: "#1B8A5A")
+                                ? palette.caution : palette.positive
                         )
                     }
                 }
@@ -298,8 +303,13 @@ struct SafeToSpendHeroCard: View {
 }
 
 private struct BudgetStatusChart: View {
+    @AppStorage("selectedThemeMode") private var selectedThemeMode = "float"
     let result: SafeToSpendResult
     let currencyCode: String
+
+    private var palette: FloatThemePalette {
+        FloatTheme.palette(for: selectedThemeMode)
+    }
 
     private var committedMinor: Int64 {
         result.recurringDueMinor + result.goalContributionMinor
@@ -322,7 +332,7 @@ private struct BudgetStatusChart: View {
                     note: periodSummary,
                     amount: nil,
                     progress: result.periodProgress,
-                    tint: Color(hex: "#0E7C7B")
+                    tint: palette.accent
                 )
                 chartMetric(
                     title: "Spending",
@@ -330,7 +340,7 @@ private struct BudgetStatusChart: View {
                     note: nil,
                     amount: result.variableSpentMinor,
                     progress: result.spendingProgress,
-                    tint: Color(hex: "#0E7C7B")
+                    tint: palette.accent
                 )
             }
 
@@ -346,19 +356,19 @@ private struct BudgetStatusChart: View {
                     "Safe",
                     amount: result.safeToSpendMinor,
                     total: chartTotal,
-                    color: Color(hex: "#1B8A5A")
+                    color: palette.positive
                 )
                 legendItem(
                     "Spent",
                     amount: result.variableSpentMinor,
                     total: chartTotal,
-                    color: Color(hex: "#0E7C7B")
+                    color: palette.accent
                 )
                 legendItem(
                     "Committed",
                     amount: committedMinor,
                     total: chartTotal,
-                    color: Color(hex: "#B4613B")
+                    color: palette.caution
                 )
             }
         }
@@ -368,7 +378,7 @@ private struct BudgetStatusChart: View {
             in: RoundedRectangle(cornerRadius: 22, style: .continuous)
         )
         .background(
-            Color(hex: "#0E7C7B").opacity(0.06),
+            palette.accent.opacity(0.06),
             in: RoundedRectangle(cornerRadius: 22, style: .continuous)
         )
         .overlay(

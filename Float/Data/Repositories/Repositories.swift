@@ -86,8 +86,7 @@ struct CategoryRepository {
     }
 
     func deleteIfUnused(_ category: CategoryItem) throws {
-        if category.transactions?.isEmpty == false
-            || category.recurringRules?.isEmpty == false {
+        if isCategoryInUse(category) {
             category.archive()
         } else {
             modelContext.delete(category)
@@ -101,6 +100,16 @@ struct CategoryRepository {
         } catch {
             throw DataIntegrityError.saveFailed
         }
+    }
+
+    private func isCategoryInUse(_ category: CategoryItem) -> Bool {
+        let transactions = (try? modelContext.fetch(FetchDescriptor<TransactionItem>())) ?? []
+        if transactions.contains(where: { $0.category?.id == category.id }) {
+            return true
+        }
+
+        let rules = (try? modelContext.fetch(FetchDescriptor<RecurringRuleItem>())) ?? []
+        return rules.contains { $0.category?.id == category.id }
     }
 }
 
@@ -122,8 +131,7 @@ struct AccountRepository {
     }
 
     func deleteIfUnused(_ account: AccountItem) throws {
-        if account.transactions?.isEmpty == false
-            || account.recurringRules?.isEmpty == false {
+        if isAccountInUse(account) {
             account.archive()
         } else {
             modelContext.delete(account)
@@ -137,6 +145,16 @@ struct AccountRepository {
         } catch {
             throw DataIntegrityError.saveFailed
         }
+    }
+
+    private func isAccountInUse(_ account: AccountItem) -> Bool {
+        let transactions = (try? modelContext.fetch(FetchDescriptor<TransactionItem>())) ?? []
+        if transactions.contains(where: { $0.account?.id == account.id }) {
+            return true
+        }
+
+        let rules = (try? modelContext.fetch(FetchDescriptor<RecurringRuleItem>())) ?? []
+        return rules.contains { $0.account?.id == account.id }
     }
 }
 

@@ -6,8 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		9773DCA42FCB359D00B3A2CD /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 9773DCA32FCB359D00B3A2CD /* Localizable.xcstrings */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		975A85FC2FCA038000B49849 /* Float.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Float.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9773DCA32FCB359D00B3A2CD /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -53,6 +58,7 @@
 				975A85FE2FCA038000B49849 /* Float */,
 				9723D91C2FCAD49800C8A0FF /* FloatUITests */,
 				975A85FD2FCA038000B49849 /* Products */,
+				9773DCA32FCB359D00B3A2CD /* Localizable.xcstrings */,
 			);
 			sourceTree = "<group>";
 		};
@@ -128,6 +134,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9773DCA42FCB359D00B3A2CD /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

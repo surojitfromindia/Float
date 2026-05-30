@@ -15,6 +15,7 @@ struct AppRootView: View {
             }
         }
         .preferredColorScheme(appState.colorScheme)
+        .environment(\.locale, appState.selectedLanguage.locale)
         .task {
             refreshAppData()
         }
