@@ -1,18 +1,18 @@
-//
-//  FloatApp.swift
-//  Float
-//
-//  Created by SUROJIT PAUL on 29/05/26.
-//
-
 import SwiftUI
 import SwiftData
 
 @main
 struct FloatApp: App {
+    @StateObject private var appState = AppState()
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            AccountItem.self,
+            CategoryItem.self,
+            TransactionItem.self,
+            RecurringRuleItem.self,
+            GoalItem.self,
+            BudgetPeriodItem.self
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -25,7 +25,8 @@ struct FloatApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            AppRootView()
+                .environmentObject(appState)
         }
         .modelContainer(sharedModelContainer)
     }
