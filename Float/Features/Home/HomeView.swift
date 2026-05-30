@@ -39,6 +39,13 @@ struct HomeView: View {
         }.reduce(0) { $0 + $1.amountMinor }
     }
 
+    private var upcomingRecurringExpense: RecurringRuleItem? {
+        recurringRules
+            .filter { $0.active && $0.isExpense }
+            .sorted { $0.nextRunDate < $1.nextRunDate }
+            .first
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 18) {
@@ -68,18 +75,17 @@ struct HomeView: View {
                     }
                     GlassCard {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Days left")
+                            Text("This period")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
-                            Text("\(result.daysRemaining)")
-                                .font(
-                                    .system(
-                                        size: 24,
-                                        weight: .bold,
-                                        design: .rounded
-                                    )
+                            Text(
+                                MoneyFormatter.string(
+                                    minorUnits: result.variableSpentMinor,
+                                    currencyCode: appState.selectedCurrencyCode
                                 )
-                            Text("including today")
+                            )
+                            .moneyStyle(size: 24, weight: .bold)
+                            Text("spent so far")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -87,7 +93,39 @@ struct HomeView: View {
                     }
                 }
 
+                GlassCard {
+                    HStack(spacing: 16) {
+                        FloatProgressRing(
+                            progress: result.periodProgress,
+                            tint: Color(hex: "#0E7C7B"),
+                            lineWidth: 8
+                        )
+                        .frame(width: 56, height: 56)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Period")
+                                .font(.headline)
+                            Text(
+                                result.periodStart.formatted(
+                                    date: .abbreviated,
+                                    time: .omitted
+                                ) + " - "
+                                    + result.periodEnd.formatted(
+                                        date: .abbreviated,
+                                        time: .omitted
+                                    )
+                                )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            Text("\(result.daysRemaining) days remaining including today")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                    }
+                }
+
                 budgetOverview
+                upcomingRecurring
                 nearestGoal
                 recentTransactions
             }
@@ -129,6 +167,49 @@ struct HomeView: View {
             IncomeEditorSheet(budget: activeBudget)
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
+        }
+    }
+
+    @ViewBuilder private var upcomingRecurring: some View {
+        if let rule = upcomingRecurringExpense {
+            GlassCard {
+                HStack(spacing: 14) {
+                    Image(systemName: rule.category?.iconKey ?? "repeat")
+                        .font(.headline)
+                        .foregroundStyle(Color(hex: "#B4613B"))
+                        .frame(width: 42, height: 42)
+                        .background(
+                            Color(hex: "#B4613B").opacity(0.14),
+                            in: Circle()
+                        )
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Upcoming recurring")
+                            .font(.headline)
+                        Text(
+                            rule.note?.isEmpty == false
+                                ? rule.note ?? ""
+                                : rule.category?.name ?? "Unknown Category"
+                        )
+                        .font(.subheadline)
+                        Text(
+                            rule.nextRunDate.formatted(
+                                date: .abbreviated,
+                                time: .omitted
+                            )
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Text(
+                        MoneyFormatter.string(
+                            minorUnits: rule.amountMinor,
+                            currencyCode: appState.selectedCurrencyCode
+                        )
+                    )
+                    .moneyStyle(size: 15, weight: .semibold)
+                }
+            }
         }
     }
 
@@ -230,6 +311,7 @@ private struct IncomeEditorSheet: View {
                 }
             }
             .navigationTitle("Update Income")
+            .keyboardDismissControls()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -259,20 +341,18 @@ private struct IncomeEditorSheet: View {
             currencyCode: appState.selectedCurrencyCode
         )
 
-        if activeBudget.modelContext == nil {
-            modelContext.insert(activeBudget)
+        do {
+            try BudgetPeriodRepository(modelContext: modelContext)
+                .saveActiveBudget(
+                    activeBudget,
+                    among: budgets,
+                    expectedIncomeMinor: previewIncomeMinor,
+                    currencyCode: appState.selectedCurrencyCode
+                )
+            dismiss()
+        } catch {
+            dismiss()
         }
-
-        for item in budgets where item.id != activeBudget.id {
-            item.isActive = false
-        }
-
-        activeBudget.expectedIncomeMinor = previewIncomeMinor
-        activeBudget.currencyCode = appState.selectedCurrencyCode
-        activeBudget.isActive = true
-        activeBudget.updatedAt = Date()
-        try? modelContext.save()
-        dismiss()
     }
 }
 

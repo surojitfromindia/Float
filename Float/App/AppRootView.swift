@@ -30,12 +30,6 @@ struct AppRootView: View {
             MaterializeRecurringTransactionsUseCase.run(
                 modelContext: modelContext
             )
-            if appState.hasCompletedOnboarding
-                && appState.isBiometricLockEnabled
-                && !authManager.isUnlocked
-            {
-                Task { _ = await authManager.authenticate() }
-            }
         }
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .background, appState.isBiometricLockEnabled {
@@ -45,8 +39,16 @@ struct AppRootView: View {
                 MaterializeRecurringTransactionsUseCase.run(
                     modelContext: modelContext
                 )
-                if appState.isBiometricLockEnabled && !authManager.isUnlocked {
-                    Task { _ = await authManager.authenticate() }
+                if appState.isBiometricLockEnabled
+                    && !authManager.isUnlocked
+                    && !authManager.isAuthenticating {
+                    Task {
+                        await Task.yield()
+                        guard !authManager.isUnlocked,
+                            !authManager.isAuthenticating
+                        else { return }
+                        _ = await authManager.authenticate()
+                    }
                 }
             }
         }

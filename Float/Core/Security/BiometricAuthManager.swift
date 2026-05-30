@@ -6,6 +6,7 @@ import LocalAuthentication
 final class BiometricAuthManager: ObservableObject {
     @Published var isUnlocked = false
     @Published var lastErrorMessage: String?
+    @Published private(set) var isAuthenticating = false
 
     func canAuthenticate() -> Bool {
         var error: NSError?
@@ -16,7 +17,10 @@ final class BiometricAuthManager: ObservableObject {
     }
 
     func authenticate(reason: String = "Unlock Float") async -> Bool {
+        guard !isAuthenticating else { return false }
         let context = LAContext()
+        isAuthenticating = true
+        defer { isAuthenticating = false }
         lastErrorMessage = nil
         var error: NSError?
         guard
@@ -25,7 +29,9 @@ final class BiometricAuthManager: ObservableObject {
                 error: &error
             )
         else {
-            lastErrorMessage = error?.localizedDescription
+            lastErrorMessage =
+                error?.localizedDescription
+                ?? "Device authentication is not available on this device."
             return false
         }
         do {
@@ -37,7 +43,20 @@ final class BiometricAuthManager: ObservableObject {
             return success
         } catch {
             isUnlocked = false
-            lastErrorMessage = error.localizedDescription
+            if let laError = error as? LAError {
+                switch laError.code {
+                case .userCancel, .appCancel, .systemCancel:
+                    lastErrorMessage = "Unlock was cancelled."
+                case .biometryNotAvailable:
+                    lastErrorMessage = "Biometric authentication is not available."
+                case .biometryNotEnrolled:
+                    lastErrorMessage = "Set up Face ID, Touch ID, or a device passcode to use lock."
+                default:
+                    lastErrorMessage = laError.localizedDescription
+                }
+            } else {
+                lastErrorMessage = error.localizedDescription
+            }
             return false
         }
     }

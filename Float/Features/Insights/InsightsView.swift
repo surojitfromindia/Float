@@ -8,6 +8,13 @@ struct InsightsView: View {
         var transactions: [TransactionItem]
     @Query private var budgets: [BudgetPeriodItem]
     @Query private var recurringRules: [RecurringRuleItem]
+    @State private var selectedRange = InsightRange.currentPeriod
+    @State private var customStart = Calendar.current.date(
+        byAdding: .month,
+        value: -1,
+        to: Date()
+    ) ?? Date()
+    @State private var customEnd = Date()
 
     private let palette = [
         Color(hex: "#0E7C7B"),
@@ -24,17 +31,58 @@ struct InsightsView: View {
         )
     }
 
+    private var activeRange: BudgetPeriod {
+        let calendar = Calendar.current
+        switch selectedRange {
+        case .currentPeriod:
+            return period
+        case .lastPeriod:
+            let length = calendar.dateComponents([.day], from: period.start, to: period.end).day ?? 0
+            let end = calendar.date(byAdding: .day, value: -1, to: period.start) ?? period.start
+            let start = calendar.date(byAdding: .day, value: -length, to: end) ?? end
+            return BudgetPeriod(start: calendar.startOfDay(for: start), end: calendar.startOfDay(for: end))
+        case .lastThreePeriods:
+            let length = calendar.dateComponents([.day], from: period.start, to: period.end).day ?? 0
+            let start = calendar.date(byAdding: .day, value: -(length + 1) * 2, to: period.start) ?? period.start
+            return BudgetPeriod(start: calendar.startOfDay(for: start), end: period.end)
+        case .thisYear:
+            let start = calendar.date(
+                from: calendar.dateComponents([.year], from: Date())
+            ) ?? period.start
+            return BudgetPeriod(start: start, end: Date())
+        case .custom:
+            return BudgetPeriod(
+                start: calendar.startOfDay(for: min(customStart, customEnd)),
+                end: calendar.startOfDay(for: max(customStart, customEnd))
+            )
+        }
+    }
+
+    private var previousRangeTransactions: [TransactionItem] {
+        let calendar = Calendar.current
+        let days = max(
+            1,
+            (calendar.dateComponents([.day], from: activeRange.start, to: activeRange.end).day ?? 0) + 1
+        )
+        let previousEnd = calendar.date(byAdding: .day, value: -1, to: activeRange.start) ?? activeRange.start
+        let previousStart = calendar.date(byAdding: .day, value: -days + 1, to: previousEnd) ?? previousEnd
+        return transactions.filter {
+            previousStart <= $0.timestamp
+                && $0.timestamp <= calendar.endOfDay(for: previousEnd)
+        }
+    }
+
     private var currentTransactions: [TransactionItem] {
         transactions.filter {
-            period.start <= $0.timestamp
-                && $0.timestamp <= Calendar.current.endOfDay(for: period.end)
+            activeRange.start <= $0.timestamp
+                && $0.timestamp <= Calendar.current.endOfDay(for: activeRange.end)
         }
     }
 
     private var categoryInsights: [CategoryInsight] {
         Dictionary(
             grouping: currentTransactions.filter(\.isExpense),
-            by: { $0.category?.name ?? "Other" }
+            by: { $0.categoryName }
         )
         .map { name, items in
             (name, items.reduce(Int64(0)) { $0 + $1.amountMinor })
@@ -99,9 +147,35 @@ struct InsightsView: View {
         return expenseTotal / Int64(max(1, dailyInsights.count))
     }
 
+    private var previousExpenseTotal: Int64 {
+        previousRangeTransactions.filter(\.isExpense).reduce(0) {
+            $0 + $1.amountMinor
+        }
+    }
+
+    private var comparisonCopy: String {
+        guard previousExpenseTotal > 0 || expenseTotal > 0 else {
+            return "No spending yet for this range."
+        }
+        if expenseTotal < previousExpenseTotal {
+            return "You spent less than the previous range."
+        }
+        if expenseTotal > previousExpenseTotal {
+            return "Spending is higher than the previous range."
+        }
+        return "Spending matches the previous range."
+    }
+
     var body: some View {
         ScrollView {
-            VStack(spacing: 18) {
+            VStack(alignment: .leading, spacing: 18) {
+                rangeMenu
+                    .padding(.bottom, -2)
+
+                if selectedRange == .custom {
+                    customRangeControls
+                }
+
                 summaryCard
                 categoryCard
                 dailyCard
@@ -114,19 +188,50 @@ struct InsightsView: View {
         .floatBackground()
     }
 
+    private var rangeMenu: some View {
+        Menu {
+            Picker("Range", selection: $selectedRange) {
+                ForEach(InsightRange.allCases) {
+                    Text($0.title).tag($0)
+                }
+            }
+        } label: {
+            Label(selectedRange.title, systemImage: "calendar")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.thinMaterial, in: Capsule())
+                .overlay(
+                    Capsule()
+                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+                )
+        }
+        .menuOrder(.fixed)
+    }
+
+    private var customRangeControls: some View {
+        GlassCard {
+            VStack(spacing: 12) {
+                DatePicker("From", selection: $customStart, displayedComponents: .date)
+                DatePicker("To", selection: $customEnd, displayedComponents: .date)
+            }
+        }
+    }
+
     private var summaryCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Current period")
+                        Text(selectedRange.title)
                             .font(.headline)
                         Text(
-                            period.start.formatted(
+                            activeRange.start.formatted(
                                 date: .abbreviated,
                                 time: .omitted
                             ) + " - "
-                                + period.end.formatted(
+                                + activeRange.end.formatted(
                                     date: .abbreviated,
                                     time: .omitted
                                 )
@@ -151,8 +256,8 @@ struct InsightsView: View {
 
                 Text(
                     categoryInsights.first.map {
-                        "\($0.name) is your top category this period."
-                    } ?? "Your period is ready for its first transaction."
+                        "\($0.name) is your top category for this range. \(comparisonCopy)"
+                    } ?? comparisonCopy
                 )
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -435,6 +540,26 @@ private struct CashFlowInsight: Identifiable {
     let name: String
     let amountMinor: Int64
     let color: Color
+}
+
+private enum InsightRange: String, CaseIterable, Identifiable {
+    case currentPeriod
+    case lastPeriod
+    case lastThreePeriods
+    case thisYear
+    case custom
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .currentPeriod: "Current period"
+        case .lastPeriod: "Last period"
+        case .lastThreePeriods: "Last 3 periods"
+        case .thisYear: "This year"
+        case .custom: "Custom range"
+        }
+    }
 }
 
 extension Calendar {

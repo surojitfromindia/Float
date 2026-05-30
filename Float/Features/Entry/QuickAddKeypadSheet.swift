@@ -7,6 +7,8 @@ struct QuickAddKeypadSheet: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query(sort: \TransactionItem.timestamp, order: .reverse) private
+        var transactions: [TransactionItem]
 
     let transactionToEdit: TransactionItem?
     @State private var keypadText = ""
@@ -15,12 +17,39 @@ struct QuickAddKeypadSheet: View {
     @State private var selectedAccount: AccountItem?
     @State private var note = ""
     @State private var timestamp = Date()
+    @State private var validationMessage: String?
 
     private var amountMinor: Int64 {
         MoneyParser.parseMinorUnits(from: keypadText)
     }
     private var visibleCategories: [CategoryItem] {
         categories.filter { !$0.archived && $0.isIncome != isExpense }.prefix(8)
+            .map { $0 }
+    }
+    private var recentCategories: [CategoryItem] {
+        uniqueCategories(
+            transactions.compactMap { transaction in
+                guard transaction.isExpense == isExpense else { return nil }
+                return transaction.category
+            }
+        )
+        .prefix(6)
+        .map { $0 }
+    }
+    private var mostUsedCategories: [CategoryItem] {
+        let matching = transactions.filter { $0.isExpense == isExpense }
+        let counts = Dictionary(grouping: matching.compactMap(\.category)) { $0.id }
+            .mapValues(\.count)
+
+        return categories
+            .filter { !$0.archived && $0.isIncome != isExpense }
+            .sorted {
+                let lhsCount = counts[$0.id] ?? 0
+                let rhsCount = counts[$1.id] ?? 0
+                if lhsCount == rhsCount { return $0.sortOrder < $1.sortOrder }
+                return lhsCount > rhsCount
+            }
+            .prefix(6)
             .map { $0 }
     }
 
@@ -47,27 +76,10 @@ struct QuickAddKeypadSheet: View {
 
                     keypad
 
-                    VStack(alignment: .leading, spacing: 12) {
-                        SectionHeader(title: "Category")
-                        FlowLayout(spacing: 8) {
-                            ForEach(visibleCategories) { category in
-                                Button {
-                                    selectedCategory = category
-                                    Haptics.tick()
-                                } label: {
-                                    CategoryChip(
-                                        category: category,
-                                        isSelected: selectedCategory?.id
-                                            == category.id
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
+                    categorySection
 
                     GlassCard {
-                        VStack(spacing: 12) {
+                        VStack(spacing: 14) {
                             AccountPicker(
                                 selectedAccount: $selectedAccount,
                                 accounts: accounts.filter { !$0.archived }
@@ -75,47 +87,105 @@ struct QuickAddKeypadSheet: View {
                             Divider()
                             TextField("Note", text: $note, axis: .vertical)
                                 .textFieldStyle(.plain)
+                                .lineLimit(1...3)
                             DatePicker(
                                 "Date",
                                 selection: $timestamp,
-                                displayedComponents: [.date]
+                                displayedComponents: [.date, .hourAndMinute]
                             )
                         }
                     }
 
-                    Button(action: save) {
-                        Label(
-                            transactionToEdit == nil
-                                ? "Save transaction" : "Save changes",
-                            systemImage: "checkmark.circle.fill"
-                        )
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(
-                            amountMinor > 0
-                                ? Color(hex: "#0E7C7B")
-                                : Color.secondary.opacity(0.3),
-                            in: RoundedRectangle(
-                                cornerRadius: 20,
-                                style: .continuous
+                    VStack(spacing: 10) {
+                        if let validationMessage {
+                            Text(validationMessage)
+                                .font(.footnote)
+                                .foregroundStyle(Color(hex: "#B4613B"))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .accessibilityLabel(validationMessage)
+                        }
+
+                        Button(action: save) {
+                            Label(
+                                transactionToEdit == nil
+                                    ? "Save transaction" : "Save changes",
+                                systemImage: "checkmark.circle.fill"
                             )
-                        )
-                        .foregroundStyle(.white)
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                amountMinor > 0
+                                    ? Color(hex: "#0E7C7B")
+                                    : Color.secondary.opacity(0.3),
+                                in: RoundedRectangle(
+                                    cornerRadius: 20,
+                                    style: .continuous
+                                )
+                            )
+                            .foregroundStyle(.white)
+                        }
+                        .disabled(amountMinor == 0)
+
+                        if transactionToEdit != nil {
+                            Button(role: .destructive, action: deleteTransaction) {
+                                Label("Delete transaction", systemImage: "trash")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.borderless)
+                        }
                     }
-                    .disabled(amountMinor == 0)
                 }
                 .padding(20)
             }
             .navigationTitle(transactionToEdit == nil ? "Add" : "Edit")
             .navigationBarTitleDisplayMode(.inline)
+            .keyboardDismissControls()
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button("Cancel") { dismiss() }
                 }
             }
             .floatBackground()
             .onAppear(perform: configureDefaults)
+        }
+    }
+
+    private var categorySection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            categoryChips(title: "Recent", categories: recentCategories)
+            categoryChips(title: "Most used", categories: mostUsedCategories)
+            if recentCategories.isEmpty && mostUsedCategories.isEmpty {
+                categoryChips(title: "Category", categories: visibleCategories)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func categoryChips(
+        title: String,
+        categories: [CategoryItem]
+    ) -> some View {
+        if !categories.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: title)
+                FlowLayout(spacing: 8) {
+                    ForEach(categories) { category in
+                        Button {
+                            selectedCategory = category
+                            validationMessage = nil
+                            Haptics.tick()
+                        } label: {
+                            CategoryChip(
+                                category: category,
+                                isSelected: selectedCategory?.id == category.id
+                            )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
         }
     }
 
@@ -141,6 +211,7 @@ struct QuickAddKeypadSheet: View {
                             to: keypadText
                         )
                     }
+                    validationMessage = nil
                     Haptics.tick()
                 } label: {
                     Group {
@@ -177,40 +248,87 @@ struct QuickAddKeypadSheet: View {
             return
         }
         selectedCategory =
-            categories.first { $0.id.uuidString == appState.lastUsedCategoryID }
-            ?? categories.first { $0.name == "Other" && !$0.isIncome }
-            ?? categories.first { !$0.isIncome }
+            categories.first {
+                !$0.archived && $0.id.uuidString == appState.lastUsedCategoryID
+            }
         selectedAccount =
-            accounts.first { $0.id.uuidString == appState.lastUsedAccountID }
-            ?? accounts.first { !$0.archived }
+            accounts.first {
+                !$0.archived && $0.id.uuidString == appState.lastUsedAccountID
+            }
     }
 
     private func save() {
-        let cleanNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let transactionToEdit {
-            transactionToEdit.amountMinor = amountMinor
-            transactionToEdit.isExpense = isExpense
-            transactionToEdit.timestamp = timestamp
-            transactionToEdit.category = selectedCategory
-            transactionToEdit.account = selectedAccount
-            transactionToEdit.note = cleanNote.isEmpty ? nil : cleanNote
-            transactionToEdit.updatedAt = Date()
-        } else {
-            let transaction = TransactionItem(
-                amountMinor: amountMinor,
-                isExpense: isExpense,
-                timestamp: timestamp,
-                category: selectedCategory,
-                account: selectedAccount,
-                note: cleanNote.isEmpty ? nil : cleanNote
-            )
-            modelContext.insert(transaction)
+        guard amountMinor > 0 else {
+            validationMessage = "Enter an amount greater than zero."
+            return
         }
-        appState.lastUsedCategoryID = selectedCategory?.id.uuidString ?? ""
-        appState.lastUsedAccountID = selectedAccount?.id.uuidString ?? ""
-        try? modelContext.save()
-        Haptics.confirm()
-        dismiss()
+
+        let cleanNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        let category = selectedCategory ?? DefaultCategoryResolver.resolve(
+            isExpense: isExpense,
+            preferredID: appState.lastUsedCategoryID,
+            categories: categories,
+            modelContext: modelContext
+        )
+        let account = selectedAccount ?? DefaultAccountResolver.resolve(
+            preferredID: appState.lastUsedAccountID,
+            accounts: accounts,
+            modelContext: modelContext,
+            currencyCode: appState.selectedCurrencyCode
+        )
+        let repository = TransactionRepository(modelContext: modelContext)
+
+        do {
+            if let transactionToEdit {
+                try repository.update(
+                    transactionToEdit,
+                    amountMinor: amountMinor,
+                    isExpense: isExpense,
+                    timestamp: timestamp,
+                    category: category,
+                    account: account,
+                    note: cleanNote
+                )
+            } else {
+                _ = try repository.create(
+                    amountMinor: amountMinor,
+                    isExpense: isExpense,
+                    timestamp: timestamp,
+                    category: category,
+                    account: account,
+                    note: cleanNote
+                )
+            }
+            appState.lastUsedCategoryID = category.id.uuidString
+            appState.lastUsedAccountID = account.id.uuidString
+            Haptics.confirm()
+            dismiss()
+        } catch {
+            validationMessage = error.localizedDescription
+        }
+    }
+
+    private func deleteTransaction() {
+        guard let transactionToEdit else { return }
+        do {
+            try TransactionRepository(modelContext: modelContext)
+                .delete(transactionToEdit)
+            Haptics.tick()
+            dismiss()
+        } catch {
+            validationMessage = error.localizedDescription
+        }
+    }
+
+    private func uniqueCategories(_ categories: [CategoryItem]) -> [CategoryItem] {
+        var seen = Set<UUID>()
+        return categories.filter { category in
+            guard !category.archived, !seen.contains(category.id) else {
+                return false
+            }
+            seen.insert(category.id)
+            return true
+        }
     }
 }
 

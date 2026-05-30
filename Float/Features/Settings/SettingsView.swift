@@ -9,6 +9,11 @@ private struct CurrencyOption: Identifiable {
     var id: String { code }
 }
 
+private enum ImportKind {
+    case csv
+    case backup
+}
+
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
@@ -25,11 +30,31 @@ struct SettingsView: View {
     @State private var exportingBackup = false
     @State private var importingBackup = false
     @State private var backupPassword = ""
+    @State private var csvDocument = CSVDocument()
     @State private var backupDocument = BackupDocument()
     @State private var message = ""
     @State private var showingResetConfirmation = false
 
     var body: some View {
+        ZStack {
+            settingsList
+            filePresentationHost
+        }
+        .navigationTitle("Settings")
+        .alert("Reset all data?", isPresented: $showingResetConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Reset all data", role: .destructive) {
+                resetAllData()
+                message = "All data has been reset."
+            }
+        } message: {
+            Text(
+                "This permanently deletes your accounts, categories, budgets, goals, recurring rules, and transactions. This action cannot be undone."
+            )
+        }
+    }
+
+    private var settingsList: some View {
         List {
             Section("Preferences") {
                 Picker("Currency", selection: $appState.selectedCurrencyCode) {
@@ -69,14 +94,18 @@ struct SettingsView: View {
                 NavigationLink("Accounts", destination: AccountManagerView())
             }
             Section("Portable data") {
-                Button("Export CSV") { exportingCSV = true }
-                Button("Import CSV") { importingCSV = true }
+                Button("Export CSV", action: exportCSV)
+                    .buttonStyle(.borderless)
+                Button("Import CSV") { presentImporter(.csv) }
+                    .buttonStyle(.borderless)
                 TextField("Backup password", text: $backupPassword)
                     .textContentType(.password)
                 Button("Create encrypted backup") { createBackup() }
                     .disabled(backupPassword.isEmpty)
-                Button("Restore encrypted backup") { importingBackup = true }
+                    .buttonStyle(.borderless)
+                Button("Restore encrypted backup") { presentImporter(.backup) }
                     .disabled(backupPassword.isEmpty)
+                    .buttonStyle(.borderless)
                 Text(
                     "Backup files are encrypted with your password. If you lose it, the backup cannot be restored."
                 )
@@ -100,27 +129,21 @@ struct SettingsView: View {
                 )
             }
         }
-        .navigationTitle("Settings")
-        .alert("Reset all data?", isPresented: $showingResetConfirmation) {
-            Button("Cancel", role: .cancel) {}
-            Button("Reset all data", role: .destructive) {
-                resetAllData()
-                message = "All data has been reset."
-            }
-        } message: {
-            Text(
-                "This permanently deletes your accounts, categories, budgets, goals, recurring rules, and transactions. This action cannot be undone."
-            )
-        }
+        .keyboardDismissControls()
+    }
+
+    private var filePresentationHost: some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
         .fileExporter(
             isPresented: $exportingCSV,
-            document: CSVTransactionService.export(
-                transactions: transactions,
-                currencyCode: appState.selectedCurrencyCode
-            ),
+            document: csvDocument,
             contentType: .commaSeparatedText,
             defaultFilename: "float-transactions.csv"
-        ) { _ in }
+        ) { result in
+            message = resultMessage(result, success: "CSV exported.")
+        }
         .fileImporter(
             isPresented: $importingCSV,
             allowedContentTypes: [.commaSeparatedText, .plainText]
@@ -135,7 +158,7 @@ struct SettingsView: View {
         }
         .fileImporter(
             isPresented: $importingBackup,
-            allowedContentTypes: [.floatBackup]
+            allowedContentTypes: [.floatBackup, .data]
         ) { result in restoreBackup(result) }
     }
 
@@ -161,6 +184,32 @@ struct SettingsView: View {
         CurrencyOption(code: "MXN", symbol: "MX$"),
     ]
 
+    private func presentImporter(_ kind: ImportKind) {
+        DispatchQueue.main.async {
+            switch kind {
+            case .csv:
+                importingCSV = true
+                message = "Opening CSV importer."
+            case .backup:
+                importingBackup = true
+                message = "Opening backup importer."
+            }
+        }
+    }
+
+    private func exportCSV() {
+        csvDocument = CSVTransactionService.export(
+            transactions: transactions,
+            currencyCode: appState.selectedCurrencyCode
+        )
+        message = transactions.isEmpty
+            ? "Exporting a CSV with headers only."
+            : "Preparing \(transactions.count) transactions for export."
+        DispatchQueue.main.async {
+            exportingCSV = true
+        }
+    }
+
     private func createBackup() {
         let dto = FloatBackupDTO(
             accounts: accounts.map {
@@ -184,7 +233,9 @@ struct SettingsView: View {
                     isIncome: $0.isIncome,
                     sortOrder: $0.sortOrder,
                     archived: $0.archived,
-                    isDefault: $0.isDefault
+                    isDefault: $0.isDefault,
+                    createdAt: $0.createdAt,
+                    updatedAt: $0.updatedAt
                 )
             },
             transactions: transactions.map {
@@ -254,7 +305,10 @@ struct SettingsView: View {
                 dto,
                 password: backupPassword
             )
-            exportingBackup = true
+            message = "Preparing encrypted backup."
+            DispatchQueue.main.async {
+                exportingBackup = true
+            }
         } catch { message = error.localizedDescription }
     }
 
@@ -313,6 +367,7 @@ struct SettingsView: View {
                 dedupeKey(
                     timestamp: $0.timestamp,
                     amountMinor: $0.amountMinor,
+                    isExpense: $0.isExpense,
                     note: $0.note
                 )
             }
@@ -337,6 +392,7 @@ struct SettingsView: View {
             let key = dedupeKey(
                 timestamp: timestamp,
                 amountMinor: amountMinor,
+                isExpense: isExpense,
                 note: note
             )
             guard !existingKeys.contains(key), !newKeys.contains(key) else {
@@ -370,10 +426,15 @@ struct SettingsView: View {
         return (imported, skipped)
     }
 
-    private func dedupeKey(timestamp: Date, amountMinor: Int64, note: String?)
+    private func dedupeKey(
+        timestamp: Date,
+        amountMinor: Int64,
+        isExpense: Bool,
+        note: String?
+    )
         -> String
     {
-        "\(Int(timestamp.timeIntervalSince1970))|\(amountMinor)|\(note ?? "")"
+        "\(Int(timestamp.timeIntervalSince1970))|\(amountMinor)|\(isExpense)|\(note ?? "")"
     }
 
     private func parseCSVLine(_ line: String) -> [String] {
@@ -410,7 +471,7 @@ struct SettingsView: View {
     }
 
     private func restore(_ dto: FloatBackupDTO) {
-        resetAllData()
+        resetAllData(reseedDefaults: false)
         var categoryMap: [UUID: CategoryItem] = [:]
         var accountMap: [UUID: AccountItem] = [:]
         for item in dto.categories {
@@ -422,7 +483,9 @@ struct SettingsView: View {
                 isIncome: item.isIncome,
                 sortOrder: item.sortOrder,
                 archived: item.archived,
-                isDefault: item.isDefault
+                isDefault: item.isDefault,
+                createdAt: item.createdAt ?? Date(),
+                updatedAt: item.updatedAt ?? item.createdAt ?? Date()
             )
             categoryMap[item.id] = model
             modelContext.insert(model)
@@ -471,6 +534,26 @@ struct SettingsView: View {
                 )
             )
         }
+        var recurringMap: [UUID: RecurringRuleItem] = [:]
+        for item in dto.recurringRules {
+            let model = RecurringRuleItem(
+                id: item.id,
+                amountMinor: item.amountMinor,
+                isExpense: item.isExpense,
+                category: item.categoryID.flatMap { categoryMap[$0] },
+                account: item.accountID.flatMap { accountMap[$0] },
+                note: item.note,
+                cadence: item.cadence,
+                intervalCount: item.intervalCount,
+                nextRunDate: item.nextRunDate,
+                endDate: item.endDate,
+                active: item.active,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt
+            )
+            recurringMap[item.id] = model
+            modelContext.insert(model)
+        }
         for item in dto.transactions {
             modelContext.insert(
                 TransactionItem(
@@ -481,6 +564,7 @@ struct SettingsView: View {
                     category: item.categoryID.flatMap { categoryMap[$0] },
                     account: item.accountID.flatMap { accountMap[$0] },
                     note: item.note,
+                    recurringRule: item.recurringRuleID.flatMap { recurringMap[$0] },
                     createdAt: item.createdAt,
                     updatedAt: item.updatedAt
                 )
@@ -490,7 +574,7 @@ struct SettingsView: View {
         try? modelContext.save()
     }
 
-    private func resetAllData() {
+    private func resetAllData(reseedDefaults: Bool = true) {
         for item in transactions { modelContext.delete(item) }
         for item in recurringRules { modelContext.delete(item) }
         for item in goals { modelContext.delete(item) }
@@ -498,6 +582,12 @@ struct SettingsView: View {
         for item in accounts { modelContext.delete(item) }
         for item in categories { modelContext.delete(item) }
         try? modelContext.save()
+        if reseedDefaults {
+            SeedDataService.ensureSeedData(
+                modelContext: modelContext,
+                currencyCode: appState.selectedCurrencyCode
+            )
+        }
     }
 
     private func resultMessage(_ result: Result<URL, Error>, success: String)
@@ -615,6 +705,7 @@ struct BudgetSettingsView: View {
             }
         }
         .navigationTitle("Budget")
+        .keyboardDismissControls()
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save", action: save)
@@ -753,8 +844,10 @@ struct CategoryManagerView: View {
                 .buttonStyle(.plain)
             }
             .onDelete {
-                $0.map { categories[$0] }.forEach(modelContext.delete)
-                try? modelContext.save()
+                let repository = CategoryRepository(modelContext: modelContext)
+                $0.map { categories[$0] }.forEach {
+                    try? repository.deleteIfUnused($0)
+                }
             }
         }
         .navigationTitle("Categories")
@@ -822,8 +915,10 @@ struct AccountManagerView: View {
                 .buttonStyle(.plain)
             }
             .onDelete {
-                $0.map { accounts[$0] }.forEach(modelContext.delete)
-                try? modelContext.save()
+                let repository = AccountRepository(modelContext: modelContext)
+                $0.map { accounts[$0] }.forEach {
+                    try? repository.deleteIfUnused($0)
+                }
             }
         }
         .navigationTitle("Accounts")
@@ -929,6 +1024,7 @@ private struct CategoryEditorView: View {
                 }
             }
             .navigationTitle(category == nil ? "New Category" : "Edit Category")
+            .keyboardDismissControls()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -962,6 +1058,7 @@ private struct CategoryEditorView: View {
             category.colorHex = colorHex
             category.isIncome = isIncome
             category.archived = archived
+            category.updatedAt = Date()
         } else {
             modelContext.insert(
                 CategoryItem(
@@ -1027,6 +1124,7 @@ private struct AccountEditorView: View {
                 }
             }
             .navigationTitle(account == nil ? "New Account" : "Edit Account")
+            .keyboardDismissControls()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

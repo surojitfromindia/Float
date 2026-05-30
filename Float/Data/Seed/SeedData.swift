@@ -17,41 +17,9 @@ enum SeedData {
     @MainActor
     static func ensureSeedData(modelContext: ModelContext, currencyCode: String)
     {
-        let categoryFetch = FetchDescriptor<CategoryItem>()
-        let existingCategories = (try? modelContext.fetch(categoryFetch)) ?? []
-        if existingCategories.isEmpty {
-            for (index, item) in defaultCategories.enumerated() {
-                modelContext.insert(
-                    CategoryItem(
-                        name: item.0,
-                        iconKey: item.1,
-                        colorHex: item.2,
-                        isIncome: item.3,
-                        sortOrder: index,
-                        isDefault: true
-                    )
-                )
-            }
-        }
-
-        let accountFetch = FetchDescriptor<AccountItem>()
-        let existingAccounts = (try? modelContext.fetch(accountFetch)) ?? []
-        if existingAccounts.isEmpty {
-            modelContext.insert(
-                AccountItem(
-                    name: "Cash",
-                    type: .cash,
-                    currencyCode: currencyCode
-                )
-            )
-        }
-
-        let budgetFetch = FetchDescriptor<BudgetPeriodItem>()
-        let existingBudgets = (try? modelContext.fetch(budgetFetch)) ?? []
-        if existingBudgets.isEmpty {
-            modelContext.insert(BudgetPeriodItem(currencyCode: currencyCode))
-        }
-
-        try? modelContext.save()
+        SeedDataService.ensureSeedData(
+            modelContext: modelContext,
+            currencyCode: currencyCode
+        )
     }
 }

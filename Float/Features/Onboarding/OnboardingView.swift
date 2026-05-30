@@ -92,6 +92,7 @@ struct OnboardingView: View {
             }.padding(28).tag(4)
         }
         .tabViewStyle(.page)
+        .keyboardDismissControls()
         .safeAreaInset(edge: .bottom) {
             if page < 4 {
                 Button("Continue") { withAnimation { page += 1 } }.buttonStyle(

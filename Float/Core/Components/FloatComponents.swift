@@ -204,33 +204,31 @@ struct TransactionRowView: View {
         HStack(spacing: 12) {
             ZStack {
                 Circle().fill(
-                    Color(hex: transaction.category?.colorHex ?? "#0E7C7B")
+                    Color(hex: transaction.categoryColorHex)
                         .opacity(0.16)
                 )
-                Image(
-                    systemName: transaction.category?.iconKey
-                        ?? "square.grid.2x2.fill"
-                )
+                Image(systemName: transaction.categoryIconKey)
                 .foregroundStyle(
-                    Color(hex: transaction.category?.colorHex ?? "#0E7C7B")
+                    Color(hex: transaction.categoryColorHex)
                 )
             }
             .frame(width: 42, height: 42)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(transaction.category?.name ?? "Other")
+                Text(transaction.categoryName)
                     .font(.subheadline.weight(.semibold))
                 Text(
                     transaction.note?.isEmpty == false
                         ? transaction.note ?? ""
-                        : transaction.timestamp.formatted(
-                            date: .abbreviated,
-                            time: .shortened
-                        )
+                        : transaction.accountName
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                Text(transaction.timestamp.formatted(date: .abbreviated, time: .shortened))
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
             }
             Spacer()
             Text(
@@ -268,5 +266,12 @@ struct AccountPicker: View {
             }
         }
         .pickerStyle(.menu)
+    }
+}
+
+extension View {
+    func keyboardDismissControls() -> some View {
+        self
+            .scrollDismissesKeyboard(.interactively)
     }
 }

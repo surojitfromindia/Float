@@ -8,18 +8,27 @@ struct GoalsView: View {
         [GoalItem]
     @State private var showingEditor = false
     @State private var editingGoal: GoalItem?
+    @State private var contributionGoal: GoalItem?
+    @State private var showCompleted = true
+
+    private var visibleGoals: [GoalItem] {
+        goals.filter { showCompleted || !$0.achieved }
+    }
 
     var body: some View {
         List {
-            if goals.isEmpty {
+            Toggle("Show completed", isOn: $showCompleted)
+            if visibleGoals.isEmpty {
                 EmptyStateView(
                     icon: "target",
-                    title: "No goals yet",
-                    message: "Create a goal to reserve money before spending."
+                    title: goals.isEmpty ? "No goals yet" : "No visible goals",
+                    message: goals.isEmpty
+                        ? "Create a goal to reserve money before spending."
+                        : "Completed goals are hidden for now."
                 )
                 .listRowBackground(Color.clear)
             }
-            ForEach(goals) { goal in
+            ForEach(visibleGoals) { goal in
                 Button {
                     editingGoal = goal
                     showingEditor = true
@@ -35,11 +44,28 @@ struct GoalsView: View {
                         VStack(alignment: .leading) {
                             Text(goal.name).font(.headline)
                             Text(
-                                "\(MoneyFormatter.string(minorUnits: goal.savedMinor, currencyCode: appState.selectedCurrencyCode)) saved"
+                                "\(MoneyFormatter.string(minorUnits: goal.savedMinor, currencyCode: appState.selectedCurrencyCode)) of \(MoneyFormatter.string(minorUnits: goal.targetMinor, currencyCode: appState.selectedCurrencyCode))"
                             )
                             .font(.caption).foregroundStyle(.secondary)
+                            if let targetDate = goal.targetDate {
+                                Text("Target \(targetDate.formatted(date: .abbreviated, time: .omitted))")
+                                    .font(.caption2)
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                         Spacer()
+                        VStack(alignment: .trailing, spacing: 4) {
+                            Text(
+                                MoneyFormatter.string(
+                                    minorUnits: max(0, goal.targetMinor - goal.savedMinor),
+                                    currencyCode: appState.selectedCurrencyCode
+                                )
+                            )
+                            .moneyStyle(size: 14, weight: .semibold)
+                            Text("remaining")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                         if goal.achieved {
                             Image(systemName: "checkmark.seal.fill")
                                 .foregroundStyle(Color(hex: "#1B8A5A"))
@@ -47,10 +73,20 @@ struct GoalsView: View {
                     }
                 }
                 .buttonStyle(.plain)
+                .swipeActions(edge: .leading) {
+                    Button {
+                        contributionGoal = goal
+                    } label: {
+                        Label("Contribute", systemImage: "plus.circle")
+                    }
+                    .tint(Color(hex: "#0E7C7B"))
+                }
             }
             .onDelete { offsets in
-                offsets.map { goals[$0] }.forEach(modelContext.delete)
-                try? modelContext.save()
+                let repository = GoalRepository(modelContext: modelContext)
+                offsets.map { visibleGoals[$0] }.forEach {
+                    try? repository.delete($0)
+                }
             }
         }
         .navigationTitle("Goals")
@@ -65,6 +101,11 @@ struct GoalsView: View {
         .sheet(isPresented: $showingEditor) {
             GoalEditorView(goal: editingGoal)
         }
+        .sheet(item: $contributionGoal) { goal in
+            GoalContributionSheet(goal: goal)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
     }
 }
 
@@ -78,6 +119,13 @@ struct GoalEditorView: View {
     @State private var savedText = ""
     @State private var targetDate = Date()
     @State private var hasDate = false
+    @State private var colorHex = "#0E7C7B"
+    @State private var validationMessage: String?
+
+    private let colorOptions = [
+        "#0E7C7B", "#1B8A5A", "#3B82F6", "#8B5CF6",
+        "#B4613B", "#D08A62", "#EC4899", "#5A6B6B",
+    ]
 
     var body: some View {
         NavigationStack {
@@ -107,8 +155,35 @@ struct GoalEditorView: View {
                         displayedComponents: .date
                     )
                 }
+                Section("Color") {
+                    HStack(spacing: 12) {
+                        ForEach(colorOptions, id: \.self) { color in
+                            Button {
+                                colorHex = color
+                            } label: {
+                                Circle()
+                                    .fill(Color(hex: color))
+                                    .frame(width: 30, height: 30)
+                                    .overlay {
+                                        if colorHex == color {
+                                            Image(systemName: "checkmark")
+                                                .font(.caption.bold())
+                                                .foregroundStyle(.white)
+                                        }
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                if let validationMessage {
+                    Text(validationMessage)
+                        .font(.footnote)
+                        .foregroundStyle(Color(hex: "#B4613B"))
+                }
             }
             .navigationTitle(goal == nil ? "New Goal" : "Edit Goal")
+            .keyboardDismissControls()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -124,6 +199,7 @@ struct GoalEditorView: View {
                 savedText = "\(goal.savedMinor)"
                 targetDate = goal.targetDate ?? Date()
                 hasDate = goal.targetDate != nil
+                colorHex = goal.colorHex
             }
         }
     }
@@ -139,25 +215,143 @@ struct GoalEditorView: View {
     private func save() {
         let target = targetMinor
         let saved = savedMinor
-        if let goal {
-            goal.name = name
-            goal.targetMinor = target
-            goal.savedMinor = saved
-            goal.targetDate = hasDate ? targetDate : nil
-            goal.achieved = saved >= target && target > 0
-            goal.updatedAt = Date()
-        } else {
-            modelContext.insert(
-                GoalItem(
-                    name: name,
+        guard target > 0 else {
+            validationMessage = "Enter a target amount greater than zero."
+            return
+        }
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        do {
+            let repository = GoalRepository(modelContext: modelContext)
+            if let goal {
+                try repository.update(
+                    goal,
+                    name: trimmedName,
                     targetMinor: target,
                     savedMinor: saved,
                     targetDate: hasDate ? targetDate : nil,
-                    achieved: saved >= target && target > 0
+                    colorHex: colorHex
+                )
+            } else {
+                _ = try repository.create(
+                    name: trimmedName,
+                    targetMinor: target,
+                    savedMinor: saved,
+                    targetDate: hasDate ? targetDate : nil,
+                    colorHex: colorHex
+                )
+            }
+            dismiss()
+        } catch {
+            validationMessage = error.localizedDescription
+        }
+    }
+}
+
+private struct GoalContributionSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var appState: AppState
+    let goal: GoalItem
+    @State private var amountText = ""
+    @State private var mode = ContributionMode.add
+    @State private var validationMessage: String?
+
+    private var amountMinor: Int64 {
+        BudgetAmountField.minorUnits(
+            fromMajorAmount: amountText,
+            currencyCode: appState.selectedCurrencyCode
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Picker("Mode", selection: $mode) {
+                    ForEach(ContributionMode.allCases) {
+                        Text($0.title).tag($0)
+                    }
+                }
+                .pickerStyle(.segmented)
+                HStack {
+                    TextField("Amount", text: $amountText)
+                        .keyboardType(.decimalPad)
+                    CurrencyAmountPreview(
+                        minorUnits: amountMinor,
+                        currencyCode: appState.selectedCurrencyCode
+                    )
+                }
+                Section("Current goal") {
+                    goalRow("Saved", goal.savedMinor)
+                    goalRow("Remaining", max(0, goal.targetMinor - goal.savedMinor))
+                    if let targetDate = goal.targetDate {
+                        Text("Target \(targetDate.formatted(date: .abbreviated, time: .omitted))")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                if let validationMessage {
+                    Text(validationMessage)
+                        .font(.footnote)
+                        .foregroundStyle(Color(hex: "#B4613B"))
+                }
+            }
+            .navigationTitle("Contribution")
+            .keyboardDismissControls()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save", action: save)
+                        .disabled(amountMinor == 0)
+                }
+            }
+        }
+    }
+
+    private func goalRow(_ title: String, _ amount: Int64) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(
+                MoneyFormatter.string(
+                    minorUnits: amount,
+                    currencyCode: appState.selectedCurrencyCode
                 )
             )
+            .moneyStyle(size: 15, weight: .semibold)
         }
-        try? modelContext.save()
-        dismiss()
+    }
+
+    private func save() {
+        guard amountMinor > 0 else {
+            validationMessage = "Enter an amount greater than zero."
+            return
+        }
+        do {
+            let repository = GoalRepository(modelContext: modelContext)
+            switch mode {
+            case .add:
+                try repository.addContribution(amountMinor, to: goal)
+            case .reduce:
+                try repository.reduceContribution(amountMinor, from: goal)
+            }
+            dismiss()
+        } catch {
+            validationMessage = error.localizedDescription
+        }
+    }
+}
+
+private enum ContributionMode: String, CaseIterable, Identifiable {
+    case add
+    case reduce
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .add: "Add"
+        case .reduce: "Reduce"
+        }
     }
 }

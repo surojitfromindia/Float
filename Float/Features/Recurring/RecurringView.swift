@@ -26,28 +26,28 @@ struct RecurringView: View {
                     showingEditor = true
                 } label: {
                     HStack {
-                        Image(
-                            systemName: rule.isExpense
-                                ? "arrow.down.circle.fill"
-                                : "arrow.up.circle.fill"
-                        )
-                        .foregroundStyle(tint(for: rule))
+                        ZStack {
+                            Circle().fill(tint(for: rule).opacity(0.14))
+                            Image(systemName: rule.category?.iconKey ?? "repeat")
+                                .foregroundStyle(tint(for: rule))
+                        }
+                        .frame(width: 42, height: 42)
                         VStack(alignment: .leading, spacing: 4) {
                             Text(
                                 rule.note?.isEmpty == false
                                     ? rule.note ?? "Recurring"
-                                    : rule.category?.name ?? "Recurring"
+                                    : rule.category?.name ?? "Unknown Category"
                             )
                             .font(.headline)
                             .foregroundStyle(rule.active ? .primary : .secondary)
                             Text(
-                                "Next: \(rule.nextRunDate.formatted(date: .abbreviated, time: .omitted))"
+                                "\(rule.account?.name ?? "Unknown Account") • Next: \(rule.nextRunDate.formatted(date: .abbreviated, time: .omitted))"
                             )
                             .font(.caption).foregroundStyle(.secondary)
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 6) {
-                            Text(rule.cadence.title).font(
+                            Text(cadenceText(for: rule)).font(
                                 .caption.weight(.semibold)
                             )
                             Text(rule.active ? "Active" : "Inactive")
@@ -127,13 +127,19 @@ struct RecurringView: View {
         return rule.isExpense ? Color(hex: "#B4613B") : Color(hex: "#1B8A5A")
     }
 
+    private func cadenceText(for rule: RecurringRuleItem) -> String {
+        rule.intervalCount == 1
+            ? rule.cadence.title
+            : "Every \(rule.intervalCount) \(rule.cadence.title.lowercased())s"
+    }
+
     private func deletePendingRule() {
         guard let rulePendingDeletion else {
             return
         }
 
-        modelContext.delete(rulePendingDeletion)
-        try? modelContext.save()
+        try? RecurringRepository(modelContext: modelContext)
+            .delete(rulePendingDeletion)
         self.rulePendingDeletion = nil
     }
 }
@@ -152,6 +158,11 @@ struct RecurringEditorView: View {
     @State private var selectedCategory: CategoryItem?
     @State private var selectedAccount: AccountItem?
     @State private var note = ""
+    @State private var intervalCount = 1
+    @State private var hasEndDate = false
+    @State private var endDate = Date()
+    @State private var active = true
+    @State private var validationMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -173,11 +184,27 @@ struct RecurringEditorView: View {
                         Text($0.title).tag($0)
                     }
                 }
+                Stepper(
+                    intervalCount == 1
+                        ? "Every \(cadence.title.lowercased())"
+                        : "Every \(intervalCount) \(cadence.title.lowercased())s",
+                    value: $intervalCount,
+                    in: 1...24
+                )
                 DatePicker(
                     "Next run",
                     selection: $nextRunDate,
                     displayedComponents: .date
                 )
+                Toggle("End date", isOn: $hasEndDate)
+                if hasEndDate {
+                    DatePicker(
+                        "Ends",
+                        selection: $endDate,
+                        displayedComponents: .date
+                    )
+                }
+                Toggle("Active", isOn: $active)
                 Picker(
                     "Category",
                     selection: Binding(
@@ -188,15 +215,23 @@ struct RecurringEditorView: View {
                     )
                 ) {
                     Text("None").tag(UUID?.none)
-                    ForEach(categories) { Text($0.name).tag(Optional($0.id)) }
+                    ForEach(categories.filter { !$0.archived && $0.isIncome != isExpense }) {
+                        Text($0.name).tag(Optional($0.id))
+                    }
                 }
                 AccountPicker(
                     selectedAccount: $selectedAccount,
-                    accounts: accounts
+                    accounts: accounts.filter { !$0.archived }
                 )
                 TextField("Note", text: $note)
+                if let validationMessage {
+                    Text(validationMessage)
+                        .font(.footnote)
+                        .foregroundStyle(Color(hex: "#B4613B"))
+                }
             }
             .navigationTitle(rule == nil ? "New Rule" : "Edit Rule")
+            .keyboardDismissControls()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -207,14 +242,28 @@ struct RecurringEditorView: View {
             }
             .onAppear {
                 guard let rule else {
-                    selectedCategory = categories.first
-                    selectedAccount = accounts.first
+                    selectedCategory = DefaultCategoryResolver.resolve(
+                        isExpense: isExpense,
+                        preferredID: appState.lastUsedCategoryID,
+                        categories: categories,
+                        modelContext: modelContext
+                    )
+                    selectedAccount = DefaultAccountResolver.resolve(
+                        preferredID: appState.lastUsedAccountID,
+                        accounts: accounts,
+                        modelContext: modelContext,
+                        currencyCode: appState.selectedCurrencyCode
+                    )
                     return
                 }
                 amountText = "\(rule.amountMinor)"
                 isExpense = rule.isExpense
                 cadence = rule.cadence
+                intervalCount = rule.intervalCount
                 nextRunDate = rule.nextRunDate
+                endDate = rule.endDate ?? Date()
+                hasEndDate = rule.endDate != nil
+                active = rule.active
                 selectedCategory = rule.category
                 selectedAccount = rule.account
                 note = rule.note ?? ""
@@ -228,29 +277,56 @@ struct RecurringEditorView: View {
 
     private func save() {
         let amount = amountMinor
-        if let rule {
-            rule.amountMinor = amount
-            rule.isExpense = isExpense
-            rule.cadence = cadence
-            rule.nextRunDate = nextRunDate
-            rule.category = selectedCategory
-            rule.account = selectedAccount
-            rule.note = note.isEmpty ? nil : note
-            rule.updatedAt = Date()
-        } else {
-            modelContext.insert(
-                RecurringRuleItem(
+        guard amount > 0 else {
+            validationMessage = "Enter an amount greater than zero."
+            return
+        }
+        let category = selectedCategory ?? DefaultCategoryResolver.resolve(
+            isExpense: isExpense,
+            preferredID: appState.lastUsedCategoryID,
+            categories: categories,
+            modelContext: modelContext
+        )
+        let account = selectedAccount ?? DefaultAccountResolver.resolve(
+            preferredID: appState.lastUsedAccountID,
+            accounts: accounts,
+            modelContext: modelContext,
+            currencyCode: appState.selectedCurrencyCode
+        )
+        do {
+            let repository = RecurringRepository(modelContext: modelContext)
+            if let rule {
+                try repository.update(
+                    rule,
                     amountMinor: amount,
                     isExpense: isExpense,
-                    category: selectedCategory,
-                    account: selectedAccount,
-                    note: note.isEmpty ? nil : note,
+                    category: category,
+                    account: account,
+                    note: note,
                     cadence: cadence,
-                    nextRunDate: nextRunDate
+                    intervalCount: intervalCount,
+                    nextRunDate: nextRunDate,
+                    endDate: hasEndDate ? endDate : nil,
+                    active: active
                 )
-            )
+            } else {
+                _ = try repository.create(
+                    amountMinor: amount,
+                    isExpense: isExpense,
+                    category: category,
+                    account: account,
+                    note: note,
+                    cadence: cadence,
+                    intervalCount: intervalCount,
+                    nextRunDate: nextRunDate,
+                    endDate: hasEndDate ? endDate : nil
+                )
+            }
+            appState.lastUsedCategoryID = category.id.uuidString
+            appState.lastUsedAccountID = account.id.uuidString
+            dismiss()
+        } catch {
+            validationMessage = error.localizedDescription
         }
-        try? modelContext.save()
-        dismiss()
     }
 }

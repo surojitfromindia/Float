@@ -82,6 +82,8 @@ final class CategoryItem {
     var sortOrder: Int = 0
     var archived: Bool = false
     var isDefault: Bool = false
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
     @Relationship(inverse: \TransactionItem.category) var transactions:
         [TransactionItem]?
     @Relationship(inverse: \RecurringRuleItem.category) var recurringRules:
@@ -95,7 +97,9 @@ final class CategoryItem {
         isIncome: Bool = false,
         sortOrder: Int = 0,
         archived: Bool = false,
-        isDefault: Bool = false
+        isDefault: Bool = false,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
     ) {
         self.id = id
         self.name = name
@@ -105,6 +109,8 @@ final class CategoryItem {
         self.sortOrder = sortOrder
         self.archived = archived
         self.isDefault = isDefault
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
     }
 }
 
@@ -134,7 +140,7 @@ final class TransactionItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
-        self.amountMinor = max(0, amountMinor)
+        self.amountMinor = normalizedMinorUnits(amountMinor)
         self.isExpense = isExpense
         self.timestamp = timestamp
         self.category = category
@@ -180,7 +186,7 @@ final class RecurringRuleItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
-        self.amountMinor = max(0, amountMinor)
+        self.amountMinor = normalizedMinorUnits(amountMinor)
         self.isExpense = isExpense
         self.category = category
         self.account = account
@@ -220,8 +226,8 @@ final class GoalItem {
     ) {
         self.id = id
         self.name = name
-        self.targetMinor = max(0, targetMinor)
-        self.savedMinor = max(0, savedMinor)
+        self.targetMinor = normalizedMinorUnits(targetMinor)
+        self.savedMinor = normalizedMinorUnits(savedMinor)
         self.targetDate = targetDate
         self.colorHex = colorHex
         self.achieved = achieved
@@ -257,10 +263,71 @@ final class BudgetPeriodItem {
         self.cadence = cadence
         self.startDayOfMonth = startDayOfMonth
         self.startDayOfWeek = startDayOfWeek
-        self.expectedIncomeMinor = max(0, expectedIncomeMinor)
+        self.expectedIncomeMinor = normalizedMinorUnits(expectedIncomeMinor)
         self.currencyCode = currencyCode
         self.isActive = isActive
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
+}
+
+extension TransactionItem {
+    var categoryName: String {
+        category?.name.nilIfBlank ?? "Unknown Category"
+    }
+
+    var accountName: String {
+        account?.name.nilIfBlank ?? "Unknown Account"
+    }
+
+    var categoryIconKey: String {
+        category?.iconKey.nilIfBlank ?? "questionmark.circle.fill"
+    }
+
+    var categoryColorHex: String {
+        category?.colorHex.nilIfBlank ?? "#5A6B6B"
+    }
+
+    func apply(
+        amountMinor: Int64,
+        isExpense: Bool,
+        timestamp: Date,
+        category: CategoryItem?,
+        account: AccountItem?,
+        note: String?
+    ) {
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.isExpense = isExpense
+        self.timestamp = timestamp
+        self.category = category
+        self.account = account
+        self.note = note?.nilIfBlank
+        updatedAt = Date()
+    }
+}
+
+extension AccountItem {
+    func archive() {
+        archived = true
+        updatedAt = Date()
+    }
+}
+
+extension CategoryItem {
+    func archive() {
+        archived = true
+        updatedAt = Date()
+    }
+}
+
+private extension String {
+    var nilIfBlank: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private func normalizedMinorUnits(_ value: Int64) -> Int64 {
+    if value == Int64.min { return Int64.max }
+    return abs(value)
 }
