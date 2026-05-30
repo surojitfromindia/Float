@@ -9,15 +9,9 @@ private struct CurrencyOption: Identifiable {
     var id: String { code }
 }
 
-private enum ImportKind {
-    case csv
-    case backup
-}
-
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @EnvironmentObject private var authManager: BiometricAuthManager
     @Query(sort: \TransactionItem.timestamp, order: .reverse) private
         var transactions: [TransactionItem]
     @Query private var accounts: [AccountItem]
@@ -25,12 +19,8 @@ struct SettingsView: View {
     @Query private var goals: [GoalItem]
     @Query private var recurringRules: [RecurringRuleItem]
     @Query private var budgets: [BudgetPeriodItem]
-    @State private var exportingCSV = false
-    @State private var importingCSV = false
     @State private var exportingBackup = false
     @State private var importingBackup = false
-    @State private var backupPassword = ""
-    @State private var csvDocument = CSVDocument()
     @State private var backupDocument = BackupDocument()
     @State private var message = ""
     @State private var showingResetConfirmation = false
@@ -73,18 +63,6 @@ struct SettingsView: View {
                     Text("Float").tag("float")
                     Text("System dynamic").tag("system")
                 }
-                Toggle(
-                    "Biometric lock",
-                    isOn: Binding(
-                        get: { appState.isBiometricLockEnabled },
-                        set: updateBiometricLock
-                    )
-                )
-                if let message = authManager.lastErrorMessage {
-                    Text(message)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
             }
             Section("Manage") {
                 NavigationLink("Budget", destination: BudgetSettingsView())
@@ -94,29 +72,17 @@ struct SettingsView: View {
                 NavigationLink("Accounts", destination: AccountManagerView())
             }
             Section("Portable data") {
-                Button("Export CSV", action: exportCSV)
+                Button("Create backup", action: createBackup)
                     .buttonStyle(.borderless)
-                Button("Import CSV") { presentImporter(.csv) }
+                Button("Restore backup", action: presentBackupImporter)
                     .buttonStyle(.borderless)
-                TextField("Backup password", text: $backupPassword)
-                    .textContentType(.password)
-                Button("Create encrypted backup") { createBackup() }
-                    .disabled(backupPassword.isEmpty)
-                    .buttonStyle(.borderless)
-                Button("Restore encrypted backup") { presentImporter(.backup) }
-                    .disabled(backupPassword.isEmpty)
-                    .buttonStyle(.borderless)
-                Text(
-                    "Backup files are encrypted with your password. If you lose it, the backup cannot be restored."
-                )
-                .font(.caption).foregroundStyle(.secondary)
                 if !message.isEmpty {
                     Text(message).font(.caption).foregroundStyle(.secondary)
                 }
             }
             Section("Privacy") {
                 Text(
-                    "Data stays on device. Float has no backend, no account, no analytics, and no tracking SDKs. Data is not uploaded. Export and backup happen only when you choose them."
+                    "Data stays on device. Float has no backend, no account, no analytics, and no tracking SDKs. Backup files are created only when you choose them."
                 )
                 .font(.subheadline)
             }
@@ -137,24 +103,12 @@ struct SettingsView: View {
             .frame(width: 0, height: 0)
             .accessibilityHidden(true)
         .fileExporter(
-            isPresented: $exportingCSV,
-            document: csvDocument,
-            contentType: .commaSeparatedText,
-            defaultFilename: "float-transactions.csv"
-        ) { result in
-            message = resultMessage(result, success: "CSV exported.")
-        }
-        .fileImporter(
-            isPresented: $importingCSV,
-            allowedContentTypes: [.commaSeparatedText, .plainText]
-        ) { result in importCSV(result) }
-        .fileExporter(
             isPresented: $exportingBackup,
             document: backupDocument,
             contentType: .floatBackup,
             defaultFilename: "float.floatbak"
         ) { result in
-            message = resultMessage(result, success: "Backup exported.")
+            message = resultMessage(result, success: "Backup created.")
         }
         .fileImporter(
             isPresented: $importingBackup,
@@ -184,29 +138,10 @@ struct SettingsView: View {
         CurrencyOption(code: "MXN", symbol: "MX$"),
     ]
 
-    private func presentImporter(_ kind: ImportKind) {
+    private func presentBackupImporter() {
         DispatchQueue.main.async {
-            switch kind {
-            case .csv:
-                importingCSV = true
-                message = "Opening CSV importer."
-            case .backup:
-                importingBackup = true
-                message = "Opening backup importer."
-            }
-        }
-    }
-
-    private func exportCSV() {
-        csvDocument = CSVTransactionService.export(
-            transactions: transactions,
-            currencyCode: appState.selectedCurrencyCode
-        )
-        message = transactions.isEmpty
-            ? "Exporting a CSV with headers only."
-            : "Preparing \(transactions.count) transactions for export."
-        DispatchQueue.main.async {
-            exportingCSV = true
+            importingBackup = true
+            message = "Opening backup picker."
         }
     }
 
@@ -301,30 +236,12 @@ struct SettingsView: View {
             )
         )
         do {
-            backupDocument = try BackupCryptoService.encrypt(
-                dto,
-                password: backupPassword
-            )
-            message = "Preparing encrypted backup."
+            backupDocument = try BackupArchiveService.document(from: dto)
+            message = "Preparing backup."
             DispatchQueue.main.async {
                 exportingBackup = true
             }
         } catch { message = error.localizedDescription }
-    }
-
-    private func updateBiometricLock(_ isEnabled: Bool) {
-        if !isEnabled {
-            appState.isBiometricLockEnabled = false
-            authManager.unlock()
-            return
-        }
-
-        Task {
-            let didAuthenticate = await authManager.authenticate(
-                reason: "Enable authentication before opening Float."
-            )
-            appState.isBiometricLockEnabled = didAuthenticate
-        }
     }
 
     private func restoreBackup(_ result: Result<URL, Error>) {
@@ -333,141 +250,10 @@ struct SettingsView: View {
             guard url.startAccessingSecurityScopedResource() else { return }
             defer { url.stopAccessingSecurityScopedResource() }
             let document = BackupDocument(data: try Data(contentsOf: url))
-            let dto = try BackupCryptoService.decrypt(
-                document,
-                password: backupPassword
-            )
+            let dto = try BackupArchiveService.dto(from: document)
             restore(dto)
             message = "Backup restored."
         } catch { message = error.localizedDescription }
-    }
-
-    private func importCSV(_ result: Result<URL, Error>) {
-        do {
-            let url = try result.get()
-            guard url.startAccessingSecurityScopedResource() else { return }
-            defer { url.stopAccessingSecurityScopedResource() }
-            let text = try String(contentsOf: url, encoding: .utf8)
-            let summary = importCSVText(text)
-            message =
-                "Imported \(summary.imported). Skipped \(summary.skipped)."
-        } catch {
-            message = error.localizedDescription
-        }
-    }
-
-    private func importCSVText(_ text: String) -> (imported: Int, skipped: Int)
-    {
-        let rows = text.split(whereSeparator: \.isNewline).dropFirst()
-        let iso = ISO8601DateFormatter()
-        var imported = 0
-        var skipped = 0
-        let existingKeys = Set(
-            transactions.map {
-                dedupeKey(
-                    timestamp: $0.timestamp,
-                    amountMinor: $0.amountMinor,
-                    isExpense: $0.isExpense,
-                    note: $0.note
-                )
-            }
-        )
-        var newKeys = Set<String>()
-        let otherCategory =
-            categories.first { $0.name == "Other" && !$0.isIncome }
-            ?? categories.first
-        let defaultAccount = accounts.first
-
-        for row in rows {
-            let columns = parseCSVLine(String(row))
-            guard columns.count >= 9,
-                let timestamp = iso.date(from: columns[1]),
-                let amountMinor = Int64(columns[2]),
-                let isExpense = Bool(columns[5])
-            else {
-                skipped += 1
-                continue
-            }
-            let note = columns[8].isEmpty ? nil : columns[8]
-            let key = dedupeKey(
-                timestamp: timestamp,
-                amountMinor: amountMinor,
-                isExpense: isExpense,
-                note: note
-            )
-            guard !existingKeys.contains(key), !newKeys.contains(key) else {
-                skipped += 1
-                continue
-            }
-            let categoryName = columns[6]
-            let accountName = columns[7]
-            let category =
-                categories.first {
-                    $0.name.caseInsensitiveCompare(categoryName) == .orderedSame
-                } ?? otherCategory
-            let account =
-                accounts.first {
-                    $0.name.caseInsensitiveCompare(accountName) == .orderedSame
-                } ?? defaultAccount
-            modelContext.insert(
-                TransactionItem(
-                    amountMinor: amountMinor,
-                    isExpense: isExpense,
-                    timestamp: timestamp,
-                    category: category,
-                    account: account,
-                    note: note
-                )
-            )
-            newKeys.insert(key)
-            imported += 1
-        }
-        try? modelContext.save()
-        return (imported, skipped)
-    }
-
-    private func dedupeKey(
-        timestamp: Date,
-        amountMinor: Int64,
-        isExpense: Bool,
-        note: String?
-    )
-        -> String
-    {
-        "\(Int(timestamp.timeIntervalSince1970))|\(amountMinor)|\(isExpense)|\(note ?? "")"
-    }
-
-    private func parseCSVLine(_ line: String) -> [String] {
-        var result: [String] = []
-        var value = ""
-        var isQuoted = false
-        var iterator = line.makeIterator()
-        while let character = iterator.next() {
-            if character == "\"" {
-                if isQuoted, let next = iterator.next() {
-                    if next == "\"" {
-                        value.append(next)
-                    } else {
-                        isQuoted = false
-                        if next == "," {
-                            result.append(value)
-                            value = ""
-                        } else {
-                            value.append(next)
-                        }
-                    }
-                } else {
-                    isQuoted.toggle()
-                }
-            } else if character == "," && !isQuoted {
-                result.append(value)
-                value = ""
-            } else {
-                value.append(character)
-            }
-        }
-        result.append(value)
-        return result
     }
 
     private func restore(_ dto: FloatBackupDTO) {

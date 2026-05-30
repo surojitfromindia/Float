@@ -5,8 +5,8 @@ struct RecurringView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \RecurringRuleItem.nextRunDate) private var rules:
         [RecurringRuleItem]
-    @State private var showingEditor = false
     @State private var editingRule: RecurringRuleItem?
+    @State private var showingNewRuleEditor = false
     @State private var rulePendingDeletion: RecurringRuleItem?
 
     var body: some View {
@@ -23,7 +23,6 @@ struct RecurringView: View {
             ForEach(rules) { rule in
                 Button {
                     editingRule = rule
-                    showingEditor = true
                 } label: {
                     HStack {
                         ZStack {
@@ -84,14 +83,16 @@ struct RecurringView: View {
         .navigationTitle("Recurring")
         .toolbar {
             Button {
-                editingRule = nil
-                showingEditor = true
+                showingNewRuleEditor = true
             } label: {
                 Image(systemName: "plus")
             }
         }
-        .sheet(isPresented: $showingEditor) {
-            RecurringEditorView(rule: editingRule)
+        .sheet(item: $editingRule) { rule in
+            RecurringEditorView(rule: rule)
+        }
+        .sheet(isPresented: $showingNewRuleEditor) {
+            RecurringEditorView(rule: nil)
         }
         .confirmationDialog(
             "Delete recurring rule?",

@@ -4,7 +4,6 @@ import SwiftUI
 struct OnboardingView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @EnvironmentObject private var authManager: BiometricAuthManager
     @State private var page = 0
     @State private var expectedIncomeText = ""
     @State private var cadence: BudgetCadence = .monthly
@@ -68,24 +67,10 @@ struct OnboardingView: View {
             }.padding(28).tag(3)
             VStack(spacing: 20) {
                 onboardingHeader(
-                    icon: "lock.shield.fill",
-                    title: "Privacy lock",
-                    message:
-                        "Biometric lock is optional and can be changed any time."
+                    icon: "checkmark.circle.fill",
+                    title: "Ready",
+                    message: "Finish setup and start tracking your spending."
                 )
-                Toggle(
-                    "Enable biometric lock",
-                    isOn: Binding(
-                        get: { appState.isBiometricLockEnabled },
-                        set: updateBiometricLock
-                    )
-                )
-                if let message = authManager.lastErrorMessage {
-                    Text(message)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
-                }
                 Button("Start using Float", action: complete).buttonStyle(
                     .borderedProminent
                 ).controlSize(.large)
@@ -120,21 +105,6 @@ struct OnboardingView: View {
             Text(title).font(.largeTitle.bold())
             Text(message).font(.body).foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-        }
-    }
-
-    private func updateBiometricLock(_ isEnabled: Bool) {
-        if !isEnabled {
-            appState.isBiometricLockEnabled = false
-            authManager.unlock()
-            return
-        }
-
-        Task {
-            let didAuthenticate = await authManager.authenticate(
-                reason: "Enable authentication before opening Float."
-            )
-            appState.isBiometricLockEnabled = didAuthenticate
         }
     }
 

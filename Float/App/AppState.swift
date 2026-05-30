@@ -9,7 +9,6 @@ final class AppState: ObservableObject {
         MoneyFormatter.currencyCodeFromLocale()
     @AppStorage("selectedAppearance") var selectedAppearance = "system"
     @AppStorage("selectedThemeMode") var selectedThemeMode = "float"
-    @AppStorage("isBiometricLockEnabled") var isBiometricLockEnabled = false
     @AppStorage("lastUsedCategoryID") var lastUsedCategoryID = ""
     @AppStorage("lastUsedAccountID") var lastUsedAccountID = ""
 

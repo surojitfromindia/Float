@@ -10,7 +10,7 @@ struct HomeView: View {
     @Query private var goals: [GoalItem]
     @Query private var recurringRules: [RecurringRuleItem]
     @Query private var budgets: [BudgetPeriodItem]
-    @State private var showingIncomeEditor = false
+    @State private var recurringRuleToEdit: RecurringRuleItem?
 
     // Prefer the active budget period for all home-screen math; fall back to the first
     // saved period so the dashboard can still render while setup data is incomplete.
@@ -93,37 +93,6 @@ struct HomeView: View {
                     }
                 }
 
-                GlassCard {
-                    HStack(spacing: 16) {
-                        FloatProgressRing(
-                            progress: result.periodProgress,
-                            tint: Color(hex: "#0E7C7B"),
-                            lineWidth: 8
-                        )
-                        .frame(width: 56, height: 56)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Period")
-                                .font(.headline)
-                            Text(
-                                result.periodStart.formatted(
-                                    date: .abbreviated,
-                                    time: .omitted
-                                ) + " - "
-                                    + result.periodEnd.formatted(
-                                        date: .abbreviated,
-                                        time: .omitted
-                                    )
-                                )
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            Text("\(result.daysRemaining) days remaining including today")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                    }
-                }
-
                 budgetOverview
                 upcomingRecurring
                 nearestGoal
@@ -144,6 +113,9 @@ struct HomeView: View {
             }
         }
         .floatBackground()
+        .sheet(item: $recurringRuleToEdit) { rule in
+            RecurringEditorView(rule: rule)
+        }
         .onAppear {
             MaterializeRecurringTransactionsUseCase.run(
                 modelContext: modelContext
@@ -153,63 +125,60 @@ struct HomeView: View {
 
     private var budgetOverview: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(
-                title: "Budget overview",
-                actionTitle: "Income",
-                action: { showingIncomeEditor = true }
-            )
+            SectionHeader(title: "Budget overview")
             BudgetStatusChart(
                 result: result,
                 currencyCode: appState.selectedCurrencyCode
             )
         }
-        .sheet(isPresented: $showingIncomeEditor) {
-            IncomeEditorSheet(budget: activeBudget)
-                .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
-        }
     }
 
     @ViewBuilder private var upcomingRecurring: some View {
         if let rule = upcomingRecurringExpense {
-            GlassCard {
-                HStack(spacing: 14) {
-                    Image(systemName: rule.category?.iconKey ?? "repeat")
-                        .font(.headline)
-                        .foregroundStyle(Color(hex: "#B4613B"))
-                        .frame(width: 42, height: 42)
-                        .background(
-                            Color(hex: "#B4613B").opacity(0.14),
-                            in: Circle()
-                        )
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Upcoming recurring")
+            Button {
+                recurringRuleToEdit = rule
+            } label: {
+                GlassCard {
+                    HStack(spacing: 14) {
+                        Image(systemName: rule.category?.iconKey ?? "repeat")
                             .font(.headline)
+                            .foregroundStyle(Color(hex: "#B4613B"))
+                            .frame(width: 42, height: 42)
+                            .background(
+                                Color(hex: "#B4613B").opacity(0.14),
+                                in: Circle()
+                            )
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Upcoming recurring")
+                                .font(.headline)
+                            Text(
+                                rule.note?.isEmpty == false
+                                    ? rule.note ?? ""
+                                    : rule.category?.name ?? "Unknown Category"
+                            )
+                            .font(.subheadline)
+                            Text(
+                                rule.nextRunDate.formatted(
+                                    date: .abbreviated,
+                                    time: .omitted
+                                )
+                            )
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        }
+                        Spacer()
                         Text(
-                            rule.note?.isEmpty == false
-                                ? rule.note ?? ""
-                                : rule.category?.name ?? "Unknown Category"
-                        )
-                        .font(.subheadline)
-                        Text(
-                            rule.nextRunDate.formatted(
-                                date: .abbreviated,
-                                time: .omitted
+                            MoneyFormatter.string(
+                                minorUnits: rule.amountMinor,
+                                currencyCode: appState.selectedCurrencyCode
                             )
                         )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .moneyStyle(size: 15, weight: .semibold)
                     }
-                    Spacer()
-                    Text(
-                        MoneyFormatter.string(
-                            minorUnits: rule.amountMinor,
-                            currencyCode: appState.selectedCurrencyCode
-                        )
-                    )
-                    .moneyStyle(size: 15, weight: .semibold)
                 }
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Edit upcoming recurring rule")
         }
     }
 
@@ -273,85 +242,6 @@ struct HomeView: View {
                     }
                 }
             }
-        }
-    }
-}
-
-private struct IncomeEditorSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var modelContext
-    @EnvironmentObject private var appState: AppState
-    @Query private var budgets: [BudgetPeriodItem]
-    let budget: BudgetPeriodItem?
-    @State private var incomeText = ""
-
-    private var previewIncomeMinor: Int64 {
-        BudgetAmountField.minorUnits(
-            fromMajorAmount: incomeText,
-            currencyCode: appState.selectedCurrencyCode
-        )
-    }
-
-    var body: some View {
-        NavigationStack {
-            Form {
-                Section {
-                    HStack {
-                        TextField("Amount", text: $incomeText)
-                            .keyboardType(.decimalPad)
-                        CurrencyAmountPreview(
-                            minorUnits: previewIncomeMinor,
-                            currencyCode: appState.selectedCurrencyCode
-                        )
-                    }
-                } header: {
-                    Text("Expected income")
-                } footer: {
-                    Text("Enter the amount you expect for the current budget period.")
-                }
-            }
-            .navigationTitle("Update Income")
-            .keyboardDismissControls()
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save", action: save)
-                }
-            }
-            .onAppear(perform: configure)
-        }
-    }
-
-    private func configure() {
-        guard let budget else {
-            incomeText = ""
-            return
-        }
-
-        incomeText = BudgetAmountField.majorAmountString(
-            minorUnits: budget.expectedIncomeMinor,
-            currencyCode: budget.currencyCode
-        )
-    }
-
-    private func save() {
-        let activeBudget = budget ?? BudgetPeriodItem(
-            currencyCode: appState.selectedCurrencyCode
-        )
-
-        do {
-            try BudgetPeriodRepository(modelContext: modelContext)
-                .saveActiveBudget(
-                    activeBudget,
-                    among: budgets,
-                    expectedIncomeMinor: previewIncomeMinor,
-                    currencyCode: appState.selectedCurrencyCode
-                )
-            dismiss()
-        } catch {
-            dismiss()
         }
     }
 }
@@ -425,25 +315,23 @@ private struct BudgetStatusChart: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            HStack(spacing: 20) {
-                BudgetDial(result: result)
-                    .frame(width: 108, height: 108)
-
-                VStack(alignment: .leading, spacing: 12) {
-                    chartMetric(
-                        title: "Period",
-                        detail: "\(progressPercent(result.periodProgress)) elapsed",
-                        amount: nil,
-                        tint: Color(hex: "#0E7C7B")
-                    )
-                    chartMetric(
-                        title: "Spending",
-                        detail: "\(progressPercent(result.spendingProgress)) used",
-                        amount: result.variableSpentMinor,
-                        tint: Color(hex: "#B4613B")
-                    )
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 12) {
+                chartMetric(
+                    title: "Period",
+                    detail: "\(progressPercent(result.periodProgress)) elapsed",
+                    note: periodSummary,
+                    amount: nil,
+                    progress: result.periodProgress,
+                    tint: Color(hex: "#0E7C7B")
+                )
+                chartMetric(
+                    title: "Spending",
+                    detail: "\(progressPercent(result.spendingProgress)) used",
+                    note: nil,
+                    amount: result.variableSpentMinor,
+                    progress: result.spendingProgress,
+                    tint: Color(hex: "#0E7C7B")
+                )
             }
 
             AllocationBar(
@@ -489,26 +377,39 @@ private struct BudgetStatusChart: View {
         )
     }
 
+    private var periodSummary: String {
+        let start = result.periodStart.formatted(
+            date: .abbreviated,
+            time: .omitted
+        )
+        let end = result.periodEnd.formatted(
+            date: .abbreviated,
+            time: .omitted
+        )
+        return "\(start) - \(end) · \(result.daysRemaining) days left"
+    }
+
     private func chartMetric(
         title: String,
         detail: String,
+        note: String?,
         amount: Int64?,
+        progress: Double,
         tint: Color
     )
         -> some View
     {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(tint.gradient)
-                .frame(width: 9, height: 9)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(title)
-                        .font(.subheadline.weight(.semibold))
-                    Text(detail)
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
-                }
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Circle()
+                    .fill(tint.gradient)
+                    .frame(width: 9, height: 9)
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(detail)
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 8)
                 if let amount {
                     Text(
                         MoneyFormatter.string(
@@ -522,7 +423,32 @@ private struct BudgetStatusChart: View {
                     .minimumScaleFactor(0.75)
                 }
             }
+            if let note {
+                Text(note)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+            }
+            GeometryReader { proxy in
+                HStack(spacing: 6) {
+                    Capsule()
+                        .fill(tint.gradient)
+                        .frame(
+                            width: max(
+                                6,
+                                proxy.size.width
+                                    * CGFloat(min(max(progress, 0), 1))
+                            )
+                        )
+                    Spacer(minLength: 0)
+                }
+            }
+            .frame(height: 8)
+            .padding(2)
+            .background(Color.primary.opacity(0.07), in: Capsule())
         }
+        .animation(.spring(response: 0.45, dampingFraction: 0.85), value: progress)
     }
 
     private func legendItem(
@@ -552,60 +478,6 @@ private struct BudgetStatusChart: View {
     private func sharePercent(_ amount: Int64, total: Int64) -> String {
         let value = Double(max(0, amount)) / Double(max(1, total))
         return "\(Int((value * 100).rounded()))%"
-    }
-}
-
-private struct BudgetDial: View {
-    let result: SafeToSpendResult
-
-    private var tint: Color {
-        result.overAmountMinor > 0 ? Color(hex: "#B4613B") : Color(hex: "#0E7C7B")
-    }
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(Color.primary.opacity(0.08), lineWidth: 13)
-            Circle()
-                .trim(from: 0, to: min(max(result.periodProgress, 0), 1))
-                .stroke(
-                    AngularGradient(
-                        colors: [
-                            Color(hex: "#0E7C7B"),
-                            Color(hex: "#3FC1BE"),
-                            Color(hex: "#1B8A5A"),
-                        ],
-                        center: .center
-                    ),
-                    style: StrokeStyle(lineWidth: 13, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-
-            Circle()
-                .stroke(Color.primary.opacity(0.07), lineWidth: 7)
-                .padding(18)
-            Circle()
-                .trim(from: 0, to: min(max(result.spendingProgress, 0), 1))
-                .stroke(
-                    tint,
-                    style: StrokeStyle(lineWidth: 7, lineCap: .round)
-                )
-                .padding(18)
-                .rotationEffect(.degrees(-90))
-
-            Circle()
-                .fill(.thinMaterial)
-                .frame(width: 54, height: 54)
-                .overlay(
-                    Circle()
-                        .strokeBorder(Color.primary.opacity(0.06), lineWidth: 1)
-                )
-        }
-        .animation(.spring(response: 0.55, dampingFraction: 0.85), value: result)
-        .accessibilityLabel("Budget progress")
-        .accessibilityValue(
-            "\(Int((result.periodProgress * 100).rounded())) percent of period elapsed"
-        )
     }
 }
 
