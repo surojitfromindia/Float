@@ -10,6 +10,7 @@ enum BackupService {
         goals: [GoalItem],
         recurringRules: [RecurringRuleItem],
         budgets: [BudgetPeriodItem],
+        categoryBudgets: [CategoryBudgetItem],
         currencyCode: String
     ) throws -> BackupDocument {
         let dto = FloatBackupDTO(
@@ -19,6 +20,7 @@ enum BackupService {
             goals: goals.map(GoalDTO.init),
             recurringRules: recurringRules.map(RecurringRuleDTO.init),
             budgets: budgets.map(BudgetDTO.init),
+            categoryBudgets: categoryBudgets.map(CategoryBudgetDTO.init),
             settings: SettingsDTO(
                 currencyCode: currencyCode,
                 exportedAt: Date()
@@ -57,6 +59,15 @@ enum BackupService {
             modelContext.insert(BudgetPeriodItem(dto: item))
         }
 
+        for item in dto.categoryBudgets {
+            modelContext.insert(
+                CategoryBudgetItem(
+                    dto: item,
+                    category: item.categoryID.flatMap { categoryMap[$0] }
+                )
+            )
+        }
+
         var recurringMap: [UUID: RecurringRuleItem] = [:]
         for item in dto.recurringRules {
             let model = RecurringRuleItem(
@@ -93,6 +104,7 @@ enum BackupService {
         try modelContext.delete(model: TransactionItem.self)
         try modelContext.delete(model: RecurringRuleItem.self)
         try modelContext.delete(model: GoalItem.self)
+        try modelContext.delete(model: CategoryBudgetItem.self)
         try modelContext.delete(model: BudgetPeriodItem.self)
         try modelContext.delete(model: CategoryItem.self)
         try modelContext.delete(model: AccountItem.self)
@@ -200,6 +212,20 @@ private extension BudgetDTO {
     }
 }
 
+private extension CategoryBudgetDTO {
+    init(_ item: CategoryBudgetItem) {
+        self.init(
+            id: item.id,
+            categoryID: item.category?.id,
+            amountMinor: item.amountMinor,
+            currencyCode: item.currencyCode,
+            isActive: item.isActive,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
 private extension AccountItem {
     convenience init(dto: AccountDTO) {
         self.init(
@@ -256,6 +282,20 @@ private extension BudgetPeriodItem {
             startDayOfMonth: dto.startDayOfMonth,
             startDayOfWeek: dto.startDayOfWeek,
             expectedIncomeMinor: dto.expectedIncomeMinor,
+            currencyCode: dto.currencyCode,
+            isActive: dto.isActive,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension CategoryBudgetItem {
+    convenience init(dto: CategoryBudgetDTO, category: CategoryItem?) {
+        self.init(
+            id: dto.id,
+            category: category,
+            amountMinor: dto.amountMinor,
             currencyCode: dto.currencyCode,
             isActive: dto.isActive,
             createdAt: dto.createdAt,

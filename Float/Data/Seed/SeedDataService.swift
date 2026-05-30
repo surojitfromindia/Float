@@ -214,6 +214,14 @@ enum DataIntegrityService {
                 budget.updatedAt = budget.createdAt
             }
         }
+
+        let categoryBudgets = (try? modelContext.fetch(FetchDescriptor<CategoryBudgetItem>())) ?? []
+        for budget in categoryBudgets {
+            budget.amountMinor = normalizedMoney(budget.amountMinor)
+            if budget.updatedAt < budget.createdAt {
+                budget.updatedAt = budget.createdAt
+            }
+        }
     }
 
     private static func normalizedMoney(_ value: Int64) -> Int64 {

@@ -9,11 +9,14 @@ struct BudgetSettingsView: View {
     @Query private var goals: [GoalItem]
     @Query private var recurringRules: [RecurringRuleItem]
     @Query private var budgets: [BudgetPeriodItem]
+    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
+    @Query private var categoryBudgets: [CategoryBudgetItem]
 
     @State private var cadence: BudgetCadence = .monthly
     @State private var startDayOfMonth = 1
     @State private var startDayOfWeek = Calendar.current.firstWeekday
     @State private var expectedIncomeText = ""
+    @State private var categoryBudgetTexts: [UUID: String] = [:]
     @State private var message = ""
 
     private var activeBudget: BudgetPeriodItem? {
@@ -39,6 +42,16 @@ struct BudgetSettingsView: View {
             fromMajorAmount: expectedIncomeText,
             currencyCode: appState.selectedCurrencyCode
         )
+    }
+
+    private var expenseCategories: [CategoryItem] {
+        categories.filter { !$0.isIncome && !$0.archived }
+    }
+
+    private var categoryBudgetTotalMinor: Int64 {
+        expenseCategories.reduce(Int64(0)) { total, category in
+            total + categoryBudgetMinor(for: category)
+        }
     }
 
     var body: some View {
@@ -85,6 +98,7 @@ struct BudgetSettingsView: View {
 
             Section {
                 budgetRow("Expected income", previewResult.expectedIncomeMinor)
+                budgetRow("Category budgets", categoryBudgetTotalMinor)
                 budgetRow("Recurring due", previewResult.recurringDueMinor)
                 budgetRow("Goals remaining", previewResult.goalContributionMinor)
                 budgetRow("Spent so far", previewResult.variableSpentMinor)
@@ -95,6 +109,22 @@ struct BudgetSettingsView: View {
                 Text(
                     "Home uses expected income minus recurring expenses, unfinished goal targets, and expenses already recorded this period."
                 )
+            }
+
+            Section {
+                if expenseCategories.isEmpty {
+                    Text("Add expense categories before setting category budgets.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(expenseCategories) { category in
+                        categoryBudgetRow(category)
+                    }
+                }
+            } header: {
+                Text("Category budgets")
+            } footer: {
+                Text("Set an amount for each expense category in one budget period. Leave a category blank or enter 0 to remove its budget.")
             }
 
             if !message.isEmpty {
@@ -139,9 +169,45 @@ struct BudgetSettingsView: View {
         }
     }
 
+    private func categoryBudgetRow(_ category: CategoryItem) -> some View {
+        HStack(spacing: 12) {
+            Label {
+                Text(category.name)
+            } icon: {
+                Image(systemName: category.iconKey)
+                    .foregroundStyle(Color(hex: category.colorHex))
+            }
+            Spacer()
+            TextField("0", text: binding(for: category))
+                .keyboardType(.decimalPad)
+                .multilineTextAlignment(.trailing)
+                .frame(minWidth: 72, maxWidth: 110)
+            CurrencyAmountPreview(
+                minorUnits: categoryBudgetMinor(for: category),
+                currencyCode: appState.selectedCurrencyCode
+            )
+            .frame(width: 82, alignment: .trailing)
+        }
+    }
+
+    private func binding(for category: CategoryItem) -> Binding<String> {
+        Binding(
+            get: { categoryBudgetTexts[category.id, default: ""] },
+            set: { categoryBudgetTexts[category.id] = $0 }
+        )
+    }
+
+    private func categoryBudgetMinor(for category: CategoryItem) -> Int64 {
+        BudgetAmountField.minorUnits(
+            fromMajorAmount: categoryBudgetTexts[category.id, default: ""],
+            currencyCode: appState.selectedCurrencyCode
+        )
+    }
+
     private func configure() {
         guard let budget = activeBudget else {
             expectedIncomeText = ""
+            configureCategoryBudgets()
             return
         }
         cadence = budget.cadence
@@ -151,6 +217,19 @@ struct BudgetSettingsView: View {
             minorUnits: budget.expectedIncomeMinor,
             currencyCode: budget.currencyCode
         )
+        configureCategoryBudgets()
+    }
+
+    private func configureCategoryBudgets() {
+        var values: [UUID: String] = [:]
+        for budget in categoryBudgets where budget.isActive {
+            guard let category = budget.category else { continue }
+            values[category.id] = BudgetAmountField.majorAmountString(
+                minorUnits: budget.amountMinor,
+                currencyCode: budget.currencyCode
+            )
+        }
+        categoryBudgetTexts = values
     }
 
     private func save() {
@@ -170,8 +249,21 @@ struct BudgetSettingsView: View {
         budget.currencyCode = appState.selectedCurrencyCode
         budget.isActive = true
         budget.updatedAt = Date()
+        saveCategoryBudgets()
         try? modelContext.save()
         message = "Budget saved."
+    }
+
+    private func saveCategoryBudgets() {
+        let repository = CategoryBudgetRepository(modelContext: modelContext)
+        for category in expenseCategories {
+            try? repository.save(
+                category: category,
+                amountMinor: categoryBudgetMinor(for: category),
+                currencyCode: appState.selectedCurrencyCode,
+                existingBudgets: categoryBudgets
+            )
+        }
     }
 }
 

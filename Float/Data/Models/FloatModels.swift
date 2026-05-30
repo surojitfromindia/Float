@@ -261,6 +261,35 @@ final class BudgetPeriodItem {
     }
 }
 
+@Model
+final class CategoryBudgetItem {
+    var id: UUID = UUID()
+    var category: CategoryItem?
+    var amountMinor: Int64 = 0
+    var currencyCode: String = "USD"
+    var isActive: Bool = true
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        category: CategoryItem? = nil,
+        amountMinor: Int64,
+        currencyCode: String,
+        isActive: Bool = true,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.category = category
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.currencyCode = currencyCode
+        self.isActive = isActive
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
 extension TransactionItem {
     var categoryName: String {
         category?.name.nilIfBlank ?? "Unknown Category"

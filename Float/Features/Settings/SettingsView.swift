@@ -19,6 +19,7 @@ struct SettingsView: View {
     @Query private var goals: [GoalItem]
     @Query private var recurringRules: [RecurringRuleItem]
     @Query private var budgets: [BudgetPeriodItem]
+    @Query private var categoryBudgets: [CategoryBudgetItem]
     @State private var exportingBackup = false
     @State private var importingBackup = false
     @State private var backupDocument = BackupDocument()
@@ -162,6 +163,7 @@ struct SettingsView: View {
                 goals: goals,
                 recurringRules: recurringRules,
                 budgets: budgets,
+                categoryBudgets: categoryBudgets,
                 currencyCode: appState.selectedCurrencyCode
             )
             message = "Preparing backup."
@@ -189,6 +191,7 @@ struct SettingsView: View {
         for item in transactions { modelContext.delete(item) }
         for item in recurringRules { modelContext.delete(item) }
         for item in goals { modelContext.delete(item) }
+        for item in categoryBudgets { modelContext.delete(item) }
         for item in budgets { modelContext.delete(item) }
         for item in accounts { modelContext.delete(item) }
         for item in categories { modelContext.delete(item) }

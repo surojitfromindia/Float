@@ -9,6 +9,7 @@ struct InsightsView: View {
     @Query(sort: \TransactionItem.timestamp, order: .reverse) private
         var transactions: [TransactionItem]
     @Query private var budgets: [BudgetPeriodItem]
+    @Query private var categoryBudgets: [CategoryBudgetItem]
     @Query private var goals: [GoalItem]
     @Query private var recurringRules: [RecurringRuleItem]
 
@@ -71,6 +72,7 @@ struct InsightsView: View {
             transactions: currentTransactions,
             previousTransactions: previousRangeTransactions,
             budgets: budgets,
+            categoryBudgets: categoryBudgets,
             goals: goals,
             recurringRules: recurringRules,
             activeBudget: activeBudget,
@@ -111,6 +113,7 @@ struct InsightsView: View {
 
                 executiveSummary
                 budgetHealthCard
+                categoryBudgetCard
                 categoryCard
                 cashFlowTrendCard
                 recurringCard
@@ -341,6 +344,66 @@ struct InsightsView: View {
                                 categoryRow(item)
                             }
                             .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var categoryBudgetCard: some View {
+        insightCard(
+            title: "Category budgets",
+            subtitle: "Spending against category limits for this range"
+        ) {
+            if report.categoryBudgetInsights.isEmpty {
+                EmptyStateView(
+                    icon: "slider.horizontal.3",
+                    title: "No category budgets",
+                    message: "Set category limits in Budget settings to track them here."
+                )
+            } else {
+                VStack(spacing: 14) {
+                    HStack(spacing: 12) {
+                        reportMetric(
+                            "Allocated",
+                            amount: report.totalCategoryBudgetMinor,
+                            icon: "chart.pie.fill",
+                            tint: Color(hex: "#0E7C7B")
+                        )
+                        reportMetric(
+                            "Spent",
+                            amount: report.totalCategoryBudgetSpentMinor,
+                            icon: "creditcard.fill",
+                            tint: report.overCategoryBudgetCount > 0
+                                ? Color(hex: "#B4613B") : Color(hex: "#1B8A5A")
+                        )
+                    }
+
+                    ForEach(report.categoryBudgetInsights) { item in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 10) {
+                                Image(systemName: item.icon)
+                                    .foregroundStyle(Color(hex: item.colorHex))
+                                    .frame(width: 28, height: 28)
+                                    .background(
+                                        Color(hex: item.colorHex).opacity(0.12),
+                                        in: Circle()
+                                    )
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(item.name)
+                                        .font(.subheadline.weight(.semibold))
+                                    Text(item.statusText(currencyCode: appState.selectedCurrencyCode))
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Text(money(item.spentMinor))
+                                    .moneyStyle(size: 14, weight: .semibold)
+                            }
+
+                            ProgressView(value: min(item.progress, 1))
+                                .tint(item.isOverBudget ? Color(hex: "#B4613B") : Color(hex: item.colorHex))
                         }
                     }
                 }
@@ -733,6 +796,7 @@ private struct InsightReport {
     let transactions: [TransactionItem]
     let previousTransactions: [TransactionItem]
     let budgets: [BudgetPeriodItem]
+    let categoryBudgets: [CategoryBudgetItem]
     let goals: [GoalItem]
     let recurringRules: [RecurringRuleItem]
     let activeBudget: BudgetPeriodItem?
@@ -820,6 +884,54 @@ private struct InsightReport {
             return "Spending is ahead of time elapsed, so the daily allowance is tightening."
         }
         return "Spending is tracking within the current period pace."
+    }
+
+    var categoryBudgetInsights: [CategoryBudgetInsight] {
+        categoryBudgets
+            .filter {
+                $0.isActive
+                    && $0.amountMinor > 0
+                    && $0.category?.isIncome == false
+                    && $0.category?.archived == false
+            }
+            .map { budget in
+                let category = budget.category
+                let spent = transactions
+                    .filter { transaction in
+                        transaction.isExpense && transaction.category?.id == category?.id
+                    }
+                    .reduce(Int64(0)) { $0 + $1.amountMinor }
+                let remaining = max(0, budget.amountMinor - spent)
+                let over = max(0, spent - budget.amountMinor)
+                return CategoryBudgetInsight(
+                    name: category?.name ?? "Unknown Category",
+                    icon: category?.iconKey ?? "questionmark.circle.fill",
+                    colorHex: category?.colorHex ?? "#5A6B6B",
+                    budgetMinor: budget.amountMinor,
+                    spentMinor: spent,
+                    remainingMinor: remaining,
+                    overMinor: over,
+                    progress: Double(spent) / Double(max(1, budget.amountMinor))
+                )
+            }
+            .sorted {
+                if $0.isOverBudget != $1.isOverBudget {
+                    return $0.isOverBudget && !$1.isOverBudget
+                }
+                return $0.progress > $1.progress
+            }
+    }
+
+    var totalCategoryBudgetMinor: Int64 {
+        categoryBudgetInsights.reduce(0) { $0 + $1.budgetMinor }
+    }
+
+    var totalCategoryBudgetSpentMinor: Int64 {
+        categoryBudgetInsights.reduce(0) { $0 + $1.spentMinor }
+    }
+
+    var overCategoryBudgetCount: Int {
+        categoryBudgetInsights.filter(\.isOverBudget).count
     }
 
     var categoryInsights: [CategoryInsight] {
@@ -968,6 +1080,27 @@ private struct CategoryInsight: Identifiable {
     let amountMinor: Int64
     let share: Double
     let color: Color
+}
+
+private struct CategoryBudgetInsight: Identifiable {
+    let id = UUID()
+    let name: String
+    let icon: String
+    let colorHex: String
+    let budgetMinor: Int64
+    let spentMinor: Int64
+    let remainingMinor: Int64
+    let overMinor: Int64
+    let progress: Double
+
+    var isOverBudget: Bool { overMinor > 0 }
+
+    func statusText(currencyCode: String) -> String {
+        if isOverBudget {
+            return "Over by \(MoneyFormatter.string(minorUnits: overMinor, currencyCode: currencyCode))"
+        }
+        return "\(MoneyFormatter.string(minorUnits: remainingMinor, currencyCode: currencyCode)) left"
+    }
 }
 
 private struct CategoryDrillDown: Identifiable {
@@ -1134,6 +1267,17 @@ private enum InsightsPDFRenderer {
             draw("Recurring due: \(money(report.safeToSpend.recurringDueMinor, currencyCode))", at: &y, style: .body, bounds: pageBounds)
             draw("Goals needed: \(money(report.safeToSpend.goalContributionMinor, currencyCode))", at: &y, style: .body, bounds: pageBounds)
             draw(report.budgetHealthMessage, at: &y, style: .body, bounds: pageBounds)
+            y += 16
+
+            draw("Category Budgets", at: &y, style: .headline, bounds: pageBounds)
+            draw("Allocated: \(money(report.totalCategoryBudgetMinor, currencyCode))", at: &y, style: .body, bounds: pageBounds)
+            draw("Spent: \(money(report.totalCategoryBudgetSpentMinor, currencyCode))", at: &y, style: .body, bounds: pageBounds)
+            for item in report.categoryBudgetInsights.prefix(6) {
+                let status = item.isOverBudget
+                    ? "over by \(money(item.overMinor, currencyCode))"
+                    : "\(money(item.remainingMinor, currencyCode)) left"
+                draw("\(item.name): \(money(item.spentMinor, currencyCode)) of \(money(item.budgetMinor, currencyCode)) (\(status))", at: &y, style: .body, bounds: pageBounds)
+            }
             y += 16
 
             draw("Top Categories", at: &y, style: .headline, bounds: pageBounds)

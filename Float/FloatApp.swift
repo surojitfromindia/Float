@@ -13,6 +13,7 @@ struct FloatApp: App {
             RecurringRuleItem.self,
             GoalItem.self,
             BudgetPeriodItem.self,
+            CategoryBudgetItem.self,
         ])
         let modelConfiguration = ModelConfiguration(
             schema: schema,

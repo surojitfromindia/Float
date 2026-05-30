@@ -27,7 +27,51 @@ struct FloatBackupDTO: Codable {
     var goals: [GoalDTO]
     var recurringRules: [RecurringRuleDTO]
     var budgets: [BudgetDTO]
+    var categoryBudgets: [CategoryBudgetDTO]
     var settings: SettingsDTO
+
+    enum CodingKeys: String, CodingKey {
+        case accounts
+        case categories
+        case transactions
+        case goals
+        case recurringRules
+        case budgets
+        case categoryBudgets
+        case settings
+    }
+
+    init(
+        accounts: [AccountDTO],
+        categories: [CategoryDTO],
+        transactions: [TransactionDTO],
+        goals: [GoalDTO],
+        recurringRules: [RecurringRuleDTO],
+        budgets: [BudgetDTO],
+        categoryBudgets: [CategoryBudgetDTO] = [],
+        settings: SettingsDTO
+    ) {
+        self.accounts = accounts
+        self.categories = categories
+        self.transactions = transactions
+        self.goals = goals
+        self.recurringRules = recurringRules
+        self.budgets = budgets
+        self.categoryBudgets = categoryBudgets
+        self.settings = settings
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        accounts = try container.decode([AccountDTO].self, forKey: .accounts)
+        categories = try container.decode([CategoryDTO].self, forKey: .categories)
+        transactions = try container.decode([TransactionDTO].self, forKey: .transactions)
+        goals = try container.decode([GoalDTO].self, forKey: .goals)
+        recurringRules = try container.decode([RecurringRuleDTO].self, forKey: .recurringRules)
+        budgets = try container.decode([BudgetDTO].self, forKey: .budgets)
+        categoryBudgets = try container.decodeIfPresent([CategoryBudgetDTO].self, forKey: .categoryBudgets) ?? []
+        settings = try container.decode(SettingsDTO.self, forKey: .settings)
+    }
 }
 
 struct AccountDTO: Codable {
@@ -96,6 +140,15 @@ struct BudgetDTO: Codable {
     var startDayOfMonth: Int?
     var startDayOfWeek: Int?
     var expectedIncomeMinor: Int64
+    var currencyCode: String
+    var isActive: Bool
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct CategoryBudgetDTO: Codable {
+    var id: UUID
+    var categoryID: UUID?
+    var amountMinor: Int64
     var currencyCode: String
     var isActive: Bool
     var createdAt: Date

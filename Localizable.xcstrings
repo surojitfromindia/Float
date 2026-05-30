@@ -1,2417 +1,2429 @@
 {
-  "sourceLanguage": "en",
-  "strings": {
-    "%@ %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@ %2$@"
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%@ %@" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ %2$@"
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@"
           }
         }
       }
     },
-    "%@ • %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@ • %2$@"
+    "%@ • %@" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ • %2$@"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ • %2$@"
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ • %2$@"
           }
         }
       }
     },
-    "%@ • Next: %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@ • Next: %2$@"
+    "%@ • Next: %@" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ • পরবর্তী: %2$@"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ • পরবর্তী: %2$@"
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ • Next: %2$@"
           }
         }
       }
     },
-    "%@ of %@": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "%1$@ of %2$@"
+    "%@ of %@" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ এর মধ্যে %2$@"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%1$@ এর মধ্যে %2$@"
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@"
           }
         }
       }
     },
-    "%@ of report expenses": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "রিপোর্টের খরচের %@"
+    "%@ of report expenses" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রিপোর্টের খরচের %@"
           }
         }
       }
     },
-    "About": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Acerca de"
+    "0" : {
+
+    },
+    "About" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সম্পর্কে"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "परिचय"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Acerca de"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সম্পর্কে"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "परिचय"
           }
         }
       }
     },
-    "Account": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cuenta"
+    "Account" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাকাউন্ট"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "खाता"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuenta"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "অ্যাকাউন্ট"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खाता"
           }
         }
       }
     },
-    "Accounts": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cuentas"
+    "Accounts" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাকাউন্টসমূহ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "खाते"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cuentas"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "অ্যাকাউন্টসমূহ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खाते"
           }
         }
       }
     },
-    "Activate": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সক্রিয় করুন"
+    "Activate" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সক্রিয় করুন"
           }
         }
       }
     },
-    "Active": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Activo"
+    "Active" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সক্রিয়"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सक्रिय"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activo"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সক্রিয়"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सक्रिय"
           }
         }
       }
     },
-    "Add": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Agregar"
+    "Add" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "যোগ করুন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "जोड़ें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "যোগ করুন"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जोड़ें"
           }
         }
       }
     },
-    "Add account": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Agregar cuenta"
+    "Add account" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাকাউন্ট যোগ করুন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "खाता जोड़ें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar cuenta"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "অ্যাকাউন্ট যোগ করুন"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खाता जोड़ें"
           }
         }
       }
     },
-    "Add category": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Agregar categoría"
+    "Add category" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভাগ যোগ করুন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "श्रेणी जोड़ें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar categoría"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "বিভাগ যোগ করুন"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "श्रेणी जोड़ें"
           }
         }
       }
+    },
+    "Add expense categories before setting category budgets." : {
+
     },
-    "Add transaction": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Agregar transacción"
+    "Add transaction" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লেনদেন যোগ করুন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "लेनदेन जोड़ें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agregar transacción"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "লেনদেন যোগ করুন"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लेनदेन जोड़ें"
           }
         }
       }
     },
-    "All accounts": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Todas las cuentas"
+    "All accounts" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সব অ্যাকাউন্ট"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सभी खाते"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas las cuentas"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সব অ্যাকাউন্ট"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सभी खाते"
           }
         }
       }
     },
-    "All categories": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Todas las categorías"
+    "All categories" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সব বিভাগ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सभी श्रेणियाँ"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Todas las categorías"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সব বিভাগ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सभी श्रेणियाँ"
           }
         }
       }
     },
-    "Amount": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Importe"
+    "Amount" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরিমাণ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "राशि"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Importe"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পরিমাণ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "राशि"
+          }
+        }
+      }
+    },
+    "Amount in minor units" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ছোট এককে পরিমাণ"
           }
         }
       }
     },
-    "Amount in minor units": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ছোট এককে পরিমাণ"
+    "Amount minor units" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরিমাণের ছোট একক"
           }
         }
       }
     },
-    "Amount minor units": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পরিমাণের ছোট একক"
+    "Amounts are stored in minor units. Example: ₹123.45 is 12345." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরিমাণ ছোট এককে সংরক্ষিত হয়। উদাহরণ: ₹১২৩.৪৫ হলো ১২৩৪৫।"
           }
         }
       }
     },
-    "Amounts are stored in minor units. Example: ₹123.45 is 12345.": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পরিমাণ ছোট এককে সংরক্ষিত হয়। উদাহরণ: ₹১২৩.৪৫ হলো ১২৩৪৫।"
+    "Appearance" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রূপ"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apariencia"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "दिखावट"
           }
         }
       }
     },
-    "Appearance": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apariencia"
+    "Archived" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আর্কাইভ করা"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "दिखावट"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivado"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "রূপ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "संग्रहीत"
           }
         }
       }
     },
-    "Archived": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Archivado"
+    "Bengali" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাংলা"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "संग्रहीत"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bengalí"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "আর্কাইভ করা"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बंगाली"
           }
         }
       }
     },
-    "Budget": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Presupuesto"
+    "Budget" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাজেট"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "बजट"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Presupuesto"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "বাজেট"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बजट"
           }
         }
       }
     },
-    "Budget health": {
-      "extractionState": "stale",
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Estado del presupuesto"
+    "Budget health" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাজেটের অবস্থা"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "बजट स्थिति"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estado del presupuesto"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "বাজেটের অবস্থা"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बजट स्थिति"
           }
         }
       }
     },
-    "Cadence": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পুনরাবৃত্তি"
+    "Cadence" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরাবৃত্তি"
           }
         }
       }
     },
-    "Cancel": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cancelar"
+    "Cancel" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাতিল"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "रद्द करें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cancelar"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "বাতিল"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रद्द करें"
           }
         }
       }
     },
-    "Categories": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Categorías"
+    "Categories" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভাগসমূহ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "श्रेणियाँ"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categorías"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "বিভাগসমূহ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "श्रेणियाँ"
           }
         }
       }
     },
-    "Category": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Categoría"
+    "Category" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভাগ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "श्रेणी"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Categoría"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "বিভাগ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "श्रेणी"
           }
         }
       }
     },
-    "Category breakdown": {
-      "extractionState": "stale",
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Desglose por categoría"
+    "Category breakdown" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভাগভিত্তিক বিশ্লেষণ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "श्रेणी विवरण"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desglose por categoría"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "বিভাগভিত্তিক বিশ্লেষণ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "श्रेणी विवरण"
           }
         }
       }
     },
-    "Category report": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Informe de categoría"
+    "Category budgets" : {
+
+    },
+    "Category report" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভাগ রিপোর্ট"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "श्रेणी रिपोर्ट"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informe de categoría"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "বিভাগ রিপোর্ট"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "श्रेणी रिपोर्ट"
           }
         }
       }
     },
-    "Clear filters": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Borrar filtros"
+    "Clear filters" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফিল্টার মুছুন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "फ़िल्टर साफ़ करें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borrar filtros"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ফিল্টার মুছুন"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "फ़िल्टर साफ़ करें"
           }
         }
       }
     },
-    "Color": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Color"
+    "Color" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রং"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "रंग"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Color"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "রং"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रंग"
           }
         }
       }
     },
-    "Continue": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Continuar"
+    "Continue" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "চালিয়ে যান"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "जारी रखें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuar"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "চালিয়ে যান"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "जारी रखें"
           }
         }
       }
     },
-    "Contribute": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Aportar"
+    "Contribute" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবদান দিন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "योगदान करें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aportar"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "অবদান দিন"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "योगदान करें"
           }
         }
       }
     },
-    "Contribution": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "অবদান"
+    "Contribution" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবদান"
           }
         }
       }
     },
-    "Create backup": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Crear copia"
+    "Create backup" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যাকআপ তৈরি করুন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "बैकअप बनाएँ"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Crear copia"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ব্যাকআপ তৈরি করুন"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बैकअप बनाएँ"
           }
         }
       }
     },
-    "Currency": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Moneda"
+    "Currency" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মুদ্রা"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "मुद्रा"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moneda"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "মুদ্রা"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मुद्रा"
           }
         }
       }
     },
-    "Currency code": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Código de moneda"
+    "Currency code" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মুদ্রা কোড"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "मुद्रा कोड"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Código de moneda"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "মুদ্রা কোড"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "मुद्रा कोड"
           }
         }
       }
     },
-    "Current goal": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "বর্তমান লক্ষ্য"
+    "Current goal" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বর্তমান লক্ষ্য"
           }
         }
       }
     },
-    "Dark": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Oscuro"
+    "Dark" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গাঢ়"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "गहरा"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oscuro"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "গাঢ়"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "गहरा"
           }
         }
       }
     },
-    "Data stays on device. Float has no backend, no account, no analytics, and no tracking SDKs. Backup files are created only when you choose them.": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ডেটা ডিভাইসেই থাকে। Float-এর কোনো ব্যাকএন্ড, অ্যাকাউন্ট, অ্যানালিটিক্স বা ট্র্যাকিং SDK নেই। আপনি চাইলে তবেই ব্যাকআপ ফাইল তৈরি হয়।"
+    "Data stays on device. Float has no backend, no account, no analytics, and no tracking SDKs. Backup files are created only when you choose them." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ডেটা ডিভাইসেই থাকে। Float-এর কোনো ব্যাকএন্ড, অ্যাকাউন্ট, অ্যানালিটিক্স বা ট্র্যাকিং SDK নেই। আপনি চাইলে তবেই ব্যাকআপ ফাইল তৈরি হয়।"
           }
         }
       }
     },
-    "Date": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "তারিখ"
+    "Date" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "তারিখ"
           }
         }
       }
     },
-    "Date range": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "তারিখের সীমা"
+    "Date range" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "তারিখের সীমা"
           }
         }
       }
     },
-    "Deactivate": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নিষ্ক্রিয় করুন"
+    "Deactivate" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নিষ্ক্রিয় করুন"
           }
         }
       }
     },
-    "Delete": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Eliminar"
+    "Delete" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মুছুন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "हटाएँ"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eliminar"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "মুছুন"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "हटाएँ"
           }
         }
       }
     },
-    "Delete recurring rule?": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পুনরাবৃত্তির নিয়ম মুছবেন?"
+    "Delete recurring rule?" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরাবৃত্তির নিয়ম মুছবেন?"
           }
         }
       }
     },
-    "Delete Rule": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নিয়ম মুছুন"
+    "Delete Rule" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নিয়ম মুছুন"
           }
         }
       }
     },
-    "Delete transaction": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "লেনদেন মুছুন"
+    "Delete transaction" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লেনদেন মুছুন"
           }
         }
       }
     },
-    "Details": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Detalles"
+    "Details" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিস্তারিত"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "विवरण"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detalles"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "বিস্তারিত"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "विवरण"
+          }
+        }
+      }
+    },
+    "Edit" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সম্পাদনা"
           }
         }
       }
     },
-    "Edit": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সম্পাদনা"
+    "Edit Account" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাকাউন্ট সম্পাদনা"
           }
         }
       }
     },
-    "Edit Account": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "অ্যাকাউন্ট সম্পাদনা"
+    "Edit Category" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভাগ সম্পাদনা"
           }
         }
       }
     },
-    "Edit Category": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "বিভাগ সম্পাদনা"
+    "Edit Goal" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লক্ষ্য সম্পাদনা"
           }
         }
       }
     },
-    "Edit Goal": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "লক্ষ্য সম্পাদনা"
+    "Edit Rule" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নিয়ম সম্পাদনা"
           }
         }
       }
     },
-    "Edit Rule": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নিয়ম সম্পাদনা"
+    "Edit upcoming recurring rule" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আসন্ন পুনরাবৃত্তির নিয়ম সম্পাদনা"
           }
         }
       }
     },
-    "Edit upcoming recurring rule": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "আসন্ন পুনরাবৃত্তির নিয়ম সম্পাদনা"
+    "End date" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শেষ তারিখ"
           }
         }
       }
     },
-    "End date": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "শেষ তারিখ"
+    "Ends" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শেষ হয়"
           }
         }
       }
     },
-    "Ends": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "শেষ হয়"
+    "English" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইংরেজি"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inglés"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अंग्रेज़ी"
+          }
         }
       }
     },
-    "Enter the normal currency amount for one budget period. For example, enter 60000 for ₹60,000.": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "একটি বাজেট সময়ের সাধারণ মুদ্রার পরিমাণ লিখুন। উদাহরণ: ₹৬০,০০০ এর জন্য ৬০০০০ লিখুন।"
+    "Enter the normal currency amount for one budget period. For example, enter 60000 for ₹60,000." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "একটি বাজেট সময়ের সাধারণ মুদ্রার পরিমাণ লিখুন। উদাহরণ: ₹৬০,০০০ এর জন্য ৬০০০০ লিখুন।"
           }
         }
       }
     },
-    "Every %@": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "প্রতি %@"
+    "Every %@" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রতি %@"
           }
         }
       }
     },
-    "Every %lld %@s": {
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "new",
-            "value": "Every %1$lld %2$@s"
+    "Every %lld %@s" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রতি %lld %@"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "প্রতি %lld %@"
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Every %1$lld %2$@s"
           }
         }
       }
     },
-    "Executive summary": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নির্বাহী সারাংশ"
+    "Executive summary" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নির্বাহী সারাংশ"
           }
         }
       }
     },
-    "Expected income": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ingresos esperados"
+    "Expected income" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রত্যাশিত আয়"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "अपेक्षित आय"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingresos esperados"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "প্রত্যাশিত আয়"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अपेक्षित आय"
           }
         }
       }
     },
-    "Expense": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gasto"
+    "Expense" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "खर्च"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gasto"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "খরচ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खर्च"
           }
         }
       }
     },
-    "Expenses": {
-      "extractionState": "stale",
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Gastos"
+    "Expenses" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচসমূহ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "खर्चे"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Gastos"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "খরচসমূহ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खर्चे"
           }
         }
       }
     },
-    "Export report": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Exportar informe"
+    "Export report" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রিপোর্ট রপ্তানি করুন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "रिपोर्ट निर्यात करें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Exportar informe"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "রিপোর্ট রপ্তানি করুন"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रिपोर्ट निर्यात करें"
           }
         }
       }
     },
-    "Float": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Float"
+    "Float" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float"
           }
         }
       }
     },
-    "Float 1.0": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Float 1.0"
+    "Float 1.0" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float 1.0"
           }
         }
       }
     },
-    "Formatted amount": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ফরম্যাট করা পরিমাণ"
+    "Formatted amount" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফরম্যাট করা পরিমাণ"
           }
         }
       }
     },
-    "From": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Desde"
+    "From" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "থেকে"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "से"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desde"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "থেকে"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "से"
           }
         }
       }
     },
-    "Future transactions will no longer be created from this rule.": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "এই নিয়ম থেকে ভবিষ্যৎ লেনদেন আর তৈরি হবে না।"
+    "Future transactions will no longer be created from this rule." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই নিয়ম থেকে ভবিষ্যৎ লেনদেন আর তৈরি হবে না।"
           }
         }
       }
     },
-    "Goals": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Metas"
+    "Goals" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লক্ষ্যসমূহ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "लक्ष्य"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Metas"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "লক্ষ্যসমূহ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लक्ष्य"
+          }
+        }
+      }
+    },
+    "Hex color" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "হেক্স রং"
           }
         }
       }
     },
-    "Hex color": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "হেক্স রং"
+    "Hindi" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "হিন্দি"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hindi"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "हिन्दी"
           }
         }
       }
     },
-    "Home": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inicio"
+    "Home" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "হোম"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "होम"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Inicio"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "হোম"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "होम"
           }
         }
       }
     },
-    "Home preview": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "হোম প্রিভিউ"
+    "Home preview" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "হোম প্রিভিউ"
           }
         }
       }
     },
-    "Home uses expected income minus recurring expenses, unfinished goal targets, and expenses already recorded this period.": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "হোম প্রত্যাশিত আয় থেকে পুনরাবৃত্ত খরচ, অসমাপ্ত লক্ষ্য এবং এই সময়ের রেকর্ড করা খরচ বাদ দিয়ে হিসাব করে।"
+    "Home uses expected income minus recurring expenses, unfinished goal targets, and expenses already recorded this period." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "হোম প্রত্যাশিত আয় থেকে পুনরাবৃত্ত খরচ, অসমাপ্ত লক্ষ্য এবং এই সময়ের রেকর্ড করা খরচ বাদ দিয়ে হিসাব করে।"
           }
         }
       }
     },
-    "Icon": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "আইকন"
+    "Icon" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আইকন"
           }
         }
       }
     },
-    "Inactive": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নিষ্ক্রিয়"
+    "Inactive" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নিষ্ক্রিয়"
           }
         }
       }
     },
-    "Income": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ingresos"
+    "Income" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আয়"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आय"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ingresos"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "আয়"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आय"
+          }
+        }
+      }
+    },
+    "Income category" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আয়ের বিভাগ"
           }
         }
       }
     },
-    "Income category": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "আয়ের বিভাগ"
+    "Language" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ভাষা"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Idioma"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "भाषा"
+          }
         }
       }
     },
-    "Light": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Claro"
+    "Light" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "হালকা"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "हल्का"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Claro"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "হালকা"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "हल्का"
           }
         }
       }
     },
-    "List": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Lista"
+    "List" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "তালিকা"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सूची"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lista"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "তালিকা"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सूची"
           }
         }
       }
     },
-    "Manage": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Administrar"
+    "Manage" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরিচালনা"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "प्रबंधन"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Administrar"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পরিচালনা"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रबंधन"
           }
         }
       }
     },
-    "Max amount": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সর্বোচ্চ পরিমাণ"
+    "Max amount" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সর্বোচ্চ পরিমাণ"
           }
         }
       }
     },
-    "Min amount": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সর্বনিম্ন পরিমাণ"
+    "Min amount" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সর্বনিম্ন পরিমাণ"
           }
         }
       }
     },
-    "Mode": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "মোড"
+    "Mode" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মোড"
           }
         }
       }
     },
-    "More": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Más"
+    "More" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আরও"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "अधिक"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Más"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "আরও"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अधिक"
           }
         }
       }
     },
-    "Name": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nombre"
+    "Name" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নাম"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "नाम"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nombre"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নাম"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नाम"
           }
         }
       }
     },
-    "Negative": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নেতিবাচক"
+    "Negative" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নেতিবাচক"
           }
         }
       }
     },
-    "Net": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Neto"
+    "Net" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নিট"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "शुद्ध"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neto"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নিট"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "शुद्ध"
           }
         }
       }
     },
-    "New Account": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নতুন অ্যাকাউন্ট"
+    "New Account" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নতুন অ্যাকাউন্ট"
           }
         }
       }
     },
-    "New Category": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নতুন বিভাগ"
+    "New Category" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নতুন বিভাগ"
           }
         }
       }
     },
-    "New Goal": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নতুন লক্ষ্য"
+    "New Goal" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নতুন লক্ষ্য"
           }
         }
       }
     },
-    "New Rule": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নতুন নিয়ম"
+    "New Rule" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নতুন নিয়ম"
           }
         }
       }
     },
-    "Next run": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পরবর্তী চালনা"
+    "Next run" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরবর্তী চালনা"
           }
         }
       }
     },
-    "None": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "কোনোটিই নয়"
+    "None" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনোটিই নয়"
           }
         }
       }
     },
-    "Note": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nota"
+    "Note" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোট"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "नोट"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nota"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নোট"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "नोट"
           }
         }
       }
     },
-    "Opening balance minor units": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "প্রারম্ভিক ব্যালেন্সের ছোট একক"
+    "Opening balance minor units" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রারম্ভিক ব্যালেন্সের ছোট একক"
           }
         }
       }
     },
-    "per day left this period": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "এই সময়ে প্রতিদিন বাকি"
+    "per day left this period" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই সময়ে প্রতিদিন বাকি"
           }
         }
       }
     },
-    "Period": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Período"
+    "Period" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সময়কাল"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "अवधि"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Período"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সময়কাল"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "अवधि"
           }
         }
       }
     },
-    "Portable data": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Datos portátiles"
+    "Portable data" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পোর্টেবল ডেটা"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "पोर्टेबल डेटा"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datos portátiles"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পোর্টেবল ডেটা"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पोर्टेबल डेटा"
           }
         }
       }
     },
-    "Positive": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ইতিবাচক"
+    "Positive" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইতিবাচক"
           }
         }
       }
     },
-    "Preferences": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Preferencias"
+    "Preferences" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পছন্দসমূহ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "प्राथमिकताएँ"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Preferencias"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পছন্দসমূহ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्राथमिकताएँ"
           }
         }
       }
     },
-    "Privacy": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Privacidad"
+    "Privacy" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গোপনীয়তা"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "गोपनीयता"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacidad"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "গোপনীয়তা"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "गोपनीयता"
           }
         }
       }
     },
-    "Range": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সীমা"
+    "Range" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সীমা"
           }
         }
       }
     },
-    "Recurring": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recurrente"
+    "Recurring" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরাবৃত্ত"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "दोहराव"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recurrente"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পুনরাবৃত্ত"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "दोहराव"
           }
         }
       }
     },
-    "remaining": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "বাকি"
+    "remaining" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাকি"
           }
         }
       }
     },
-    "Reports": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Informes"
+    "Reports" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রিপোর্ট"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "रिपोर्ट"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Informes"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "রিপোর্ট"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "रिपोर्ट"
           }
         }
       }
     },
-    "Reset all data": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restablecer todos los datos"
+    "Reset all data" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সব ডেটা রিসেট করুন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सारा डेटा रीसेट करें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restablecer todos los datos"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সব ডেটা রিসেট করুন"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सारा डेटा रीसेट करें"
           }
         }
       }
     },
-    "Reset all data?": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সব ডেটা রিসেট করবেন?"
+    "Reset all data?" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সব ডেটা রিসেট করবেন?"
           }
         }
       }
     },
-    "Restore backup": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restaurar copia"
+    "Restore backup" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যাকআপ পুনরুদ্ধার করুন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "बैकअप पुनर्स्थापित करें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restaurar copia"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ব্যাকআপ পুনরুদ্ধার করুন"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "बैकअप पुनर्स्थापित करें"
           }
         }
       }
     },
-    "Safe to spend": {
-      "extractionState": "stale",
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Seguro para gastar"
+    "Safe to spend" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচের জন্য নিরাপদ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "खर्च के लिए सुरक्षित"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seguro para gastar"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "খরচের জন্য নিরাপদ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "खर्च के लिए सुरक्षित"
           }
         }
       }
     },
-    "Save": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Guardar"
+    "Save" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সংরক্ষণ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सहेजें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Guardar"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সংরক্ষণ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सहेजें"
           }
         }
       }
     },
-    "Save changes": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পরিবর্তন সংরক্ষণ"
+    "Save changes" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরিবর্তন সংরক্ষণ"
           }
         }
       }
     },
-    "Save transaction": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "লেনদেন সংরক্ষণ"
+    "Save transaction" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লেনদেন সংরক্ষণ"
           }
         }
       }
     },
-    "Saved minor units": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সংরক্ষিত ছোট একক"
+    "Saved minor units" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সংরক্ষিত ছোট একক"
           }
         }
       }
     },
-    "Search notes, accounts, amounts": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "নোট, অ্যাকাউন্ট, পরিমাণ খুঁজুন"
+    "Search notes, accounts, amounts" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোট, অ্যাকাউন্ট, পরিমাণ খুঁজুন"
           }
         }
       }
+    },
+    "Set an amount for each expense category in one budget period. Leave a category blank or enter 0 to remove its budget." : {
+
     },
-    "Settings": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ajustes"
+    "Settings" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সেটিংস"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सेटिंग्स"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajustes"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সেটিংস"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सेटिंग्स"
           }
         }
       }
     },
-    "Show completed": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সম্পন্ন দেখান"
+    "Show completed" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সম্পন্ন দেখান"
+          }
+        }
+      }
+    },
+    "Sort" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সাজান"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordenar"
           }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "क्रमबद्ध करें"
+          }
         }
       }
     },
-    "Sort": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ordenar"
+    "Spanish" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "স্প্যানিশ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "क्रमबद्ध करें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Español"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সাজান"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "स्पेनिश"
           }
         }
       }
     },
-    "spent so far": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "এখন পর্যন্ত খরচ"
+    "spent so far" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখন পর্যন্ত খরচ"
           }
         }
       }
     },
-    "Start using Float": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Float ব্যবহার শুরু করুন"
+    "Start using Float" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float ব্যবহার শুরু করুন"
           }
         }
       }
     },
-    "Starts on": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "শুরু হয়"
+    "Starts on" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শুরু হয়"
           }
         }
       }
     },
-    "Starts on day %lld": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld তারিখে শুরু"
+    "Starts on day %lld" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld তারিখে শুরু"
           }
         }
       }
     },
-    "Stats": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Estadísticas"
+    "Stats" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরিসংখ্যান"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आँकड़े"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estadísticas"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পরিসংখ্যান"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आँकड़े"
           }
         }
       }
     },
-    "System": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sistema"
+    "System" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সিস্টেম"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सिस्टम"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sistema"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সিস্টেম"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सिस्टम"
           }
         }
       }
     },
-    "System dynamic": {
-      "extractionState": "stale",
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dinámico del sistema"
+    "System dynamic" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সিস্টেম ডায়নামিক"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "सिस्टम डायनेमिक"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dinámico del sistema"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "সিস্টেম ডায়নামিক"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "सिस्टम डायनेमिक"
           }
         }
       }
     },
-    "Target %@": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "লক্ষ্য %@"
+    "Target %@" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লক্ষ্য %@"
           }
         }
       }
     },
-    "Target date": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "লক্ষ্য তারিখ"
+    "Target date" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লক্ষ্য তারিখ"
           }
         }
       }
     },
-    "Target minor units": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "লক্ষ্যের ছোট একক"
+    "Target minor units" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লক্ষ্যের ছোট একক"
           }
         }
       }
     },
-    "Theme": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tema"
+    "Theme" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "থিম"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "थीम"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tema"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "থিম"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "थीम"
           }
         }
       }
     },
-    "Theme preview": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "থিম প্রিভিউ"
+    "Theme preview" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "থিম প্রিভিউ"
           }
         }
       }
     },
-    "This period": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Este período"
+    "This period" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই সময়কাল"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "यह अवधि"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Este período"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "এই সময়কাল"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "यह अवधि"
           }
         }
       }
     },
-    "This permanently deletes your accounts, categories, budgets, goals, recurring rules, and transactions. This action cannot be undone.": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "এটি স্থায়ীভাবে আপনার অ্যাকাউন্ট, বিভাগ, বাজেট, লক্ষ্য, পুনরাবৃত্তির নিয়ম এবং লেনদেন মুছে দেবে। এই কাজটি ফিরিয়ে আনা যাবে না।"
+    "This permanently deletes your accounts, categories, budgets, goals, recurring rules, and transactions. This action cannot be undone." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এটি স্থায়ীভাবে আপনার অ্যাকাউন্ট, বিভাগ, বাজেট, লক্ষ্য, পুনরাবৃত্তির নিয়ম এবং লেনদেন মুছে দেবে। এই কাজটি ফিরিয়ে আনা যাবে না।"
           }
         }
       }
     },
-    "To": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পর্যন্ত"
+    "To" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পর্যন্ত"
           }
         }
       }
     },
-    "Today": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hoy"
+    "Today" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আজ"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आज"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoy"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "আজ"
-          }
-        }
-      }
-    },
-    "Total": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "মোট"
-          }
-        }
-      }
-    },
-    "Transaction deleted": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "লেনদেন মুছে ফেলা হয়েছে"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आज"
           }
         }
       }
     },
-    "Transactions": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Transacciones"
+    "Total" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মোট"
           }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "लेनदेन"
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "লেনদেন"
-          }
         }
       }
     },
-    "Type": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tipo"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "प्रकार"
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ধরন"
+    "Transaction deleted" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লেনদেন মুছে ফেলা হয়েছে"
           }
         }
       }
     },
-    "Undo": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deshacer"
+    "Transactions" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লেনদেন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "पूर्ववत करें"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transacciones"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "পূর্বাবস্থায় ফেরান"
-          }
-        }
-      }
-    },
-    "Upcoming recurring": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "আসন্ন পুনরাবৃত্তি"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "लेनदेन"
           }
         }
       }
     },
-    "You can spend": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Puedes gastar"
+    "Type" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ধরন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आप खर्च कर सकते हैं"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tipo"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "আপনি খরচ করতে পারেন"
-          }
-        }
-      }
-    },
-    "You’re %@ over for this period.": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "এই সময়ে আপনি %@ বেশি খরচ করেছেন।"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "प्रकार"
           }
         }
       }
     },
-    "You’re on track": {
-      "localizations": {
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "আপনি সঠিক পথে আছেন"
+    "Undo" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পূর্বাবস্থায় ফেরান"
           }
-        }
-      }
-    },
-    "Language": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Idioma"
-          }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "भाषा"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deshacer"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ভাষা"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "पूर्ववत करें"
           }
         }
       }
     },
-    "Use device language": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Usar idioma del dispositivo"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "डिवाइस की भाषा इस्तेमाल करें"
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ডিভাইসের ভাষা ব্যবহার করুন"
+    "Upcoming recurring" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আসন্ন পুনরাবৃত্তি"
           }
         }
       }
     },
-    "English": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inglés"
+    "Use device language" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ডিভাইসের ভাষা ব্যবহার করুন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "अंग्रेज़ी"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar idioma del dispositivo"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ইংরেজি"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "डिवाइस की भाषा इस्तेमाल करें"
           }
         }
       }
     },
-    "Spanish": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Español"
+    "You can spend" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি খরচ করতে পারেন"
           }
         },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "स्पेनिश"
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Puedes gastar"
           }
         },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "স্প্যানিশ"
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "आप खर्च कर सकते हैं"
           }
         }
       }
     },
-    "Hindi": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hindi"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "हिन्दी"
+    "You’re %@ over for this period." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই সময়ে আপনি %@ বেশি খরচ করেছেন।"
           }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "হিন্দি"
-          }
         }
       }
     },
-    "Bengali": {
-      "localizations": {
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Bengalí"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "बंगाली"
-          }
-        },
-        "bn": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "বাংলা"
+    "You’re on track" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি সঠিক পথে আছেন"
           }
         }
       }
     }
   },
-  "version": "1.0"
+  "version" : "1.0"
 }
