@@ -10,6 +10,7 @@ struct FloatApp: App {
             AccountItem.self,
             CategoryItem.self,
             TransactionItem.self,
+            TransactionTemplateItem.self,
             RecurringRuleItem.self,
             GoalItem.self,
             BudgetPeriodItem.self,

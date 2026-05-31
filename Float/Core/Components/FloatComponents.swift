@@ -2,14 +2,16 @@ import SwiftUI
 
 struct GlassCard<Content: View>: View {
     let content: Content
+    let padding: CGFloat
 
-    init(@ViewBuilder content: () -> Content) {
+    init(padding: CGFloat = 20, @ViewBuilder content: () -> Content) {
         self.content = content()
+        self.padding = padding
     }
 
     var body: some View {
         content
-            .padding(20)
+            .padding(padding)
             .background(
                 .ultraThinMaterial,
                 in: RoundedRectangle(
@@ -45,10 +47,16 @@ struct GlassButton<Label: View>: View {
                 .padding(.vertical, 14)
                 .background(
                     .thinMaterial,
-                    in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    in: RoundedRectangle(
+                        cornerRadius: FloatTheme.controlRadius,
+                        style: .continuous
+                    )
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(
+                        cornerRadius: FloatTheme.controlRadius,
+                        style: .continuous
+                    )
                         .stroke(Color.primary.opacity(0.08))
                 )
         }
@@ -66,7 +74,10 @@ struct GlassTextField: View {
             .padding(14)
             .background(
                 .thinMaterial,
-                in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                in: RoundedRectangle(
+                    cornerRadius: FloatTheme.tileRadius,
+                    style: .continuous
+                )
             )
     }
 }
@@ -110,6 +121,81 @@ struct SectionHeader: View {
             }
         }
         .foregroundStyle(.primary)
+    }
+}
+
+struct FloatIconBadge: View {
+    let icon: String
+    let tint: Color
+    var size: CGFloat = 34
+
+    var body: some View {
+        Image(systemName: icon)
+            .font(.system(size: size * 0.42, weight: .semibold))
+            .foregroundStyle(tint)
+            .frame(width: size, height: size)
+            .background(tint.opacity(0.12), in: Circle())
+    }
+}
+
+struct SummaryMetricTile: View {
+    let title: String
+    let value: String
+    let caption: String?
+    let icon: String
+    let tint: Color
+
+    init(
+        title: String,
+        value: String,
+        caption: String? = nil,
+        icon: String,
+        tint: Color
+    ) {
+        self.title = title
+        self.value = value
+        self.caption = caption
+        self.icon = icon
+        self.tint = tint
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            FloatIconBadge(icon: icon, tint: tint, size: 32)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .moneyStyle(size: 15, weight: .semibold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                if let caption {
+                    Text(caption)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                }
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            tint.opacity(0.08),
+            in: RoundedRectangle(
+                cornerRadius: FloatTheme.tileRadius,
+                style: .continuous
+            )
+        )
+        .overlay(
+            RoundedRectangle(
+                cornerRadius: FloatTheme.tileRadius,
+                style: .continuous
+            )
+            .strokeBorder(tint.opacity(0.16), lineWidth: 1)
+        )
     }
 }
 
@@ -195,7 +281,17 @@ struct CategoryChip: View {
             isSelected
                 ? Color(hex: category.colorHex).opacity(0.22)
                 : Color.primary.opacity(0.06),
-            in: Capsule()
+            in: RoundedRectangle(
+                cornerRadius: FloatTheme.tileRadius,
+                style: .continuous
+            )
+        )
+        .overlay(
+            RoundedRectangle(
+                cornerRadius: FloatTheme.tileRadius,
+                style: .continuous
+            )
+            .strokeBorder(Color(hex: category.colorHex).opacity(isSelected ? 0.22 : 0), lineWidth: 1)
         )
         .foregroundStyle(isSelected ? Color(hex: category.colorHex) : .primary)
     }
@@ -205,50 +301,75 @@ struct TransactionRowView: View {
     let transaction: TransactionItem
     let currencyCode: String
 
-    var body: some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle().fill(
-                    Color(hex: transaction.categoryColorHex)
-                        .opacity(0.16)
-                )
-                Image(systemName: transaction.categoryIconKey)
-                .foregroundStyle(
-                    Color(hex: transaction.categoryColorHex)
-                )
-            }
-            .frame(width: 42, height: 42)
+    private var noteText: String? {
+        guard let note = transaction.note?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !note.isEmpty
+        else {
+            return nil
+        }
+        return note
+    }
 
-            VStack(alignment: .leading, spacing: 4) {
+    private var accountAndTimeText: String {
+        let timestamp = transaction.timestamp.formatted(date: .abbreviated, time: .shortened)
+        return "\(transaction.accountName) • \(timestamp)"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle().fill(
+                        Color(hex: transaction.categoryColorHex)
+                            .opacity(0.16)
+                    )
+                    Image(systemName: transaction.categoryIconKey)
+                    .foregroundStyle(
+                        Color(hex: transaction.categoryColorHex)
+                    )
+                }
+                .font(.subheadline.weight(.semibold))
+                .frame(width: 34, height: 34)
+
                 Text(transaction.categoryName)
                     .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
                 Text(
-                    transaction.note?.isEmpty == false
-                        ? transaction.note ?? ""
-                        : transaction.accountName
+                    (transaction.isExpense ? "" : "+")
+                        + MoneyFormatter.string(
+                            minorUnits: transaction.amountMinor,
+                            currencyCode: currencyCode
+                        )
                 )
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .moneyStyle(size: 15, weight: .semibold)
+                .foregroundStyle(
+                    transaction.isExpense ? .primary : Color(hex: "#1B8A5A")
+                )
                 .lineLimit(1)
-                Text(transaction.timestamp.formatted(date: .abbreviated, time: .shortened))
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                .minimumScaleFactor(0.72)
+                .frame(minWidth: 88, alignment: .trailing)
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                if let noteText {
+                    Text(noteText)
+                        .font(.caption2)
+                        .foregroundStyle(Color.primary.opacity(0.68))
+                        .lineLimit(1)
+                }
+
+                Text(accountAndTimeText)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(Color.primary.opacity(0.52))
                     .lineLimit(1)
             }
-            Spacer()
-            Text(
-                (transaction.isExpense ? "" : "+")
-                    + MoneyFormatter.string(
-                        minorUnits: transaction.amountMinor,
-                        currencyCode: currencyCode
-                    )
-            )
-            .moneyStyle(size: 15, weight: .semibold)
-            .foregroundStyle(
-                transaction.isExpense ? .primary : Color(hex: "#1B8A5A")
-            )
+            .padding(.leading, 44)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

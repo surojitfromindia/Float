@@ -69,6 +69,64 @@ struct TransactionRepository {
 }
 
 @MainActor
+struct TransactionTemplateRepository {
+    let modelContext: ModelContext
+
+    func create(
+        title: String,
+        amountMinor: Int64,
+        isExpense: Bool,
+        category: CategoryItem,
+        account: AccountItem,
+        note: String?
+    ) throws -> TransactionTemplateItem {
+        let template = TransactionTemplateItem(
+            title: title.trimmedNilIfBlank ?? category.name,
+            amountMinor: amountMinor,
+            isExpense: isExpense,
+            category: category,
+            account: account,
+            note: note?.trimmedNilIfBlank
+        )
+        modelContext.insert(template)
+        try save()
+        return template
+    }
+
+    func update(
+        _ template: TransactionTemplateItem,
+        title: String,
+        amountMinor: Int64,
+        isExpense: Bool,
+        category: CategoryItem,
+        account: AccountItem,
+        note: String?
+    ) throws {
+        template.title = title.trimmedNilIfBlank ?? category.name
+        template.amountMinor = max(0, amountMinor)
+        template.isExpense = isExpense
+        template.category = category
+        template.account = account
+        template.note = note?.trimmedNilIfBlank
+        template.updatedAt = Date()
+        try save()
+    }
+
+    func delete(_ template: TransactionTemplateItem) throws {
+        modelContext.delete(template)
+        try save()
+    }
+
+    private func save() throws {
+        do {
+            try modelContext.save()
+        } catch {
+            throw DataIntegrityError.saveFailed
+        }
+    }
+}
+
+@MainActor
 struct CategoryRepository {
     let modelContext: ModelContext
 
@@ -404,6 +462,7 @@ struct SettingsRepository {
 
     func resetAllData(currencyCode: String) throws {
         try modelContext.delete(model: TransactionItem.self)
+        try modelContext.delete(model: TransactionTemplateItem.self)
         try modelContext.delete(model: RecurringRuleItem.self)
         try modelContext.delete(model: GoalItem.self)
         try modelContext.delete(model: CategoryBudgetItem.self)

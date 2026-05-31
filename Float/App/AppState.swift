@@ -46,6 +46,7 @@ final class AppState: ObservableObject {
     @Published var isEntrySheetPresented = false
     @Published var editingTransaction: TransactionItem?
     @Published var newTransactionTimestamp: Date?
+    @Published var newTransactionIsExpense: Bool?
 
     // Converts the stored appearance preference into the optional SwiftUI color scheme override.
     var colorScheme: ColorScheme? {
@@ -65,9 +66,10 @@ final class AppState: ObservableObject {
     }
 
     // Opens the entry sheet with empty state for a new transaction.
-    func presentNewTransaction(timestamp: Date? = nil) {
+    func presentNewTransaction(timestamp: Date? = nil, isExpense: Bool? = nil) {
         editingTransaction = nil
         newTransactionTimestamp = timestamp
+        newTransactionIsExpense = isExpense
         isEntrySheetPresented = true
     }
 
@@ -75,6 +77,7 @@ final class AppState: ObservableObject {
     func presentEditTransaction(_ transaction: TransactionItem) {
         editingTransaction = transaction
         newTransactionTimestamp = nil
+        newTransactionIsExpense = nil
         isEntrySheetPresented = true
     }
 }

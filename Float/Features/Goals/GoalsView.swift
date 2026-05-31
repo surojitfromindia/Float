@@ -16,80 +16,47 @@ struct GoalsView: View {
     }
 
     var body: some View {
-        List {
-            Toggle("Show completed", isOn: $showCompleted)
-            if visibleGoals.isEmpty {
-                EmptyStateView(
-                    icon: "target",
-                    title: goals.isEmpty ? "No goals yet" : "No visible goals",
-                    message: goals.isEmpty
-                        ? "Create a goal to reserve money before spending."
-                        : "Completed goals are hidden for now."
-                )
-            }
-            ForEach(visibleGoals) { goal in
-                Button {
-                    editingGoal = goal
-                    showingEditor = true
-                } label: {
-                    HStack(spacing: 14) {
-                        FloatProgressRing(
-                            progress: Double(goal.savedMinor)
-                                / Double(max(goal.targetMinor, 1)),
-                            tint: Color(hex: goal.colorHex),
-                            lineWidth: 7
+        ScrollView {
+            VStack(spacing: 14) {
+                GlassCard {
+                    Toggle("Show completed", isOn: $showCompleted)
+                }
+
+                if visibleGoals.isEmpty {
+                    GlassCard {
+                        EmptyStateView(
+                            icon: "target",
+                            title: goals.isEmpty
+                                ? "No goals yet"
+                                : "No visible goals",
+                            message: goals.isEmpty
+                                ? "Create a goal to reserve money before spending."
+                                : "Completed goals are hidden for now."
                         )
-                        .frame(width: 48, height: 48)
-                        VStack(alignment: .leading) {
-                            Text(goal.name).font(.headline)
-                            Text(
-                                "\(MoneyFormatter.string(minorUnits: goal.savedMinor, currencyCode: appState.selectedCurrencyCode)) of \(MoneyFormatter.string(minorUnits: goal.targetMinor, currencyCode: appState.selectedCurrencyCode))"
-                            )
-                            .font(.caption).foregroundStyle(.secondary)
-                            if let targetDate = goal.targetDate {
-                                Text("Target \(targetDate.formatted(date: .abbreviated, time: .omitted))")
-                                    .font(.caption2)
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text(
-                                MoneyFormatter.string(
-                                    minorUnits: max(0, goal.targetMinor - goal.savedMinor),
-                                    currencyCode: appState.selectedCurrencyCode
-                                )
-                            )
-                            .moneyStyle(size: 14, weight: .semibold)
-                            Text("remaining")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                        }
-                        if goal.achieved {
-                            Image(systemName: "checkmark.seal.fill")
-                                .foregroundStyle(Color(hex: "#1B8A5A"))
-                        }
                     }
                 }
-                .buttonStyle(.plain)
-                .swipeActions(edge: .leading) {
-                    Button {
-                        contributionGoal = goal
-                    } label: {
-                        Label("Contribute", systemImage: "plus.circle")
-                    }
-                    .tint(Color(hex: "#0E7C7B"))
+
+                ForEach(visibleGoals) { goal in
+                    GoalCard(
+                        goal: goal,
+                        currencyCode: appState.selectedCurrencyCode,
+                        onEdit: {
+                            editingGoal = goal
+                            showingEditor = true
+                        },
+                        onContribute: {
+                            contributionGoal = goal
+                        },
+                        onDelete: {
+                            delete(goal)
+                        }
+                    )
                 }
             }
-            .onDelete { offsets in
-                let repository = GoalRepository(modelContext: modelContext)
-                offsets.map { visibleGoals[$0] }.forEach {
-                    try? repository.delete($0)
-                }
-            }
+            .padding(20)
+            .padding(.bottom, 120)
         }
         .navigationTitle("Goals")
-        .scrollContentBackground(.hidden)
         .floatBackground()
         .toolbar {
             Button {
@@ -107,6 +74,104 @@ struct GoalsView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
         }
+    }
+
+    private func delete(_ goal: GoalItem) {
+        try? GoalRepository(modelContext: modelContext).delete(goal)
+    }
+}
+
+private struct GoalCard: View {
+    let goal: GoalItem
+    let currencyCode: String
+    let onEdit: () -> Void
+    let onContribute: () -> Void
+    let onDelete: () -> Void
+
+    private var tint: Color {
+        Color(hex: goal.colorHex)
+    }
+
+    private var progress: Double {
+        Double(goal.savedMinor) / Double(max(goal.targetMinor, 1))
+    }
+
+    var body: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 14) {
+                    FloatProgressRing(
+                        progress: progress,
+                        tint: tint,
+                        lineWidth: 7
+                    )
+                    .frame(width: 52, height: 52)
+
+                    VStack(alignment: .leading, spacing: 5) {
+                        HStack(spacing: 7) {
+                            Text(goal.name)
+                                .font(.headline)
+                                .lineLimit(1)
+                            if goal.achieved {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .foregroundStyle(Color(hex: "#1B8A5A"))
+                            }
+                        }
+                        Text(
+                            "\(money(goal.savedMinor)) of \(money(goal.targetMinor))"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        if let targetDate = goal.targetDate {
+                            Text("Target \(targetDate.formatted(date: .abbreviated, time: .omitted))")
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+
+                    Spacer(minLength: 8)
+
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text(money(max(0, goal.targetMinor - goal.savedMinor)))
+                            .moneyStyle(size: 14, weight: .semibold)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                        Text("remaining")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                ProgressView(value: min(max(progress, 0), 1))
+                    .tint(tint)
+
+                HStack(spacing: 10) {
+                    Button(action: onContribute) {
+                        Label("Contribute", systemImage: "plus.circle.fill")
+                    }
+                    .font(.caption.weight(.semibold))
+                    .buttonStyle(.borderless)
+
+                    Spacer()
+
+                    Button(action: onEdit) {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    .font(.caption.weight(.semibold))
+                    .buttonStyle(.borderless)
+                }
+            }
+        }
+        .opacity(goal.achieved ? 0.72 : 1)
+        .contextMenu {
+            Button(role: .destructive, action: onDelete) {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+
+    private func money(_ amount: Int64) -> String {
+        MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
     }
 }
 
@@ -250,7 +315,7 @@ struct GoalEditorView: View {
     }
 }
 
-private struct GoalContributionSheet: View {
+struct GoalContributionSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState

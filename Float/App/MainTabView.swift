@@ -24,7 +24,8 @@ struct MainTabView: View {
         .sheet(isPresented: $appState.isEntrySheetPresented) {
             QuickAddKeypadSheet(
                 transactionToEdit: appState.editingTransaction,
-                initialTimestamp: appState.newTransactionTimestamp
+                initialTimestamp: appState.newTransactionTimestamp,
+                initialIsExpense: appState.newTransactionIsExpense
             )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)

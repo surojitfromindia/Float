@@ -113,45 +113,41 @@ struct TransactionsView: View {
             || minimumAmountMinor != nil || maximumAmountMinor != nil
     }
 
+    private var filteredExpenseMinor: Int64 {
+        filtered.filter(\.isExpense).reduce(Int64(0)) { $0 + $1.amountMinor }
+    }
+
+    private var filteredIncomeMinor: Int64 {
+        filtered.filter { !$0.isExpense }.reduce(Int64(0)) { $0 + $1.amountMinor }
+    }
+
     var body: some View {
-        List {
-            compactFilterSection
-            if filtered.isEmpty {
-                EmptyStateView(
-                    icon: "list.bullet.rectangle",
-                    title: "No matching transactions",
-                    message:
-                        "Your transactions will appear here as you add them."
-                )
-            } else {
-                ForEach(grouped, id: \.0) { day, items in
-                    Section(day.formatted(date: .complete, time: .omitted)) {
-                        ForEach(items) { transaction in
-                            Button {
-                                appState.presentEditTransaction(transaction)
-                            } label: {
-                                TransactionRowView(
-                                    transaction: transaction,
-                                    currencyCode: appState.selectedCurrencyCode
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .swipeActions {
-                                Button(role: .destructive) {
-                                    delete(transaction)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                transactionSummary
+                compactFilterSection
+
+                if filtered.isEmpty {
+                    GlassCard {
+                        EmptyStateView(
+                            icon: "list.bullet.rectangle",
+                            title: "No matching transactions",
+                            message:
+                                "Your transactions will appear here as you add them."
+                        )
+                    }
+                } else {
+                    ForEach(grouped, id: \.0) { day, items in
+                        transactionSection(day: day, items: items)
                     }
                 }
             }
+            .padding(20)
+            .padding(.bottom, 130)
         }
         .navigationTitle("Transactions")
         .searchable(text: $searchText, prompt: "Search notes, accounts, amounts")
         .keyboardDismissControls()
-        .scrollContentBackground(.hidden)
         .floatBackground()
         .overlay(alignment: .bottom) {
             if showingUndo, deletedSnapshot != nil {
@@ -183,13 +179,112 @@ struct TransactionsView: View {
                 minimumAmountText: $minimumAmountText,
                 maximumAmountText: $maximumAmountText,
                 hasActiveFilters: hasActiveFilters,
-                clearFilters: clearFilters
+                clearFilters: clearFilters,
+                currencyCode: appState.selectedCurrencyCode
             )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
+    }
+
+    private var transactionSummary: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 10) {
+                    SummaryMetricTile(
+                        title: "Income",
+                        value: MoneyFormatter.string(
+                            minorUnits: filteredIncomeMinor,
+                            currencyCode: appState.selectedCurrencyCode,
+                            showsSign: filteredIncomeMinor > 0
+                        ),
+                        caption: "\(filtered.filter { !$0.isExpense }.count) entries",
+                        icon: "arrow.down.circle.fill",
+                        tint: appState.themePalette.positive
+                    )
+                    SummaryMetricTile(
+                        title: "Expenses",
+                        value: MoneyFormatter.string(
+                            minorUnits: filteredExpenseMinor,
+                            currencyCode: appState.selectedCurrencyCode
+                        ),
+                        caption: "\(filtered.filter(\.isExpense).count) entries",
+                        icon: "arrow.up.circle.fill",
+                        tint: appState.themePalette.caution
+                    )
+                }
+
+                HStack {
+                    Label("\(filtered.count) shown", systemImage: "list.bullet.rectangle")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(netText)
+                        .moneyStyle(size: 14, weight: .semibold)
+                        .foregroundStyle(netMinor >= 0 ? appState.themePalette.positive : appState.themePalette.caution)
+                }
+            }
+        }
+    }
+
+    private var netMinor: Int64 {
+        filteredIncomeMinor - filteredExpenseMinor
+    }
+
+    private var netText: String {
+        let amount = MoneyFormatter.string(
+            minorUnits: abs(netMinor),
+            currencyCode: appState.selectedCurrencyCode
+        )
+        if netMinor > 0 { return "+\(amount)" }
+        if netMinor < 0 { return "-\(amount)" }
+        return amount
+    }
+
+    private func transactionSection(day: Date, items: [TransactionItem]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(day.formatted(date: .complete, time: .omitted))
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(dayTotal(items))
+                    .font(.caption.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 4)
+
+            GlassCard(padding: 14) {
+                VStack(spacing: 6) {
+                    ForEach(items) { transaction in
+                        Button {
+                            appState.presentEditTransaction(transaction)
+                        } label: {
+                            TransactionRowView(
+                                transaction: transaction,
+                                currencyCode: appState.selectedCurrencyCode
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                delete(transaction)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                        if transaction.id != items.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+            }
         }
     }
 
     private var compactFilterSection: some View {
-        Section {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 Menu {
                     Picker("Sort", selection: $selectedSort) {
@@ -198,9 +293,10 @@ struct TransactionsView: View {
                         }
                     }
                 } label: {
-                    Label(selectedSort.title, systemImage: "arrow.up.arrow.down")
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
+                    FilterControlLabel(
+                        title: selectedSort.title,
+                        icon: "arrow.up.arrow.down"
+                    )
                 }
 
                 Menu {
@@ -210,9 +306,10 @@ struct TransactionsView: View {
                         }
                     }
                 } label: {
-                    Label(selectedType.title, systemImage: "tray.full")
-                        .font(.subheadline.weight(.semibold))
-                        .lineLimit(1)
+                    FilterControlLabel(
+                        title: selectedType.title,
+                        icon: "tray.full"
+                    )
                 }
 
                 Spacer(minLength: 0)
@@ -220,10 +317,30 @@ struct TransactionsView: View {
                 Button {
                     showingFilters = true
                 } label: {
-                    Label("Filters", systemImage: hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
-                        .font(.subheadline.weight(.semibold))
+                    FilterControlLabel(
+                        title: "Filters",
+                        icon: hasActiveFilters
+                            ? "line.3.horizontal.decrease.circle.fill"
+                            : "line.3.horizontal.decrease.circle"
+                    )
                 }
+                .buttonStyle(.plain)
             }
+            .padding(10)
+            .background(
+                .thinMaterial,
+                in: RoundedRectangle(
+                    cornerRadius: FloatTheme.controlRadius,
+                    style: .continuous
+                )
+            )
+            .overlay(
+                RoundedRectangle(
+                    cornerRadius: FloatTheme.controlRadius,
+                    style: .continuous
+                )
+                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+            )
 
             if hasActiveFilters {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -240,7 +357,13 @@ struct TransactionsView: View {
                                 .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background(Color.primary.opacity(0.08), in: Capsule())
+                                .background(
+                                    Color.primary.opacity(0.08),
+                                    in: RoundedRectangle(
+                                        cornerRadius: FloatTheme.tileRadius,
+                                        style: .continuous
+                                    )
+                                )
                             }
                             .buttonStyle(.plain)
                         }
@@ -249,11 +372,30 @@ struct TransactionsView: View {
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(Color.primary.opacity(0.08), in: Capsule())
+                            .background(
+                                Color.primary.opacity(0.08),
+                                in: RoundedRectangle(
+                                    cornerRadius: FloatTheme.tileRadius,
+                                    style: .continuous
+                                )
+                            )
                     }
                 }
             }
         }
+    }
+
+    private func dayTotal(_ items: [TransactionItem]) -> String {
+        let income = items.filter { !$0.isExpense }.reduce(Int64(0)) { $0 + $1.amountMinor }
+        let expenses = items.filter(\.isExpense).reduce(Int64(0)) { $0 + $1.amountMinor }
+        let net = income - expenses
+        let amount = MoneyFormatter.string(
+            minorUnits: abs(net),
+            currencyCode: appState.selectedCurrencyCode
+        )
+        if net > 0 { return "+\(amount)" }
+        if net < 0 { return "-\(amount)" }
+        return amount
     }
 
     private var activeFilterChips: [TransactionFilterChip] {
@@ -296,8 +438,20 @@ struct TransactionsView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(.ultraThinMaterial, in: Capsule())
-        .overlay(Capsule().strokeBorder(Color.primary.opacity(0.08)))
+        .background(
+            .ultraThinMaterial,
+            in: RoundedRectangle(
+                cornerRadius: FloatTheme.controlRadius,
+                style: .continuous
+            )
+        )
+        .overlay(
+            RoundedRectangle(
+                cornerRadius: FloatTheme.controlRadius,
+                style: .continuous
+            )
+            .strokeBorder(Color.primary.opacity(0.08))
+        )
         .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
     }
 
@@ -353,6 +507,27 @@ struct TransactionsView: View {
             currencyCode: appState.selectedCurrencyCode
         )
         return parsed > 0 ? parsed : nil
+    }
+}
+
+private struct FilterControlLabel: View {
+    let title: String
+    let icon: String
+
+    var body: some View {
+        Label(title, systemImage: icon)
+            .font(.subheadline.weight(.semibold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 8)
+            .background(
+                Color.primary.opacity(0.045),
+                in: RoundedRectangle(
+                    cornerRadius: FloatTheme.tileRadius,
+                    style: .continuous
+                )
+            )
     }
 }
 
@@ -419,11 +594,15 @@ private struct TransactionFilterSheet: View {
     @Binding var maximumAmountText: String
     let hasActiveFilters: Bool
     let clearFilters: () -> Void
+    let currencyCode: String
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("Type") {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    filterHeader
+
+                    filterSection(title: "Type", icon: "tray.full") {
                     Picker("Type", selection: $selectedType) {
                         ForEach(TransactionTypeFilter.allCases) {
                             Text($0.title).tag($0)
@@ -432,54 +611,224 @@ private struct TransactionFilterSheet: View {
                     .pickerStyle(.segmented)
                 }
 
-                Section("Category") {
-                    Picker("Category", selection: $selectedCategoryID) {
-                        Text("All categories").tag(UUID?.none)
-                        ForEach(categories.filter { !$0.archived }) {
-                            Text($0.name).tag(Optional($0.id))
+                    filterSection(title: "Category", icon: "square.grid.2x2.fill") {
+                        menuRow(
+                            title: "Category",
+                            value: selectedCategoryName,
+                            icon: "folder"
+                        ) {
+                            Picker("Category", selection: $selectedCategoryID) {
+                                Text("All categories").tag(UUID?.none)
+                                ForEach(categories.filter { !$0.archived }) {
+                                    Text($0.name).tag(Optional($0.id))
+                                }
+                            }
+                        }
+                }
+
+                    filterSection(title: "Account", icon: "wallet.pass.fill") {
+                        menuRow(
+                            title: "Account",
+                            value: selectedAccountName,
+                            icon: "creditcard"
+                        ) {
+                            Picker("Account", selection: $selectedAccountID) {
+                                Text("All accounts").tag(UUID?.none)
+                                ForEach(accounts.filter { !$0.archived }) {
+                                    Text($0.name).tag(Optional($0.id))
+                                }
+                            }
+                        }
+                }
+
+                    filterSection(title: "Date", icon: "calendar") {
+                        Toggle("Date range", isOn: $useDateRange)
+                            .font(.subheadline.weight(.semibold))
+                        if useDateRange {
+                            Divider()
+                            DatePicker(
+                                "From",
+                                selection: $startDate,
+                                displayedComponents: .date
+                            )
+                            DatePicker(
+                                "To",
+                                selection: $endDate,
+                                displayedComponents: .date
+                            )
                         }
                     }
-                }
 
-                Section("Account") {
-                    Picker("Account", selection: $selectedAccountID) {
-                        Text("All accounts").tag(UUID?.none)
-                        ForEach(accounts.filter { !$0.archived }) {
-                            Text($0.name).tag(Optional($0.id))
+                    filterSection(title: "Amount", icon: "dollarsign.circle.fill") {
+                        VStack(spacing: 0) {
+                            amountField("Min amount", text: $minimumAmountText)
+                            Divider()
+                            amountField("Max amount", text: $maximumAmountText)
                         }
                     }
-                }
 
-                Section("Date") {
-                    Toggle("Date range", isOn: $useDateRange)
-                    if useDateRange {
-                        DatePicker("From", selection: $startDate, displayedComponents: .date)
-                        DatePicker("To", selection: $endDate, displayedComponents: .date)
+                    HStack(spacing: 12) {
+                        Button(action: clearFilters) {
+                            Label("Clear", systemImage: "xmark.circle")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(!hasActiveFilters)
+
+                        Button {
+                            dismiss()
+                        } label: {
+                            Label("Done", systemImage: "checkmark.circle.fill")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
                     }
                 }
-
-                Section("Amount") {
-                    TextField("Min amount", text: $minimumAmountText)
-                        .keyboardType(.decimalPad)
-                    TextField("Max amount", text: $maximumAmountText)
-                        .keyboardType(.decimalPad)
-                }
-
-                if hasActiveFilters {
-                    Section {
-                        Button("Clear filters", action: clearFilters)
-                    }
-                }
+                .padding(20)
+                .padding(.bottom, 24)
             }
             .navigationTitle("Filters")
             .navigationBarTitleDisplayMode(.inline)
             .keyboardDismissControls()
+            .scrollContentBackground(.hidden)
+            .floatBackground()
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
             }
         }
+    }
+
+    private var filterHeader: some View {
+        GlassCard {
+            HStack(spacing: 12) {
+                FloatIconBadge(
+                    icon: hasActiveFilters
+                        ? "line.3.horizontal.decrease.circle.fill"
+                        : "line.3.horizontal.decrease.circle",
+                    tint: Color(hex: "#0A6FAE"),
+                    size: 40
+                )
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(hasActiveFilters ? "Filters active" : "All transactions")
+                        .font(.headline)
+                    Text(filterSummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                Spacer()
+            }
+        }
+    }
+
+    private var filterSummary: String {
+        var parts: [String] = []
+        if selectedType != .all { parts.append(selectedType.title) }
+        if selectedCategoryID != nil { parts.append(selectedCategoryName) }
+        if selectedAccountID != nil { parts.append(selectedAccountName) }
+        if useDateRange { parts.append("Date range") }
+        if !minimumAmountText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            parts.append("Min \(minimumAmountText)")
+        }
+        if !maximumAmountText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            parts.append("Max \(maximumAmountText)")
+        }
+        return parts.isEmpty ? "No filters are applied." : parts.joined(separator: " • ")
+    }
+
+    private var selectedCategoryName: String {
+        guard let selectedCategoryID,
+              let category = categories.first(where: { $0.id == selectedCategoryID })
+        else {
+            return "All categories"
+        }
+        return category.name
+    }
+
+    private var selectedAccountName: String {
+        guard let selectedAccountID,
+              let account = accounts.first(where: { $0.id == selectedAccountID })
+        else {
+            return "All accounts"
+        }
+        return account.name
+    }
+
+    private func filterSection<Content: View>(
+        title: String,
+        icon: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(title, systemImage: icon)
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            GlassCard {
+                content()
+            }
+        }
+    }
+
+    private func menuRow<MenuContent: View>(
+        title: String,
+        value: String,
+        icon: String,
+        @ViewBuilder menuContent: () -> MenuContent
+    ) -> some View {
+        Menu {
+            menuContent()
+        } label: {
+            HStack(spacing: 12) {
+                FloatIconBadge(icon: icon, tint: Color(hex: "#0A6FAE"), size: 34)
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                Spacer()
+                Text(value)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Color(hex: "#0A6FAE"))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color(hex: "#0A6FAE"))
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func amountField(
+        _ title: String,
+        text: Binding<String>
+    ) -> some View {
+        HStack(spacing: 12) {
+            TextField(title, text: text)
+                .keyboardType(.decimalPad)
+                .textFieldStyle(.plain)
+            if let amount = parsedAmount(text.wrappedValue) {
+                Text(
+                    MoneyFormatter.string(
+                        minorUnits: amount,
+                        currencyCode: currencyCode
+                    )
+                )
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 8)
+    }
+
+    private func parsedAmount(_ text: String) -> Int64? {
+        let parsed = BudgetAmountField.minorUnits(
+            fromMajorAmount: text,
+            currencyCode: currencyCode
+        )
+        return parsed > 0 ? parsed : nil
     }
 }
 

@@ -680,31 +680,11 @@ struct InsightsView: View {
         icon: String,
         tint: Color
     ) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: icon)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(tint)
-                .frame(width: 28, height: 28)
-                .background(tint.opacity(0.12), in: Circle())
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .moneyStyle(size: 15, weight: .semibold)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(12)
-        .background(
-            tint.opacity(0.08),
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(tint.opacity(0.16), lineWidth: 1)
+        SummaryMetricTile(
+            title: title,
+            value: value,
+            icon: icon,
+            tint: tint
         )
     }
 

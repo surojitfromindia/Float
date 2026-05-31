@@ -33,7 +33,18 @@
         }
       }
     },
+    "%@ • Next %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ • Next %2$@"
+          }
+        }
+      }
+    },
     "%@ • Next: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -75,7 +86,16 @@
         }
       }
     },
+    "%@ over this period" : {
+
+    },
+    "%@/day after recurring and goals" : {
+
+    },
     "%lld" : {
+
+    },
+    "%lld shown" : {
 
     },
     "%lld transactions" : {
@@ -90,6 +110,9 @@
           }
         }
       }
+    },
+    "%lld%%" : {
+
     },
     "About" : {
       "localizations" : {
@@ -323,6 +346,9 @@
           }
         }
       }
+    },
+    "All transactions" : {
+
     },
     "Allocation" : {
 
@@ -642,6 +668,7 @@
 
     },
     "Clear filters" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -1007,6 +1034,9 @@
         }
       }
     },
+    "Edit Template" : {
+
+    },
     "Edit upcoming recurring rule" : {
       "localizations" : {
         "bn" : {
@@ -1200,6 +1230,9 @@
       }
     },
     "Filters" : {
+
+    },
+    "Filters active" : {
 
     },
     "Float" : {
@@ -1510,6 +1543,7 @@
       }
     },
     "Max amount" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -1520,6 +1554,7 @@
       }
     },
     "Min amount" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -1658,6 +1693,12 @@
         }
       }
     },
+    "New Template" : {
+
+    },
+    "Next %lld days" : {
+
+    },
     "Next day" : {
 
     },
@@ -1706,6 +1747,9 @@
         }
       }
     },
+    "On track this period" : {
+
+    },
     "Open today" : {
 
     },
@@ -1720,6 +1764,7 @@
       }
     },
     "per day left this period" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -1950,6 +1995,9 @@
           }
         }
       }
+    },
+    "safe" : {
+
     },
     "Safe to spend" : {
       "extractionState" : "stale",
@@ -2267,6 +2315,12 @@
         }
       }
     },
+    "Template name" : {
+
+    },
+    "Templates" : {
+
+    },
     "Theme" : {
       "localizations" : {
         "bn" : {
@@ -2516,6 +2570,7 @@
       }
     },
     "You’re %@ over for this period." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -2526,6 +2581,7 @@
       }
     },
     "You’re on track" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {

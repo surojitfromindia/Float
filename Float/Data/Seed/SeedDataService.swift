@@ -184,6 +184,15 @@ enum DataIntegrityService {
             }
         }
 
+        let templates =
+            (try? modelContext.fetch(FetchDescriptor<TransactionTemplateItem>())) ?? []
+        for template in templates {
+            template.amountMinor = normalizedMoney(template.amountMinor)
+            if template.updatedAt < template.createdAt {
+                template.updatedAt = template.createdAt
+            }
+        }
+
         let recurringRules = (try? modelContext.fetch(FetchDescriptor<RecurringRuleItem>())) ?? []
         for rule in recurringRules {
             rule.amountMinor = normalizedMoney(rule.amountMinor)

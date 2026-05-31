@@ -7,6 +7,7 @@ enum BackupService {
         accounts: [AccountItem],
         categories: [CategoryItem],
         transactions: [TransactionItem],
+        transactionTemplates: [TransactionTemplateItem],
         goals: [GoalItem],
         recurringRules: [RecurringRuleItem],
         budgets: [BudgetPeriodItem],
@@ -17,6 +18,7 @@ enum BackupService {
             accounts: accounts.map(AccountDTO.init),
             categories: categories.map(CategoryDTO.init),
             transactions: transactions.map(TransactionDTO.init),
+            transactionTemplates: transactionTemplates.map(TransactionTemplateDTO.init),
             goals: goals.map(GoalDTO.init),
             recurringRules: recurringRules.map(RecurringRuleDTO.init),
             budgets: budgets.map(BudgetDTO.init),
@@ -68,6 +70,16 @@ enum BackupService {
             )
         }
 
+        for item in dto.transactionTemplates {
+            modelContext.insert(
+                TransactionTemplateItem(
+                    dto: item,
+                    category: item.categoryID.flatMap { categoryMap[$0] },
+                    account: item.accountID.flatMap { accountMap[$0] }
+                )
+            )
+        }
+
         var recurringMap: [UUID: RecurringRuleItem] = [:]
         for item in dto.recurringRules {
             let model = RecurringRuleItem(
@@ -102,6 +114,7 @@ enum BackupService {
 
     private static func deleteExistingData(in modelContext: ModelContext) throws {
         try modelContext.delete(model: TransactionItem.self)
+        try modelContext.delete(model: TransactionTemplateItem.self)
         try modelContext.delete(model: RecurringRuleItem.self)
         try modelContext.delete(model: GoalItem.self)
         try modelContext.delete(model: CategoryBudgetItem.self)
@@ -154,6 +167,22 @@ private extension TransactionDTO {
             accountID: item.account?.id,
             note: item.note,
             recurringRuleID: item.recurringRule?.id,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension TransactionTemplateDTO {
+    init(_ item: TransactionTemplateItem) {
+        self.init(
+            id: item.id,
+            title: item.title,
+            amountMinor: item.amountMinor,
+            isExpense: item.isExpense,
+            categoryID: item.category?.id,
+            accountID: item.account?.id,
+            note: item.note,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt
         )
@@ -344,6 +373,26 @@ private extension TransactionItem {
             account: account,
             note: dto.note,
             recurringRule: recurringRule,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension TransactionTemplateItem {
+    convenience init(
+        dto: TransactionTemplateDTO,
+        category: CategoryItem?,
+        account: AccountItem?
+    ) {
+        self.init(
+            id: dto.id,
+            title: dto.title,
+            amountMinor: dto.amountMinor,
+            isExpense: dto.isExpense,
+            category: category,
+            account: account,
+            note: dto.note,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )

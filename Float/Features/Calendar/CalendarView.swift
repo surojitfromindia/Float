@@ -251,57 +251,58 @@ struct CalendarView: View {
     }
 
     private var monthMetrics: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    MetricPill(
-                        title: "Income",
-                        amount: monthSummary.incomeMinor,
-                        currencyCode: appState.selectedCurrencyCode,
-                        tint: appState.themePalette.positive,
-                        showsSign: true
-                    )
-                    MetricPill(
-                        title: "Expenses",
-                        amount: monthSummary.expenseMinor,
-                        currencyCode: appState.selectedCurrencyCode,
-                        tint: appState.themePalette.caution
-                    )
-                }
-                HStack {
-                    MetricPill(
-                        title: "Net",
-                        amount: monthSummary.netMinor,
-                        currencyCode: appState.selectedCurrencyCode,
-                        tint: monthSummary.netMinor >= 0
-                            ? appState.themePalette.positive
-                            : appState.themePalette.caution,
-                        showsSign: true
-                    )
-                    MetricPill(
-                        title: "Daily avg",
-                        amount: monthSummary.averageDailyExpenseMinor,
-                        currencyCode: appState.selectedCurrencyCode,
-                        tint: appState.themePalette.accent
-                    )
-                }
-                HStack {
-                    MetricPill(
-                        title: "Safe left",
-                        amount: safeToSpend.safeToSpendMinor,
-                        currencyCode: appState.selectedCurrencyCode,
-                        tint: appState.themePalette.positive
-                    )
-                    MetricPill(
-                        title: "Projected",
-                        amount: monthRecurringProjections
-                            .filter(\.isExpense)
-                            .reduce(Int64(0)) { $0 + $1.amountMinor },
-                        currencyCode: appState.selectedCurrencyCode,
-                        tint: appState.themePalette.caution
-                    )
-                }
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                MetricPill(
+                    title: "Income",
+                    amount: monthSummary.incomeMinor,
+                    currencyCode: appState.selectedCurrencyCode,
+                    tint: appState.themePalette.positive,
+                    showsSign: true,
+                    isCompact: true
+                )
+                MetricPill(
+                    title: "Expenses",
+                    amount: monthSummary.expenseMinor,
+                    currencyCode: appState.selectedCurrencyCode,
+                    tint: appState.themePalette.caution,
+                    isCompact: true
+                )
+                MetricPill(
+                    title: "Net",
+                    amount: monthSummary.netMinor,
+                    currencyCode: appState.selectedCurrencyCode,
+                    tint: monthSummary.netMinor >= 0
+                        ? appState.themePalette.positive
+                        : appState.themePalette.caution,
+                    showsSign: true,
+                    isCompact: true
+                )
+                MetricPill(
+                    title: "Daily avg",
+                    amount: monthSummary.averageDailyExpenseMinor,
+                    currencyCode: appState.selectedCurrencyCode,
+                    tint: appState.themePalette.accent,
+                    isCompact: true
+                )
+                MetricPill(
+                    title: "Safe left",
+                    amount: safeToSpend.safeToSpendMinor,
+                    currencyCode: appState.selectedCurrencyCode,
+                    tint: appState.themePalette.positive,
+                    isCompact: true
+                )
+                MetricPill(
+                    title: "Projected",
+                    amount: monthRecurringProjections
+                        .filter(\.isExpense)
+                        .reduce(Int64(0)) { $0 + $1.amountMinor },
+                    currencyCode: appState.selectedCurrencyCode,
+                    tint: appState.themePalette.caution,
+                    isCompact: true
+                )
             }
+            .padding(.horizontal, 1)
         }
     }
 
@@ -955,6 +956,8 @@ private struct CalendarDayCell: View {
     let currencyCode: String
     let palette: FloatThemePalette
 
+    private let elementRadius = FloatTheme.tileRadius
+
     private var netColor: Color {
         if summary.transactions.isEmpty && summary.projectedRecurring.isEmpty {
             return .secondary
@@ -1030,10 +1033,10 @@ private struct CalendarDayCell: View {
         .frame(maxWidth: .infinity)
         .background(
             cellBackground,
-            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            in: RoundedRectangle(cornerRadius: elementRadius, style: .continuous)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
+            RoundedRectangle(cornerRadius: elementRadius, style: .continuous)
                 .strokeBorder(
                     cellBorder,
                     lineWidth: summary.selected ? 1.8 : 1
@@ -1071,11 +1074,14 @@ private struct MetricPill: View {
     let currencyCode: String
     let tint: Color
     var showsSign = false
+    var isCompact = false
+
+    private let elementRadius = FloatTheme.tileRadius
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: isCompact ? 3 : 6) {
             Text(title)
-                .font(.caption.weight(.semibold))
+                .font((isCompact ? Font.caption2 : Font.caption).weight(.semibold))
                 .foregroundStyle(.secondary)
             Text(
                 MoneyFormatter.string(
@@ -1084,14 +1090,18 @@ private struct MetricPill: View {
                     showsSign: showsSign
                 )
             )
-            .moneyStyle(size: 17, weight: .bold)
+            .moneyStyle(size: isCompact ? 15 : 17, weight: .bold)
             .foregroundStyle(tint)
             .lineLimit(1)
             .minimumScaleFactor(0.72)
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(tint.opacity(0.1), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(isCompact ? 10 : 12)
+        .frame(width: isCompact ? 132 : nil, alignment: .leading)
+        .frame(maxWidth: isCompact ? nil : .infinity, alignment: .leading)
+        .background(
+            tint.opacity(0.1),
+            in: RoundedRectangle(cornerRadius: elementRadius, style: .continuous)
+        )
     }
 }
 

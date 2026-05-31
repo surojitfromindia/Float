@@ -38,7 +38,10 @@ struct FloatThemePalette {
 }
 
 enum FloatTheme {
-    static let radius: CGFloat = 28
+    static let cardRadius: CGFloat = 28
+    static let tileRadius: CGFloat = 16
+    static let controlRadius: CGFloat = 18
+    static let radius: CGFloat = cardRadius
 
     static let primaryLight = Color(hex: "#0E7C7B")
     static let primaryContainerLight = Color(hex: "#D7F0EE")

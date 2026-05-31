@@ -10,7 +10,10 @@ struct HomeView: View {
     @Query private var goals: [GoalItem]
     @Query private var recurringRules: [RecurringRuleItem]
     @Query private var budgets: [BudgetPeriodItem]
+    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query private var categoryBudgets: [CategoryBudgetItem]
     @State private var recurringRuleToEdit: RecurringRuleItem?
+    @State private var contributionGoal: GoalItem?
 
     // Prefer the active budget period for all home-screen math; fall back to the first
     // saved period so the dashboard can still render while setup data is incomplete.
@@ -39,11 +42,82 @@ struct HomeView: View {
         }.reduce(0) { $0 + $1.amountMinor }
     }
 
+    private var yesterdayExpenses: Int64 {
+        guard let yesterday = Calendar.current.date(
+            byAdding: .day,
+            value: -1,
+            to: Date()
+        ) else {
+            return 0
+        }
+        return transactions.filter {
+            $0.isExpense && Calendar.current.isDate($0.timestamp, inSameDayAs: yesterday)
+        }.reduce(0) { $0 + $1.amountMinor }
+    }
+
     private var upcomingRecurringExpense: RecurringRuleItem? {
         recurringRules
             .filter { $0.active && $0.isExpense }
             .sorted { $0.nextRunDate < $1.nextRunDate }
             .first
+    }
+
+    private var nearestOpenGoal: GoalItem? {
+        goals.filter { !$0.achieved }.sorted {
+            ($0.targetDate ?? .distantFuture)
+                < ($1.targetDate ?? .distantFuture)
+        }.first
+    }
+
+    private var forecastItems: [CashFlowForecastItem] {
+        CashFlowForecastUseCase.calculate(
+            accounts: accounts,
+            transactions: transactions,
+            budget: activeBudget,
+            safeToSpend: result,
+            goals: goals,
+            recurringRules: recurringRules
+        )
+    }
+
+    private var budgetAlerts: [BudgetAlertItem] {
+        BudgetAlertsUseCase.calculate(
+            categoryBudgets: categoryBudgets,
+            transactions: transactions,
+            period: BudgetPeriod(start: result.periodStart, end: result.periodEnd)
+        )
+    }
+
+    private var periodDailyAverageMinor: Int64 {
+        result.variableSpentMinor / Int64(elapsedPeriodDays)
+    }
+
+    private var elapsedPeriodDays: Int {
+        let today = min(Date(), result.periodEnd)
+        let days = Calendar.current.dateComponents(
+            [.day],
+            from: result.periodStart,
+            to: today
+        ).day ?? 0
+        return max(1, days + 1)
+    }
+
+    private var todayTrendCaption: String {
+        if yesterdayExpenses == 0 {
+            return "spent so far"
+        }
+        let difference = todayExpenses - yesterdayExpenses
+        if difference == 0 {
+            return "same as yesterday"
+        }
+        return "\(money(abs(difference))) \(difference > 0 ? "over" : "under") yesterday"
+    }
+
+    private func money(_ amount: Int64) -> String {
+        MoneyFormatter.string(
+            minorUnits: amount,
+            currencyCode: appState.selectedCurrencyCode
+        )
     }
 
     var body: some View {
@@ -54,21 +128,29 @@ struct HomeView: View {
                     currencyCode: appState.selectedCurrencyCode
                 )
 
+                quickActions
+
                 HStack(spacing: 14) {
                     HomeSummaryTile(
                         title: "Today",
                         amountMinor: todayExpenses,
-                        caption: "spent so far",
+                        caption: todayTrendCaption,
+                        icon: "sun.max.fill",
+                        tint: appState.themePalette.caution,
                         currencyCode: appState.selectedCurrencyCode
                     )
                     HomeSummaryTile(
                         title: "This period",
                         amountMinor: result.variableSpentMinor,
-                        caption: "spent so far",
+                        caption: "\(money(periodDailyAverageMinor))/day avg",
+                        icon: "chart.bar.fill",
+                        tint: appState.themePalette.accent,
                         currencyCode: appState.selectedCurrencyCode
                     )
                 }
 
+                cashFlowForecast
+                budgetAlertsSection
                 budgetOverview
                 upcomingRecurring
                 nearestGoal
@@ -92,10 +174,100 @@ struct HomeView: View {
         .sheet(item: $recurringRuleToEdit) { rule in
             RecurringEditorView(rule: rule)
         }
+        .sheet(item: $contributionGoal) { goal in
+            GoalContributionSheet(goal: goal)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
         .onAppear {
             MaterializeRecurringTransactionsUseCase.run(
                 modelContext: modelContext
             )
+            LocalNotificationScheduler.refresh(
+                recurringRules: recurringRules,
+                budgetAlerts: budgetAlerts,
+                goals: goals,
+                currencyCode: appState.selectedCurrencyCode
+            )
+        }
+    }
+
+    private var quickActions: some View {
+        LazyVGrid(
+            columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 2),
+            spacing: 10
+        ) {
+            HomeActionButton(
+                title: "Expense",
+                icon: "minus.circle.fill",
+                tint: appState.themePalette.caution
+            ) {
+                appState.presentNewTransaction(isExpense: true)
+            }
+            HomeActionButton(
+                title: "Income",
+                icon: "plus.circle.fill",
+                tint: appState.themePalette.positive
+            ) {
+                appState.presentNewTransaction(isExpense: false)
+            }
+            HomeActionButton(
+                title: "Add to goal",
+                icon: "target",
+                tint: appState.themePalette.accent,
+                isEnabled: nearestOpenGoal != nil
+            ) {
+                contributionGoal = nearestOpenGoal
+            }
+            HomeActionButton(
+                title: "Pay recurring",
+                icon: "checkmark.circle.fill",
+                tint: appState.themePalette.caution,
+                isEnabled: upcomingRecurringExpense != nil
+            ) {
+                markUpcomingRecurringPaid()
+            }
+        }
+    }
+
+    private var cashFlowForecast: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Cash-flow forecast")
+            GlassCard {
+                VStack(spacing: 12) {
+                    ForEach(forecastItems) { item in
+                        ForecastRow(
+                            item: item,
+                            currencyCode: appState.selectedCurrencyCode,
+                            tint: appState.themePalette.accent
+                        )
+                        if item.id != forecastItems.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var budgetAlertsSection: some View {
+        if !budgetAlerts.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Budget alerts")
+                GlassCard {
+                    VStack(spacing: 12) {
+                        ForEach(budgetAlerts.prefix(3)) { alert in
+                            BudgetAlertRow(
+                                alert: alert,
+                                currencyCode: appState.selectedCurrencyCode
+                            )
+                            if alert.id != budgetAlerts.prefix(3).last?.id {
+                                Divider()
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -116,14 +288,11 @@ struct HomeView: View {
             } label: {
                 GlassCard {
                     HStack(spacing: 14) {
-                        Image(systemName: rule.category?.iconKey ?? "repeat")
-                            .font(.headline)
-                            .foregroundStyle(Color(hex: "#B4613B"))
-                            .frame(width: 42, height: 42)
-                            .background(
-                                Color(hex: "#B4613B").opacity(0.14),
-                                in: Circle()
-                            )
+                        FloatIconBadge(
+                            icon: rule.category?.iconKey ?? "repeat",
+                            tint: Color(hex: "#B4613B"),
+                            size: 42
+                        )
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Upcoming recurring")
                                 .font(.headline)
@@ -161,10 +330,7 @@ struct HomeView: View {
     @ViewBuilder private var nearestGoal: some View {
         // Show the unfinished goal with the closest target date. Goals without a
         // date sort last because distantFuture is used as their comparison value.
-        if let goal = goals.filter({ !$0.achieved }).sorted(by: {
-            ($0.targetDate ?? .distantFuture)
-                < ($1.targetDate ?? .distantFuture)
-        }).first {
+        if let goal = nearestOpenGoal {
             GlassCard {
                 VStack(alignment: .leading, spacing: 12) {
                     SectionHeader(title: "Nearest goal")
@@ -191,6 +357,30 @@ struct HomeView: View {
                 }
             }
         }
+    }
+
+    private func markUpcomingRecurringPaid() {
+        guard let rule = upcomingRecurringExpense else { return }
+        let transaction = TransactionItem(
+            amountMinor: rule.amountMinor,
+            isExpense: rule.isExpense,
+            timestamp: Date(),
+            category: rule.category,
+            account: rule.account,
+            note: rule.note,
+            recurringRule: rule
+        )
+        modelContext.insert(transaction)
+        if let next = SafeToSpendUseCase.advance(
+            rule.nextRunDate,
+            cadence: rule.cadence,
+            intervalCount: rule.intervalCount
+        ) {
+            rule.nextRunDate = next
+            rule.updatedAt = Date()
+        }
+        try? modelContext.save()
+        Haptics.confirm()
     }
 
     private var recentTransactions: some View {
@@ -226,29 +416,139 @@ private struct HomeSummaryTile: View {
     let title: String
     let amountMinor: Int64
     let caption: String
+    let icon: String
+    let tint: Color
     let currencyCode: String
 
     var body: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 7) {
+        SummaryMetricTile(
+            title: title,
+            value: MoneyFormatter.string(
+                minorUnits: amountMinor,
+                currencyCode: currencyCode
+            ),
+            caption: caption,
+            icon: icon,
+            tint: tint
+        )
+    }
+}
+
+private struct HomeActionButton: View {
+    let title: String
+    let icon: String
+    let tint: Color
+    var isEnabled = true
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 9) {
+                Image(systemName: icon)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(tint)
                 Text(title)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-                Text(
-                    MoneyFormatter.string(
-                        minorUnits: amountMinor,
-                        currencyCode: currencyCode
-                    )
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 11)
+            .frame(maxWidth: .infinity)
+            .background(
+                tint.opacity(isEnabled ? 0.09 : 0.04),
+                in: RoundedRectangle(
+                    cornerRadius: FloatTheme.tileRadius,
+                    style: .continuous
                 )
-                .moneyStyle(size: 23, weight: .bold)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-                Text(caption)
+            )
+            .overlay(
+                RoundedRectangle(
+                    cornerRadius: FloatTheme.tileRadius,
+                    style: .continuous
+                )
+                .strokeBorder(tint.opacity(isEnabled ? 0.14 : 0.06), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+        .opacity(isEnabled ? 1 : 0.48)
+    }
+}
+
+private struct ForecastRow: View {
+    let item: CashFlowForecastItem
+    let currencyCode: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 12) {
+            FloatIconBadge(icon: "calendar.badge.clock", tint: tint, size: 36)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Next \(item.horizonDays) days")
+                    .font(.subheadline.weight(.semibold))
+                Text("\(money(item.dailySafeMinor))/day after recurring and goals")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+            }
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(money(item.safeToSpendMinor))
+                    .moneyStyle(size: 15, weight: .semibold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                Text("safe")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func money(_ amount: Int64) -> String {
+        MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
+    }
+}
+
+private struct BudgetAlertRow: View {
+    let alert: BudgetAlertItem
+    let currencyCode: String
+
+    private var tint: Color {
+        Color(hex: alert.colorHex)
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            FloatIconBadge(icon: alert.icon, tint: tint, size: 36)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(alert.title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Text("\(money(alert.spentMinor)) of \(money(alert.budgetMinor))")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            Spacer(minLength: 8)
+            Text("\(Int((alert.progress * 100).rounded()))%")
+                .font(.caption.weight(.bold))
+                .monospacedDigit()
+                .foregroundStyle(alert.severity == .over ? Color(hex: "#B4613B") : tint)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 5)
+                .background(
+                    tint.opacity(0.1),
+                    in: RoundedRectangle(
+                        cornerRadius: FloatTheme.tileRadius,
+                        style: .continuous
+                    )
+                )
         }
+    }
+
+    private func money(_ amount: Int64) -> String {
+        MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
     }
 }
 
@@ -264,7 +564,7 @@ struct SafeToSpendHeroCard: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 18) {
-                HStack(alignment: .top) {
+                HStack(alignment: .top, spacing: 16) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("You can spend")
                             .font(.subheadline.weight(.medium))
@@ -278,34 +578,109 @@ struct SafeToSpendHeroCard: View {
                         .moneyStyle(size: 40, weight: .bold)
                         .lineLimit(1)
                         .minimumScaleFactor(0.58)
-                        Text(
-                            result.overAmountMinor > 0
-                                ? "You’re \(MoneyFormatter.string(minorUnits: result.overAmountMinor, currencyCode: currencyCode)) over for this period."
-                                : "You’re on track"
-                        )
-                        .font(.subheadline)
-                        .foregroundStyle(
-                            result.overAmountMinor > 0
-                                ? palette.caution : palette.positive
-                        )
+                        statusPill
                     }
+                    Spacer(minLength: 0)
+                    FloatIconBadge(
+                        icon: result.overAmountMinor > 0
+                            ? "exclamationmark.triangle.fill"
+                            : "checkmark.seal.fill",
+                        tint: result.overAmountMinor > 0
+                            ? palette.caution
+                            : palette.positive,
+                        size: 46
+                    )
                 }
                 Divider().opacity(0.5)
-                HStack {
-                    Label(
-                        MoneyFormatter.string(
+                HStack(spacing: 10) {
+                    HeroMetricPill(
+                        title: "Daily",
+                        value: MoneyFormatter.string(
                             minorUnits: result.dailyAllowanceMinor,
                             currencyCode: currencyCode
                         ),
-                        systemImage: "calendar"
+                        icon: "calendar",
+                        tint: palette.accent
                     )
-                    .moneyStyle(size: 17, weight: .semibold)
-                    Text("per day left this period")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    HeroMetricPill(
+                        title: "Left",
+                        value: "\(result.daysRemaining)d",
+                        icon: "hourglass",
+                        tint: palette.positive
+                    )
+                    HeroMetricPill(
+                        title: "Spent",
+                        value: MoneyFormatter.string(
+                            minorUnits: result.variableSpentMinor,
+                            currencyCode: currencyCode
+                        ),
+                        icon: "chart.bar.fill",
+                        tint: palette.caution
+                    )
                 }
             }
         }
+    }
+
+    private var statusPill: some View {
+        Text(
+            result.overAmountMinor > 0
+                ? "\(MoneyFormatter.string(minorUnits: result.overAmountMinor, currencyCode: currencyCode)) over this period"
+                : "On track this period"
+        )
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(result.overAmountMinor > 0 ? palette.caution : palette.positive)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            (result.overAmountMinor > 0 ? palette.caution : palette.positive)
+                .opacity(0.12),
+            in: RoundedRectangle(
+                cornerRadius: FloatTheme.tileRadius,
+                style: .continuous
+            )
+        )
+    }
+}
+
+private struct HeroMetricPill: View {
+    let title: String
+    let value: String
+    let icon: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: icon)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(tint)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .moneyStyle(size: 13, weight: .semibold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            tint.opacity(0.08),
+            in: RoundedRectangle(
+                cornerRadius: FloatTheme.tileRadius,
+                style: .continuous
+            )
+        )
+        .overlay(
+            RoundedRectangle(
+                cornerRadius: FloatTheme.tileRadius,
+                style: .continuous
+            )
+            .strokeBorder(tint.opacity(0.14), lineWidth: 1)
+        )
     }
 }
 
@@ -401,14 +776,23 @@ private struct BudgetStatusChart: View {
         .padding(16)
         .background(
             .thinMaterial,
-            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
+            in: RoundedRectangle(
+                cornerRadius: FloatTheme.controlRadius,
+                style: .continuous
+            )
         )
         .background(
             palette.accent.opacity(0.06),
-            in: RoundedRectangle(cornerRadius: 22, style: .continuous)
+            in: RoundedRectangle(
+                cornerRadius: FloatTheme.controlRadius,
+                style: .continuous
+            )
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
+            RoundedRectangle(
+                cornerRadius: FloatTheme.controlRadius,
+                style: .continuous
+            )
                 .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
         )
     }

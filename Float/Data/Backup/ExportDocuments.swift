@@ -24,6 +24,7 @@ struct FloatBackupDTO: Codable {
     var accounts: [AccountDTO]
     var categories: [CategoryDTO]
     var transactions: [TransactionDTO]
+    var transactionTemplates: [TransactionTemplateDTO]
     var goals: [GoalDTO]
     var recurringRules: [RecurringRuleDTO]
     var budgets: [BudgetDTO]
@@ -34,6 +35,7 @@ struct FloatBackupDTO: Codable {
         case accounts
         case categories
         case transactions
+        case transactionTemplates
         case goals
         case recurringRules
         case budgets
@@ -45,6 +47,7 @@ struct FloatBackupDTO: Codable {
         accounts: [AccountDTO],
         categories: [CategoryDTO],
         transactions: [TransactionDTO],
+        transactionTemplates: [TransactionTemplateDTO] = [],
         goals: [GoalDTO],
         recurringRules: [RecurringRuleDTO],
         budgets: [BudgetDTO],
@@ -54,6 +57,7 @@ struct FloatBackupDTO: Codable {
         self.accounts = accounts
         self.categories = categories
         self.transactions = transactions
+        self.transactionTemplates = transactionTemplates
         self.goals = goals
         self.recurringRules = recurringRules
         self.budgets = budgets
@@ -66,6 +70,7 @@ struct FloatBackupDTO: Codable {
         accounts = try container.decode([AccountDTO].self, forKey: .accounts)
         categories = try container.decode([CategoryDTO].self, forKey: .categories)
         transactions = try container.decode([TransactionDTO].self, forKey: .transactions)
+        transactionTemplates = try container.decodeIfPresent([TransactionTemplateDTO].self, forKey: .transactionTemplates) ?? []
         goals = try container.decode([GoalDTO].self, forKey: .goals)
         recurringRules = try container.decode([RecurringRuleDTO].self, forKey: .recurringRules)
         budgets = try container.decode([BudgetDTO].self, forKey: .budgets)
@@ -105,6 +110,17 @@ struct TransactionDTO: Codable {
     var accountID: UUID?
     var note: String?
     var recurringRuleID: UUID?
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct TransactionTemplateDTO: Codable {
+    var id: UUID
+    var title: String
+    var amountMinor: Int64
+    var isExpense: Bool
+    var categoryID: UUID?
+    var accountID: UUID?
+    var note: String?
     var createdAt: Date
     var updatedAt: Date
 }

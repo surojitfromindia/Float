@@ -3,6 +3,7 @@ import SwiftUI
 
 struct RecurringView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var appState: AppState
     @Query(sort: \RecurringRuleItem.nextRunDate) private var rules:
         [RecurringRuleItem]
     @State private var editingRule: RecurringRuleItem?
@@ -10,77 +11,41 @@ struct RecurringView: View {
     @State private var rulePendingDeletion: RecurringRuleItem?
 
     var body: some View {
-        List {
-            if rules.isEmpty {
-                EmptyStateView(
-                    icon: "repeat",
-                    title: "No recurring rules",
-                    message:
-                        "Add predictable bills or income to keep Safe-to-Spend current."
-                )
-            }
-            ForEach(rules) { rule in
-                Button {
-                    editingRule = rule
-                } label: {
-                    HStack {
-                        ZStack {
-                            Circle().fill(tint(for: rule).opacity(0.14))
-                            Image(systemName: rule.category?.iconKey ?? "repeat")
-                                .foregroundStyle(tint(for: rule))
-                        }
-                        .frame(width: 42, height: 42)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(
-                                rule.note?.isEmpty == false
-                                    ? rule.note ?? "Recurring"
-                                    : rule.category?.name ?? "Unknown Category"
-                            )
-                            .font(.headline)
-                            .foregroundStyle(rule.active ? .primary : .secondary)
-                            Text(
-                                "\(rule.account?.name ?? "Unknown Account") • Next: \(rule.nextRunDate.formatted(date: .abbreviated, time: .omitted))"
-                            )
-                            .font(.caption).foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        VStack(alignment: .trailing, spacing: 6) {
-                            Text(cadenceText(for: rule)).font(
-                                .caption.weight(.semibold)
-                            )
-                            Text(rule.active ? "Active" : "Inactive")
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(tint(for: rule))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(
-                                    tint(for: rule).opacity(rule.active ? 0.14 : 0.10),
-                                    in: Capsule()
-                                )
-                        }
+        ScrollView {
+            VStack(spacing: 14) {
+                if rules.isEmpty {
+                    GlassCard {
+                        EmptyStateView(
+                            icon: "repeat",
+                            title: "No recurring rules",
+                            message:
+                                "Add predictable bills or income to keep Safe-to-Spend current."
+                        )
                     }
                 }
-                .opacity(rule.active ? 1 : 0.62)
-                .buttonStyle(.plain)
-                .swipeActions(edge: .leading) {
-                    Button(rule.active ? "Deactivate" : "Activate") {
-                        rule.active.toggle()
-                        rule.updatedAt = Date()
-                        try? modelContext.save()
-                    }
-                    .tint(rule.active ? .orange : .green)
-                }
-                .swipeActions {
-                    Button(role: .destructive) {
-                        rulePendingDeletion = rule
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
+
+                ForEach(rules) { rule in
+                    RecurringRuleCard(
+                        rule: rule,
+                        currencyCode: appState.selectedCurrencyCode,
+                        tint: tint(for: rule),
+                        cadenceText: cadenceText(for: rule),
+                        onEdit: {
+                            editingRule = rule
+                        },
+                        onToggleActive: {
+                            toggleActive(rule)
+                        },
+                        onDelete: {
+                            rulePendingDeletion = rule
+                        }
+                    )
                 }
             }
+            .padding(20)
+            .padding(.bottom, 120)
         }
         .navigationTitle("Recurring")
-        .scrollContentBackground(.hidden)
         .floatBackground()
         .toolbar {
             Button {
@@ -143,6 +108,119 @@ struct RecurringView: View {
         try? RecurringRepository(modelContext: modelContext)
             .delete(rulePendingDeletion)
         self.rulePendingDeletion = nil
+    }
+
+    private func toggleActive(_ rule: RecurringRuleItem) {
+        rule.active.toggle()
+        rule.updatedAt = Date()
+        try? modelContext.save()
+    }
+}
+
+private struct RecurringRuleCard: View {
+    let rule: RecurringRuleItem
+    let currencyCode: String
+    let tint: Color
+    let cadenceText: String
+    let onEdit: () -> Void
+    let onToggleActive: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 14) {
+                    FloatIconBadge(
+                        icon: rule.category?.iconKey ?? "repeat",
+                        tint: tint,
+                        size: 42
+                    )
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(.headline)
+                            .foregroundStyle(rule.active ? .primary : .secondary)
+                            .lineLimit(1)
+                        Text(
+                            "\(rule.account?.name ?? "Unknown Account") • Next \(rule.nextRunDate.formatted(date: .abbreviated, time: .omitted))"
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    VStack(alignment: .trailing, spacing: 5) {
+                        Text(amount)
+                            .moneyStyle(size: 14, weight: .semibold)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                        Text(cadenceText)
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+
+                HStack(spacing: 10) {
+                    statusBadge
+
+                    Spacer()
+
+                    Button(action: onToggleActive) {
+                        Label(
+                            rule.active ? "Deactivate" : "Activate",
+                            systemImage: rule.active
+                                ? "pause.circle.fill"
+                                : "play.circle.fill"
+                        )
+                    }
+                    .font(.caption.weight(.semibold))
+                    .buttonStyle(.borderless)
+
+                    Button(action: onEdit) {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    .font(.caption.weight(.semibold))
+                    .buttonStyle(.borderless)
+                }
+            }
+        }
+        .opacity(rule.active ? 1 : 0.62)
+        .contextMenu {
+            Button(role: .destructive, action: onDelete) {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+
+    private var title: String {
+        rule.note?.isEmpty == false
+            ? rule.note ?? "Recurring"
+            : rule.category?.name ?? "Unknown Category"
+    }
+
+    private var amount: String {
+        MoneyFormatter.string(
+            minorUnits: rule.amountMinor,
+            currencyCode: currencyCode
+        )
+    }
+
+    private var statusBadge: some View {
+        Text(rule.active ? "Active" : "Inactive")
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(tint)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
+            .background(
+                tint.opacity(rule.active ? 0.14 : 0.10),
+                in: RoundedRectangle(
+                    cornerRadius: FloatTheme.tileRadius,
+                    style: .continuous
+                )
+            )
     }
 }
 

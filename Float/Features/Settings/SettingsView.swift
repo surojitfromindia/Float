@@ -14,6 +14,8 @@ struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \TransactionItem.timestamp, order: .reverse) private
         var transactions: [TransactionItem]
+    @Query(sort: \TransactionTemplateItem.createdAt, order: .reverse) private
+        var transactionTemplates: [TransactionTemplateItem]
     @Query private var accounts: [AccountItem]
     @Query private var categories: [CategoryItem]
     @Query private var goals: [GoalItem]
@@ -77,6 +79,7 @@ struct SettingsView: View {
                 NavigationLink("Budget", destination: BudgetSettingsView())
                 NavigationLink("Goals", destination: GoalsView())
                 NavigationLink("Recurring", destination: RecurringView())
+                NavigationLink("Templates", destination: TransactionTemplateManagerView())
                 NavigationLink("Categories", destination: CategoryManagerView())
                 NavigationLink("Accounts", destination: AccountManagerView())
             }
@@ -162,6 +165,7 @@ struct SettingsView: View {
                 accounts: accounts,
                 categories: categories,
                 transactions: transactions,
+                transactionTemplates: transactionTemplates,
                 goals: goals,
                 recurringRules: recurringRules,
                 budgets: budgets,
@@ -191,6 +195,7 @@ struct SettingsView: View {
 
     private func resetAllData(reseedDefaults: Bool = true) {
         for item in transactions { modelContext.delete(item) }
+        for item in transactionTemplates { modelContext.delete(item) }
         for item in recurringRules { modelContext.delete(item) }
         for item in goals { modelContext.delete(item) }
         for item in categoryBudgets { modelContext.delete(item) }

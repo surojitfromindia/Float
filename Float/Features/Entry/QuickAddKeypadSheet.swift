@@ -9,9 +9,12 @@ struct QuickAddKeypadSheet: View {
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
     @Query(sort: \TransactionItem.timestamp, order: .reverse) private
         var transactions: [TransactionItem]
+    @Query(sort: \TransactionTemplateItem.createdAt, order: .reverse) private
+        var templates: [TransactionTemplateItem]
 
     let transactionToEdit: TransactionItem?
     var initialTimestamp: Date?
+    var initialIsExpense: Bool?
     @State private var keypadText = ""
     @State private var isExpense = true
     @State private var selectedCategory: CategoryItem?
@@ -25,9 +28,14 @@ struct QuickAddKeypadSheet: View {
         appState.themePalette
     }
 
-    init(transactionToEdit: TransactionItem?, initialTimestamp: Date? = nil) {
+    init(
+        transactionToEdit: TransactionItem?,
+        initialTimestamp: Date? = nil,
+        initialIsExpense: Bool? = nil
+    ) {
         self.transactionToEdit = transactionToEdit
         self.initialTimestamp = initialTimestamp
+        self.initialIsExpense = initialIsExpense
     }
 
     private var amountMinor: Int64 {
@@ -62,6 +70,12 @@ struct QuickAddKeypadSheet: View {
                 return true
             }
             .prefix(4)
+            .map { $0 }
+    }
+    private var visibleTemplates: [TransactionTemplateItem] {
+        templates
+            .filter { $0.isExpense == isExpense }
+            .prefix(8)
             .map { $0 }
     }
 
@@ -177,45 +191,79 @@ struct QuickAddKeypadSheet: View {
 
     @ViewBuilder
     private var templateSection: some View {
-        if transactionToEdit == nil && !recentTransactionTemplates.isEmpty {
+        if transactionToEdit == nil
+            && (!visibleTemplates.isEmpty || !recentTransactionTemplates.isEmpty) {
             VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: "Repeat")
+                SectionHeader(title: "Templates")
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        ForEach(recentTransactionTemplates) { transaction in
+                        ForEach(visibleTemplates) { template in
                             Button {
-                                applyTemplate(transaction)
+                                applyTemplate(template)
                             } label: {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: transaction.categoryIconKey)
-                                            .foregroundStyle(Color(hex: transaction.categoryColorHex))
-                                        Text(transaction.categoryName)
-                                            .font(.caption.weight(.semibold))
-                                            .lineLimit(1)
-                                    }
-                                    Text(
-                                        MoneyFormatter.string(
-                                            minorUnits: transaction.amountMinor,
-                                            currencyCode: appState.selectedCurrencyCode
-                                        )
-                                    )
-                                    .font(.caption.monospacedDigit().weight(.bold))
-                                    .foregroundStyle(.primary)
-                                }
-                                .padding(12)
-                                .frame(width: 132, alignment: .leading)
-                                .background(
-                                    Color.primary.opacity(0.06),
-                                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                templateTile(
+                                    title: template.displayTitle,
+                                    amountMinor: template.amountMinor,
+                                    icon: template.category?.iconKey ?? "square.text.square",
+                                    colorHex: template.category?.colorHex ?? "#0E7C7B"
                                 )
                             }
                             .buttonStyle(.plain)
+                        }
+
+                        if visibleTemplates.isEmpty {
+                            ForEach(recentTransactionTemplates) { transaction in
+                                Button {
+                                    applyTemplate(transaction)
+                                } label: {
+                                    templateTile(
+                                        title: transaction.categoryName,
+                                        amountMinor: transaction.amountMinor,
+                                        icon: transaction.categoryIconKey,
+                                        colorHex: transaction.categoryColorHex
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    private func templateTile(
+        title: String,
+        amountMinor: Int64,
+        icon: String,
+        colorHex: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .foregroundStyle(Color(hex: colorHex))
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+            }
+            Text(
+                MoneyFormatter.string(
+                    minorUnits: amountMinor,
+                    currencyCode: appState.selectedCurrencyCode
+                )
+            )
+            .font(.caption.monospacedDigit().weight(.bold))
+            .foregroundStyle(.primary)
+        }
+        .padding(12)
+        .frame(width: 132, alignment: .leading)
+        .background(
+            Color.primary.opacity(0.06),
+            in: RoundedRectangle(
+                cornerRadius: FloatTheme.tileRadius,
+                style: .continuous
+            )
+        )
     }
 
     private var categorySection: some View {
@@ -348,9 +396,12 @@ struct QuickAddKeypadSheet: View {
             timestamp = transactionToEdit.timestamp
             return
         }
+        isExpense = initialIsExpense ?? true
         selectedCategory =
             categories.first {
-                !$0.archived && $0.id.uuidString == appState.lastUsedCategoryID
+                !$0.archived
+                    && $0.isIncome != isExpense
+                    && $0.id.uuidString == appState.lastUsedCategoryID
             }
         selectedAccount =
             accounts.first {
@@ -434,6 +485,16 @@ struct QuickAddKeypadSheet: View {
         selectedCategory = transaction.category
         selectedAccount = transaction.account
         note = transaction.note ?? ""
+        validationMessage = nil
+        Haptics.tick()
+    }
+
+    private func applyTemplate(_ template: TransactionTemplateItem) {
+        keypadText = String(template.amountMinor)
+        isExpense = template.isExpense
+        selectedCategory = template.category
+        selectedAccount = template.account
+        note = template.note ?? ""
         validationMessage = nil
         Haptics.tick()
     }

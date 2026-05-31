@@ -145,6 +145,47 @@ final class TransactionItem {
 }
 
 @Model
+final class TransactionTemplateItem {
+    var id: UUID = UUID()
+    var title: String = ""
+    var amountMinor: Int64 = 0
+    var isExpense: Bool = true
+    var category: CategoryItem?
+    var account: AccountItem?
+    var note: String?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        amountMinor: Int64,
+        isExpense: Bool = true,
+        category: CategoryItem? = nil,
+        account: AccountItem? = nil,
+        note: String? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.title = title
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.isExpense = isExpense
+        self.category = category
+        self.account = account
+        self.note = note?.nilIfBlank
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension TransactionTemplateItem {
+    var displayTitle: String {
+        title.nilIfBlank ?? note?.nilIfBlank ?? category?.name ?? "Template"
+    }
+}
+
+@Model
 final class RecurringRuleItem {
     var id: UUID = UUID()
     var amountMinor: Int64 = 0
