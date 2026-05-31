@@ -50,6 +50,8 @@ struct CategoryManagerView: View {
             }
         }
         .navigationTitle("Categories")
+        .scrollContentBackground(.hidden)
+        .floatBackground()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -153,6 +155,8 @@ private struct CategoryEditorView: View {
             }
             .navigationTitle(category == nil ? "New Category" : "Edit Category")
             .keyboardDismissControls()
+            .scrollContentBackground(.hidden)
+            .floatBackground()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

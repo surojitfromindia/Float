@@ -369,14 +369,14 @@ struct InsightsView: View {
                             "Allocated",
                             amount: report.totalCategoryBudgetMinor,
                             icon: "chart.pie.fill",
-                            tint: Color(hex: "#0E7C7B")
+                            tint: appState.themePalette.accent
                         )
                         reportMetric(
                             "Spent",
                             amount: report.totalCategoryBudgetSpentMinor,
                             icon: "creditcard.fill",
                             tint: report.overCategoryBudgetCount > 0
-                                ? Color(hex: "#B4613B") : Color(hex: "#1B8A5A")
+                                ? appState.themePalette.caution : appState.themePalette.positive
                         )
                     }
 
@@ -403,7 +403,7 @@ struct InsightsView: View {
                             }
 
                             ProgressView(value: min(item.progress, 1))
-                                .tint(item.isOverBudget ? Color(hex: "#B4613B") : Color(hex: item.colorHex))
+                                .tint(item.isOverBudget ? appState.themePalette.caution : Color(hex: item.colorHex))
                         }
                     }
                 }
@@ -426,29 +426,29 @@ struct InsightsView: View {
                 Chart {
                     ForEach(report.cashFlowTrend) { item in
                         LineMark(
-                            x: .value("Period", item.date),
+                            x: .value("Period", item.date, unit: report.cashFlowTrendUnit),
                             y: .value("Amount", item.incomeMinor),
                             series: .value("Type", "Income")
                         )
-                        .foregroundStyle(Color(hex: "#1B8A5A"))
+                            .foregroundStyle(appState.themePalette.positive)
                         .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
 
                         LineMark(
-                            x: .value("Period", item.date),
+                            x: .value("Period", item.date, unit: report.cashFlowTrendUnit),
                             y: .value("Amount", item.expenseMinor),
                             series: .value("Type", "Expenses")
                         )
-                        .foregroundStyle(Color(hex: "#B4613B"))
+                            .foregroundStyle(appState.themePalette.caution)
                         .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
 
                         BarMark(
-                            x: .value("Period", item.date),
+                            x: .value("Period", item.date, unit: report.cashFlowTrendUnit),
                             y: .value("Net", item.netMinor)
                         )
                         .foregroundStyle(
                             item.netMinor >= 0
-                                ? Color(hex: "#1B8A5A").opacity(0.22)
-                                : Color(hex: "#B4613B").opacity(0.22)
+                                ? appState.themePalette.positive.opacity(0.22)
+                                : appState.themePalette.caution.opacity(0.22)
                         )
                     }
                 }
@@ -466,13 +466,13 @@ struct InsightsView: View {
                         "Income",
                         amount: report.incomeTotalMinor,
                         icon: "arrow.down",
-                        tint: Color(hex: "#1B8A5A")
+                        tint: appState.themePalette.positive
                     )
                     reportMetric(
                         "Expense",
                         amount: report.expenseTotalMinor,
                         icon: "arrow.up",
-                        tint: Color(hex: "#B4613B")
+                        tint: appState.themePalette.caution
                     )
                 }
             }
@@ -835,6 +835,10 @@ private struct InsightReport {
             1,
             (Calendar.current.dateComponents([.day], from: range.start, to: range.end).day ?? 0) + 1
         )
+    }
+
+    var cashFlowTrendUnit: Calendar.Component {
+        rangeDayCount > 95 ? .month : .day
     }
 
     var safeToSpend: SafeToSpendResult {

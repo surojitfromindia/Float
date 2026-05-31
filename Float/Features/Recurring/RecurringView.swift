@@ -18,7 +18,6 @@ struct RecurringView: View {
                     message:
                         "Add predictable bills or income to keep Safe-to-Spend current."
                 )
-                .listRowBackground(Color.clear)
             }
             ForEach(rules) { rule in
                 Button {
@@ -81,6 +80,8 @@ struct RecurringView: View {
             }
         }
         .navigationTitle("Recurring")
+        .scrollContentBackground(.hidden)
+        .floatBackground()
         .toolbar {
             Button {
                 showingNewRuleEditor = true
@@ -233,6 +234,8 @@ struct RecurringEditorView: View {
             }
             .navigationTitle(rule == nil ? "New Rule" : "Edit Rule")
             .keyboardDismissControls()
+            .scrollContentBackground(.hidden)
+            .floatBackground()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

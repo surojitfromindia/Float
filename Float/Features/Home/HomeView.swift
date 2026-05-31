@@ -55,42 +55,18 @@ struct HomeView: View {
                 )
 
                 HStack(spacing: 14) {
-                    GlassCard {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Today")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            Text(
-                                MoneyFormatter.string(
-                                    minorUnits: todayExpenses,
-                                    currencyCode: appState.selectedCurrencyCode
-                                )
-                            )
-                            .moneyStyle(size: 24, weight: .bold)
-                            Text("spent so far")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    GlassCard {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("This period")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            Text(
-                                MoneyFormatter.string(
-                                    minorUnits: result.variableSpentMinor,
-                                    currencyCode: appState.selectedCurrencyCode
-                                )
-                            )
-                            .moneyStyle(size: 24, weight: .bold)
-                            Text("spent so far")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
+                    HomeSummaryTile(
+                        title: "Today",
+                        amountMinor: todayExpenses,
+                        caption: "spent so far",
+                        currencyCode: appState.selectedCurrencyCode
+                    )
+                    HomeSummaryTile(
+                        title: "This period",
+                        amountMinor: result.variableSpentMinor,
+                        caption: "spent so far",
+                        currencyCode: appState.selectedCurrencyCode
+                    )
                 }
 
                 budgetOverview
@@ -99,7 +75,7 @@ struct HomeView: View {
                 recentTransactions
             }
             .padding(20)
-            .padding(.bottom, 96)
+            .padding(.bottom, 150)
         }
         .navigationTitle("Float")
         .toolbar {
@@ -246,6 +222,36 @@ struct HomeView: View {
     }
 }
 
+private struct HomeSummaryTile: View {
+    let title: String
+    let amountMinor: Int64
+    let caption: String
+    let currencyCode: String
+
+    var body: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 7) {
+                Text(title)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                Text(
+                    MoneyFormatter.string(
+                        minorUnits: amountMinor,
+                        currencyCode: currencyCode
+                    )
+                )
+                .moneyStyle(size: 23, weight: .bold)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                Text(caption)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
 struct SafeToSpendHeroCard: View {
     @AppStorage("selectedThemeMode") private var selectedThemeMode = "float"
     let result: SafeToSpendResult
@@ -269,8 +275,9 @@ struct SafeToSpendHeroCard: View {
                                 currencyCode: currencyCode
                             )
                         )
-                        .moneyStyle(size: 44, weight: .bold)
-                        .minimumScaleFactor(0.65)
+                        .moneyStyle(size: 40, weight: .bold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.58)
                         Text(
                             result.overAmountMinor > 0
                                 ? "You’re \(MoneyFormatter.string(minorUnits: result.overAmountMinor, currencyCode: currencyCode)) over for this period."
@@ -323,9 +330,17 @@ private struct BudgetStatusChart: View {
         )
     }
 
+    private var spendableBaseMinor: Int64 {
+        max(
+            1,
+            result.safeToSpendMinor - result.overAmountMinor
+                + result.variableSpentMinor
+        )
+    }
+
     var body: some View {
-        VStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 14) {
                 chartMetric(
                     title: "Period",
                     detail: "\(progressPercent(result.periodProgress)) elapsed",
@@ -337,39 +352,50 @@ private struct BudgetStatusChart: View {
                 chartMetric(
                     title: "Spending",
                     detail: "\(progressPercent(result.spendingProgress)) used",
-                    note: nil,
+                    note: spendingSummary,
                     amount: result.variableSpentMinor,
                     progress: result.spendingProgress,
                     tint: palette.accent
                 )
             }
 
-            AllocationBar(
-                safeMinor: result.safeToSpendMinor,
-                spentMinor: result.variableSpentMinor,
-                committedMinor: committedMinor,
-                totalMinor: chartTotal
-            )
+            Divider().opacity(0.45)
 
-            VStack(spacing: 9) {
-                legendItem(
-                    "Safe",
-                    amount: result.safeToSpendMinor,
-                    total: chartTotal,
-                    color: palette.positive
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Allocation")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                AllocationBar(
+                    safeMinor: result.safeToSpendMinor,
+                    spentMinor: result.variableSpentMinor,
+                    committedMinor: committedMinor,
+                    totalMinor: chartTotal,
+                    safeColor: palette.positive,
+                    spentColor: palette.accent,
+                    committedColor: palette.caution
                 )
-                legendItem(
-                    "Spent",
-                    amount: result.variableSpentMinor,
-                    total: chartTotal,
-                    color: palette.accent
-                )
-                legendItem(
-                    "Committed",
-                    amount: committedMinor,
-                    total: chartTotal,
-                    color: palette.caution
-                )
+
+                VStack(spacing: 9) {
+                    legendItem(
+                        "Safe",
+                        amount: result.safeToSpendMinor,
+                        total: chartTotal,
+                        color: palette.positive
+                    )
+                    legendItem(
+                        "Spent",
+                        amount: result.variableSpentMinor,
+                        total: chartTotal,
+                        color: palette.accent
+                    )
+                    legendItem(
+                        "Committed",
+                        amount: committedMinor,
+                        total: chartTotal,
+                        color: palette.caution
+                    )
+                }
             }
         }
         .padding(16)
@@ -397,6 +423,10 @@ private struct BudgetStatusChart: View {
             time: .omitted
         )
         return "\(start) - \(end) · \(result.daysRemaining) days left"
+    }
+
+    private var spendingSummary: String {
+        "\(money(result.variableSpentMinor)) of \(money(spendableBaseMinor)) used"
     }
 
     private func chartMetric(
@@ -442,15 +472,17 @@ private struct BudgetStatusChart: View {
             }
             GeometryReader { proxy in
                 HStack(spacing: 6) {
-                    Capsule()
-                        .fill(tint.gradient)
-                        .frame(
-                            width: max(
-                                6,
-                                proxy.size.width
-                                    * CGFloat(min(max(progress, 0), 1))
+                    let clampedProgress = min(max(progress, 0), 1)
+                    if roundedPercent(clampedProgress) > 0 {
+                        Capsule()
+                            .fill(tint.gradient)
+                            .frame(
+                                width: max(
+                                    6,
+                                    proxy.size.width * CGFloat(clampedProgress)
+                                )
                             )
-                        )
+                    }
                     Spacer(minLength: 0)
                 }
             }
@@ -482,12 +514,27 @@ private struct BudgetStatusChart: View {
     }
 
     private func progressPercent(_ value: Double) -> String {
-        "\(Int((min(max(value, 0), 1) * 100).rounded()))%"
+        percentText(for: value)
     }
 
     private func sharePercent(_ amount: Int64, total: Int64) -> String {
         let value = Double(max(0, amount)) / Double(max(1, total))
-        return "\(Int((value * 100).rounded()))%"
+        return percentText(for: value)
+    }
+
+    private func money(_ amount: Int64) -> String {
+        MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
+    }
+
+    private func percentText(for value: Double) -> String {
+        let clamped = min(max(value, 0), 1)
+        guard clamped > 0 else { return "0%" }
+        let rounded = Int((clamped * 100).rounded())
+        return rounded == 0 ? "<1%" : "\(rounded)%"
+    }
+
+    private func roundedPercent(_ value: Double) -> Int {
+        Int((min(max(value, 0), 1) * 100).rounded())
     }
 }
 
@@ -496,28 +543,44 @@ private struct AllocationBar: View {
     let spentMinor: Int64
     let committedMinor: Int64
     let totalMinor: Int64
+    let safeColor: Color
+    let spentColor: Color
+    let committedColor: Color
+
+    private var visibleSegments: [AllocationSegment] {
+        [
+            AllocationSegment(amount: safeMinor, color: safeColor),
+            AllocationSegment(amount: spentMinor, color: spentColor),
+            AllocationSegment(amount: committedMinor, color: committedColor),
+        ]
+        .filter { segment in
+            segment.amount > 0
+                && roundedPercent(Double(segment.amount) / Double(max(totalMinor, 1))) > 0
+        }
+    }
 
     var body: some View {
         GeometryReader { proxy in
+            let spacing: CGFloat = 4
+            let segments = visibleSegments
+            let availableWidth = max(
+                0,
+                proxy.size.width - spacing * CGFloat(max(0, segments.count - 1))
+            )
             HStack(spacing: 4) {
-                segment(
-                    amount: safeMinor,
-                    total: totalMinor,
-                    width: proxy.size.width,
-                    color: Color(hex: "#1B8A5A")
-                )
-                segment(
-                    amount: spentMinor,
-                    total: totalMinor,
-                    width: proxy.size.width,
-                    color: Color(hex: "#0E7C7B")
-                )
-                segment(
-                    amount: committedMinor,
-                    total: totalMinor,
-                    width: proxy.size.width,
-                    color: Color(hex: "#B4613B")
-                )
+                ForEach(segments) { segment in
+                    Capsule()
+                        .fill(segment.color.gradient)
+                        .frame(
+                            width: segmentWidth(
+                                segment,
+                                availableWidth: availableWidth
+                            )
+                        )
+                }
+                if segments.isEmpty {
+                    Spacer(minLength: 0)
+                }
             }
         }
         .frame(height: 16)
@@ -525,12 +588,21 @@ private struct AllocationBar: View {
         .background(Color.primary.opacity(0.07), in: Capsule())
     }
 
-    private func segment(amount: Int64, total: Int64, width: CGFloat, color: Color)
-        -> some View
-    {
-        let ratio = CGFloat(max(0, Double(amount) / Double(max(total, 1))))
-        return Capsule()
-            .fill(color.gradient)
-            .frame(width: max(amount > 0 ? 8 : 0, width * ratio))
+    private func segmentWidth(
+        _ segment: AllocationSegment,
+        availableWidth: CGFloat
+    ) -> CGFloat {
+        let percent = roundedPercent(Double(segment.amount) / Double(max(totalMinor, 1)))
+        return availableWidth * CGFloat(percent) / 100
     }
+
+    private func roundedPercent(_ value: Double) -> Int {
+        Int((min(max(value, 0), 1) * 100).rounded())
+    }
+}
+
+private struct AllocationSegment: Identifiable {
+    let id = UUID()
+    let amount: Int64
+    let color: Color
 }

@@ -17,6 +17,7 @@ struct BudgetSettingsView: View {
     @State private var startDayOfWeek = Calendar.current.firstWeekday
     @State private var expectedIncomeText = ""
     @State private var categoryBudgetTexts: [UUID: String] = [:]
+    @State private var editingCategory: CategoryItem?
     @State private var message = ""
 
     private var activeBudget: BudgetPeriodItem? {
@@ -52,6 +53,22 @@ struct BudgetSettingsView: View {
         expenseCategories.reduce(Int64(0)) { total, category in
             total + categoryBudgetMinor(for: category)
         }
+    }
+
+    private var previewPeriod: BudgetPeriod {
+        BudgetPeriodCalculator.currentPeriod(
+            cadence: cadence,
+            startDayOfMonth: cadence == .monthly ? startDayOfMonth : nil,
+            startDayOfWeek: cadence == .weekly ? startDayOfWeek : nil
+        )
+    }
+
+    private var budgetedCategoryCount: Int {
+        expenseCategories.filter { categoryBudgetMinor(for: $0) > 0 }.count
+    }
+
+    private var unbudgetedCategoryCount: Int {
+        max(0, expenseCategories.count - budgetedCategoryCount)
     }
 
     var body: some View {
@@ -117,6 +134,30 @@ struct BudgetSettingsView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 } else {
+                    budgetRow("Allocated", categoryBudgetTotalMinor)
+                    HStack {
+                        Text("Budgeted categories")
+                        Spacer()
+                        Text("\(budgetedCategoryCount)")
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("Unbudgeted")
+                        Spacer()
+                        Text("\(unbudgetedCategoryCount)")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Text("Category budget summary")
+            }
+
+            Section {
+                if expenseCategories.isEmpty {
+                    Text("Add expense categories before setting category budgets.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
                     ForEach(expenseCategories) { category in
                         categoryBudgetRow(category)
                     }
@@ -137,12 +178,29 @@ struct BudgetSettingsView: View {
         }
         .navigationTitle("Budget")
         .keyboardDismissControls()
+        .scrollContentBackground(.hidden)
+        .floatBackground()
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save", action: save)
             }
         }
         .onAppear(perform: configure)
+        .sheet(item: $editingCategory) { category in
+            CategoryBudgetEditorSheet(
+                category: category,
+                initialAmountMinor: categoryBudgetMinor(for: category),
+                otherBudgetMinor: max(
+                    0,
+                    categoryBudgetTotalMinor - categoryBudgetMinor(for: category)
+                ),
+                expectedIncomeMinor: previewExpectedIncomeMinor,
+                spentMinor: categorySpentMinor(for: category),
+                currencyCode: appState.selectedCurrencyCode
+            ) { amountMinor in
+                saveCategoryBudget(category, amountMinor: amountMinor)
+            }
+        }
     }
 
     private static let weekdayOptions: [(name: String, value: Int)] = [
@@ -170,36 +228,93 @@ struct BudgetSettingsView: View {
     }
 
     private func categoryBudgetRow(_ category: CategoryItem) -> some View {
-        HStack(spacing: 12) {
-            Label {
-                Text(category.name)
-            } icon: {
-                Image(systemName: category.iconKey)
-                    .foregroundStyle(Color(hex: category.colorHex))
-            }
-            Spacer()
-            TextField("0", text: binding(for: category))
-                .keyboardType(.decimalPad)
-                .multilineTextAlignment(.trailing)
-                .frame(minWidth: 72, maxWidth: 110)
-            CurrencyAmountPreview(
-                minorUnits: categoryBudgetMinor(for: category),
-                currencyCode: appState.selectedCurrencyCode
-            )
-            .frame(width: 82, alignment: .trailing)
-        }
-    }
+        let budgetMinor = categoryBudgetMinor(for: category)
+        let spentMinor = categorySpentMinor(for: category)
+        let remainingMinor = max(0, budgetMinor - spentMinor)
+        let progress = budgetMinor == 0 ? 0 : Double(spentMinor) / Double(budgetMinor)
 
-    private func binding(for category: CategoryItem) -> Binding<String> {
-        Binding(
-            get: { categoryBudgetTexts[category.id, default: ""] },
-            set: { categoryBudgetTexts[category.id] = $0 }
-        )
+        return Button {
+            editingCategory = category
+        } label: {
+            VStack(alignment: .leading, spacing: 9) {
+                HStack(spacing: 12) {
+                    Image(systemName: category.iconKey)
+                        .font(.headline)
+                        .foregroundStyle(Color(hex: category.colorHex))
+                        .frame(width: 34, height: 34)
+                        .background(Color(hex: category.colorHex).opacity(0.14), in: Circle())
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(category.name)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                        Text(categoryBudgetDetail(
+                            budgetMinor: budgetMinor,
+                            spentMinor: spentMinor,
+                            remainingMinor: remainingMinor
+                        ))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    }
+
+                    Spacer()
+
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text(budgetMinor > 0 ? money(budgetMinor) : "Not set")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(budgetMinor > 0 ? .primary : .secondary)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+
+                if budgetMinor > 0 {
+                    ProgressView(value: min(max(progress, 0), 1))
+                        .tint(spentMinor > budgetMinor ? Color(hex: "#B4613B") : Color(hex: category.colorHex))
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private func categoryBudgetMinor(for category: CategoryItem) -> Int64 {
         BudgetAmountField.minorUnits(
             fromMajorAmount: categoryBudgetTexts[category.id, default: ""],
+            currencyCode: appState.selectedCurrencyCode
+        )
+    }
+
+    private func categorySpentMinor(for category: CategoryItem) -> Int64 {
+        transactions
+            .filter {
+                $0.isExpense
+                    && $0.category?.id == category.id
+                    && previewPeriod.contains($0.timestamp, calendar: .current)
+            }
+            .reduce(Int64(0)) { $0 + $1.amountMinor }
+    }
+
+    private func categoryBudgetDetail(
+        budgetMinor: Int64,
+        spentMinor: Int64,
+        remainingMinor: Int64
+    ) -> String {
+        guard budgetMinor > 0 else {
+            return "Tap to add a category budget"
+        }
+        if spentMinor > budgetMinor {
+            return "Spent \(money(spentMinor)) · over by \(money(spentMinor - budgetMinor))"
+        }
+        return "Spent \(money(spentMinor)) · \(money(remainingMinor)) left"
+    }
+
+    private func money(_ amount: Int64) -> String {
+        MoneyFormatter.string(
+            minorUnits: amount,
             currencyCode: appState.selectedCurrencyCode
         )
     }
@@ -264,6 +379,280 @@ struct BudgetSettingsView: View {
                 existingBudgets: categoryBudgets
             )
         }
+    }
+
+    private func saveCategoryBudget(_ category: CategoryItem, amountMinor: Int64) {
+        categoryBudgetTexts[category.id] = amountMinor > 0
+            ? BudgetAmountField.majorAmountString(
+                minorUnits: amountMinor,
+                currencyCode: appState.selectedCurrencyCode
+            )
+            : ""
+        try? CategoryBudgetRepository(modelContext: modelContext).save(
+            category: category,
+            amountMinor: amountMinor,
+            currencyCode: appState.selectedCurrencyCode,
+            existingBudgets: categoryBudgets
+        )
+        message = amountMinor > 0 ? "\(category.name) budget saved." : "\(category.name) budget cleared."
+    }
+}
+
+private struct CategoryBudgetEditorSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let category: CategoryItem
+    let initialAmountMinor: Int64
+    let otherBudgetMinor: Int64
+    let expectedIncomeMinor: Int64
+    let spentMinor: Int64
+    let currencyCode: String
+    let onSave: (Int64) -> Void
+
+    @State private var amountText: String
+
+    init(
+        category: CategoryItem,
+        initialAmountMinor: Int64,
+        otherBudgetMinor: Int64,
+        expectedIncomeMinor: Int64,
+        spentMinor: Int64,
+        currencyCode: String,
+        onSave: @escaping (Int64) -> Void
+    ) {
+        self.category = category
+        self.initialAmountMinor = initialAmountMinor
+        self.otherBudgetMinor = otherBudgetMinor
+        self.expectedIncomeMinor = expectedIncomeMinor
+        self.spentMinor = spentMinor
+        self.currencyCode = currencyCode
+        self.onSave = onSave
+        _amountText = State(
+            initialValue: initialAmountMinor > 0
+                ? BudgetAmountField.majorAmountString(
+                    minorUnits: initialAmountMinor,
+                    currencyCode: currencyCode
+                )
+                : ""
+        )
+    }
+
+    private var amountMinor: Int64 {
+        BudgetAmountField.minorUnits(
+            fromMajorAmount: amountText,
+            currencyCode: currencyCode
+        )
+    }
+
+    private var totalBudgetMinor: Int64 {
+        otherBudgetMinor + amountMinor
+    }
+
+    private var share: Double {
+        guard totalBudgetMinor > 0 else { return 0 }
+        return Double(amountMinor) / Double(totalBudgetMinor)
+    }
+
+    private var incomeShare: Double {
+        guard expectedIncomeMinor > 0 else { return 0 }
+        return Double(amountMinor) / Double(expectedIncomeMinor)
+    }
+
+    private var spentProgress: Double {
+        guard amountMinor > 0 else { return 0 }
+        return Double(spentMinor) / Double(amountMinor)
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    HStack(spacing: 12) {
+                        Image(systemName: category.iconKey)
+                            .font(.headline)
+                            .foregroundStyle(Color(hex: category.colorHex))
+                            .frame(width: 42, height: 42)
+                            .background(
+                                Color(hex: category.colorHex).opacity(0.14),
+                                in: Circle()
+                            )
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(category.name)
+                                .font(.headline)
+                            Text("Set a budget for one budget period.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+
+                Section {
+                    HStack {
+                        TextField("Amount", text: $amountText)
+                            .keyboardType(.decimalPad)
+                        CurrencyAmountPreview(
+                            minorUnits: amountMinor,
+                            currencyCode: currencyCode
+                        )
+                    }
+                } header: {
+                    Text("Budget amount")
+                } footer: {
+                    Text("Enter the normal currency amount for this category.")
+                }
+
+                Section("Allocation share") {
+                    AllocationShareGraph(
+                        categoryName: category.name,
+                        categoryColor: Color(hex: category.colorHex),
+                        amountMinor: amountMinor,
+                        totalBudgetMinor: totalBudgetMinor,
+                        share: share,
+                        title: "of category budgets",
+                        totalTitle: "Category total",
+                        emptyTitle: "No category budget total yet",
+                        emptyMessage: "Set this amount or other category budgets to see its category allocation share.",
+                        currencyCode: currencyCode
+                    )
+                    AllocationShareGraph(
+                        categoryName: category.name,
+                        categoryColor: Color(hex: category.colorHex),
+                        amountMinor: amountMinor,
+                        totalBudgetMinor: expectedIncomeMinor,
+                        share: incomeShare,
+                        title: "of expected income",
+                        totalTitle: "Expected income",
+                        emptyTitle: "Expected income is not set",
+                        emptyMessage: "Set expected income on the Budget screen to compare this category against income.",
+                        currencyCode: currencyCode
+                    )
+                }
+
+                Section("This period") {
+                    editorRow("Budget", amountMinor)
+                    editorRow("Spent", spentMinor)
+                    editorRow("Remaining", max(0, amountMinor - spentMinor))
+                    if amountMinor > 0 {
+                        ProgressView(value: min(max(spentProgress, 0), 1))
+                            .tint(
+                                spentMinor > amountMinor
+                                    ? Color(hex: "#B4613B")
+                                    : Color(hex: category.colorHex)
+                            )
+                    }
+                }
+
+                if initialAmountMinor > 0 {
+                    Section {
+                        Button("Clear budget", role: .destructive) {
+                            onSave(0)
+                            dismiss()
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Category Budget")
+            .navigationBarTitleDisplayMode(.inline)
+            .keyboardDismissControls()
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave(amountMinor)
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func editorRow(_ title: String, _ amount: Int64) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode))
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct AllocationShareGraph: View {
+    let categoryName: String
+    let categoryColor: Color
+    let amountMinor: Int64
+    let totalBudgetMinor: Int64
+    let share: Double
+    let title: String
+    let totalTitle: String
+    let emptyTitle: String
+    let emptyMessage: String
+    let currencyCode: String
+
+    private var shareText: String {
+        guard share > 0 else { return "0%" }
+        let rounded = Int((min(max(share, 0), 1) * 100).rounded())
+        return rounded == 0 ? "<1%" : "\(rounded)%"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(shareText)
+                        .font(.title2.weight(.bold))
+                    Text(title)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(
+                    MoneyFormatter.string(
+                        minorUnits: amountMinor,
+                        currencyCode: currencyCode
+                    )
+                )
+                .moneyStyle(size: 16, weight: .semibold)
+            }
+
+            if totalBudgetMinor > 0 {
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.primary.opacity(0.08))
+                        if share > 0 {
+                            Capsule()
+                                .fill(categoryColor.gradient)
+                                .frame(width: max(4, proxy.size.width * CGFloat(min(max(share, 0), 1))))
+                        }
+                    }
+                }
+                .frame(height: 14)
+
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(categoryColor)
+                        .frame(width: 8, height: 8)
+                    Text(categoryName)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(
+                        "\(totalTitle) \(MoneyFormatter.string(minorUnits: totalBudgetMinor, currencyCode: currencyCode))"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                }
+            } else {
+                Text(emptyMessage)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 

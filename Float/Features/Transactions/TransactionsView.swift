@@ -24,6 +24,7 @@ struct TransactionsView: View {
     @State private var maximumAmountText = ""
     @State private var deletedSnapshot: DeletedTransactionSnapshot?
     @State private var showingUndo = false
+    @State private var showingFilters = false
 
     private var filtered: [TransactionItem] {
         let filteredTransactions = transactions.filter { transaction in
@@ -114,7 +115,7 @@ struct TransactionsView: View {
 
     var body: some View {
         List {
-            filterSection
+            compactFilterSection
             if filtered.isEmpty {
                 EmptyStateView(
                     icon: "list.bullet.rectangle",
@@ -122,7 +123,6 @@ struct TransactionsView: View {
                     message:
                         "Your transactions will appear here as you add them."
                 )
-                .listRowBackground(Color.clear)
             } else {
                 ForEach(grouped, id: \.0) { day, items in
                     Section(day.formatted(date: .complete, time: .omitted)) {
@@ -170,48 +170,120 @@ struct TransactionsView: View {
                 }
             }
         }
+        .sheet(isPresented: $showingFilters) {
+            TransactionFilterSheet(
+                categories: categories,
+                accounts: accounts,
+                selectedCategoryID: $selectedCategoryID,
+                selectedAccountID: $selectedAccountID,
+                selectedType: $selectedType,
+                useDateRange: $useDateRange,
+                startDate: $startDate,
+                endDate: $endDate,
+                minimumAmountText: $minimumAmountText,
+                maximumAmountText: $maximumAmountText,
+                hasActiveFilters: hasActiveFilters,
+                clearFilters: clearFilters
+            )
+        }
     }
 
-    private var filterSection: some View {
+    private var compactFilterSection: some View {
         Section {
-            Picker("Sort", selection: $selectedSort) {
-                ForEach(TransactionSortOption.allCases) {
-                    Text($0.title).tag($0)
+            HStack(spacing: 10) {
+                Menu {
+                    Picker("Sort", selection: $selectedSort) {
+                        ForEach(TransactionSortOption.allCases) {
+                            Text($0.title).tag($0)
+                        }
+                    }
+                } label: {
+                    Label(selectedSort.title, systemImage: "arrow.up.arrow.down")
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                }
+
+                Menu {
+                    Picker("Type", selection: $selectedType) {
+                        ForEach(TransactionTypeFilter.allCases) {
+                            Text($0.title).tag($0)
+                        }
+                    }
+                } label: {
+                    Label(selectedType.title, systemImage: "tray.full")
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 0)
+
+                Button {
+                    showingFilters = true
+                } label: {
+                    Label("Filters", systemImage: hasActiveFilters ? "line.3.horizontal.decrease.circle.fill" : "line.3.horizontal.decrease.circle")
+                        .font(.subheadline.weight(.semibold))
                 }
             }
-            Picker("Type", selection: $selectedType) {
-                ForEach(TransactionTypeFilter.allCases) {
-                    Text($0.title).tag($0)
-                }
-            }
-            .pickerStyle(.segmented)
-            Picker("Category", selection: $selectedCategoryID) {
-                Text("All categories").tag(UUID?.none)
-                ForEach(categories) {
-                    Text($0.name).tag(Optional($0.id))
-                }
-            }
-            Picker("Account", selection: $selectedAccountID) {
-                Text("All accounts").tag(UUID?.none)
-                ForEach(accounts) {
-                    Text($0.name).tag(Optional($0.id))
-                }
-            }
-            Toggle("Date range", isOn: $useDateRange)
-            if useDateRange {
-                DatePicker("From", selection: $startDate, displayedComponents: .date)
-                DatePicker("To", selection: $endDate, displayedComponents: .date)
-            }
-            HStack {
-                TextField("Min amount", text: $minimumAmountText)
-                    .keyboardType(.decimalPad)
-                TextField("Max amount", text: $maximumAmountText)
-                    .keyboardType(.decimalPad)
-            }
+
             if hasActiveFilters {
-                Button("Clear filters", action: clearFilters)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(activeFilterChips) { chip in
+                            Button {
+                                removeFilter(chip.kind)
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Text(chip.title)
+                                    Image(systemName: "xmark")
+                                        .font(.caption2.weight(.bold))
+                                }
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.primary.opacity(0.08), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        Button("Clear", action: clearFilters)
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(Color.primary.opacity(0.08), in: Capsule())
+                    }
+                }
             }
         }
+    }
+
+    private var activeFilterChips: [TransactionFilterChip] {
+        var chips: [TransactionFilterChip] = []
+        if selectedType != .all {
+            chips.append(TransactionFilterChip(title: selectedType.title, kind: .type))
+        }
+        if let selectedCategoryID,
+           let category = categories.first(where: { $0.id == selectedCategoryID }) {
+            chips.append(TransactionFilterChip(title: category.name, kind: .category))
+        }
+        if let selectedAccountID,
+           let account = accounts.first(where: { $0.id == selectedAccountID }) {
+            chips.append(TransactionFilterChip(title: account.name, kind: .account))
+        }
+        if useDateRange {
+            chips.append(
+                TransactionFilterChip(
+                    title: "\(startDate.formatted(date: .abbreviated, time: .omitted)) - \(endDate.formatted(date: .abbreviated, time: .omitted))",
+                    kind: .dateRange
+                )
+            )
+        }
+        if minimumAmountMinor != nil {
+            chips.append(TransactionFilterChip(title: "Min \(minimumAmountText)", kind: .minimumAmount))
+        }
+        if maximumAmountMinor != nil {
+            chips.append(TransactionFilterChip(title: "Max \(maximumAmountText)", kind: .maximumAmount))
+        }
+        return chips
     }
 
     private var undoBar: some View {
@@ -256,6 +328,23 @@ struct TransactionsView: View {
         maximumAmountText = ""
     }
 
+    private func removeFilter(_ kind: TransactionFilterChip.Kind) {
+        switch kind {
+        case .type:
+            selectedType = .all
+        case .category:
+            selectedCategoryID = nil
+        case .account:
+            selectedAccountID = nil
+        case .dateRange:
+            useDateRange = false
+        case .minimumAmount:
+            minimumAmountText = ""
+        case .maximumAmount:
+            maximumAmountText = ""
+        }
+    }
+
     private func amountMinor(from text: String) -> Int64? {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
@@ -297,6 +386,99 @@ private enum TransactionSortOption: String, CaseIterable, Identifiable {
         case .oldestFirst: "Oldest first"
         case .highestAmount: "Highest amount"
         case .lowestAmount: "Lowest amount"
+        }
+    }
+}
+
+private struct TransactionFilterChip: Identifiable {
+    let id = UUID()
+    let title: String
+    let kind: Kind
+
+    enum Kind {
+        case type
+        case category
+        case account
+        case dateRange
+        case minimumAmount
+        case maximumAmount
+    }
+}
+
+private struct TransactionFilterSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let categories: [CategoryItem]
+    let accounts: [AccountItem]
+    @Binding var selectedCategoryID: UUID?
+    @Binding var selectedAccountID: UUID?
+    @Binding var selectedType: TransactionTypeFilter
+    @Binding var useDateRange: Bool
+    @Binding var startDate: Date
+    @Binding var endDate: Date
+    @Binding var minimumAmountText: String
+    @Binding var maximumAmountText: String
+    let hasActiveFilters: Bool
+    let clearFilters: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Type") {
+                    Picker("Type", selection: $selectedType) {
+                        ForEach(TransactionTypeFilter.allCases) {
+                            Text($0.title).tag($0)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+
+                Section("Category") {
+                    Picker("Category", selection: $selectedCategoryID) {
+                        Text("All categories").tag(UUID?.none)
+                        ForEach(categories.filter { !$0.archived }) {
+                            Text($0.name).tag(Optional($0.id))
+                        }
+                    }
+                }
+
+                Section("Account") {
+                    Picker("Account", selection: $selectedAccountID) {
+                        Text("All accounts").tag(UUID?.none)
+                        ForEach(accounts.filter { !$0.archived }) {
+                            Text($0.name).tag(Optional($0.id))
+                        }
+                    }
+                }
+
+                Section("Date") {
+                    Toggle("Date range", isOn: $useDateRange)
+                    if useDateRange {
+                        DatePicker("From", selection: $startDate, displayedComponents: .date)
+                        DatePicker("To", selection: $endDate, displayedComponents: .date)
+                    }
+                }
+
+                Section("Amount") {
+                    TextField("Min amount", text: $minimumAmountText)
+                        .keyboardType(.decimalPad)
+                    TextField("Max amount", text: $maximumAmountText)
+                        .keyboardType(.decimalPad)
+                }
+
+                if hasActiveFilters {
+                    Section {
+                        Button("Clear filters", action: clearFilters)
+                    }
+                }
+            }
+            .navigationTitle("Filters")
+            .navigationBarTitleDisplayMode(.inline)
+            .keyboardDismissControls()
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
         }
     }
 }

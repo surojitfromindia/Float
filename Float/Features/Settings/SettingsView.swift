@@ -105,6 +105,8 @@ struct SettingsView: View {
             }
         }
         .keyboardDismissControls()
+        .scrollContentBackground(.hidden)
+        .floatBackground()
     }
 
     private var filePresentationHost: some View {

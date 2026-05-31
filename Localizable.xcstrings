@@ -75,7 +75,10 @@
         }
       }
     },
-    "0" : {
+    "%lld" : {
+
+    },
+    "%lld transactions" : {
 
     },
     "About" : {
@@ -311,6 +314,12 @@
         }
       }
     },
+    "Allocation" : {
+
+    },
+    "Allocation share" : {
+
+    },
     "Amount" : {
       "localizations" : {
         "bn" : {
@@ -451,6 +460,9 @@
         }
       }
     },
+    "Budget amount" : {
+
+    },
     "Budget health" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -474,6 +486,9 @@
         }
       }
     },
+    "Budgeted categories" : {
+
+    },
     "Cadence" : {
       "localizations" : {
         "bn" : {
@@ -483,6 +498,9 @@
           }
         }
       }
+    },
+    "Calendar" : {
+
     },
     "Cancel" : {
       "localizations" : {
@@ -573,6 +591,12 @@
         }
       }
     },
+    "Category Budget" : {
+
+    },
+    "Category budget summary" : {
+
+    },
     "Category budgets" : {
 
     },
@@ -597,6 +621,12 @@
           }
         }
       }
+    },
+    "Clear" : {
+
+    },
+    "Clear budget" : {
+
     },
     "Clear filters" : {
       "localizations" : {
@@ -908,6 +938,9 @@
         }
       }
     },
+    "Done" : {
+
+    },
     "Edit" : {
       "localizations" : {
         "bn" : {
@@ -1020,6 +1053,9 @@
         }
       }
     },
+    "Enter the normal currency amount for this category." : {
+
+    },
     "Every %@" : {
       "localizations" : {
         "bn" : {
@@ -1100,8 +1136,10 @@
         }
       }
     },
+    "Expense mix" : {
+
+    },
     "Expenses" : {
-      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -1144,6 +1182,9 @@
           }
         }
       }
+    },
+    "Filters" : {
+
     },
     "Float" : {
       "localizations" : {
@@ -1303,6 +1344,9 @@
         }
       }
     },
+    "Hour" : {
+
+    },
     "Icon" : {
       "localizations" : {
         "bn" : {
@@ -1354,6 +1398,9 @@
           }
         }
       }
+    },
+    "Income vs expenses" : {
+
     },
     "Language" : {
       "localizations" : {
@@ -1589,6 +1636,9 @@
         }
       }
     },
+    "Next month" : {
+
+    },
     "Next run" : {
       "localizations" : {
         "bn" : {
@@ -1630,6 +1680,9 @@
           }
         }
       }
+    },
+    "Open today" : {
+
     },
     "Opening balance minor units" : {
       "localizations" : {
@@ -1726,6 +1779,9 @@
           }
         }
       }
+    },
+    "Previous month" : {
+
     },
     "Privacy" : {
       "localizations" : {
@@ -1913,6 +1969,7 @@
       }
     },
     "Save changes" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -1923,6 +1980,7 @@
       }
     },
     "Save transaction" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -1942,6 +2000,9 @@
         }
       }
     },
+    "Search categories" : {
+
+    },
     "Search notes, accounts, amounts" : {
       "localizations" : {
         "bn" : {
@@ -1951,6 +2012,9 @@
           }
         }
       }
+    },
+    "Set a budget for one budget period." : {
+
     },
     "Set an amount for each expense category in one budget period. Leave a category blank or enter 0 to remove its budget." : {
 
@@ -2032,6 +2096,7 @@
       }
     },
     "spent so far" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -2138,6 +2203,9 @@
         }
       }
     },
+    "Tap to browse %lld categories" : {
+
+    },
     "Target %@" : {
       "localizations" : {
         "bn" : {
@@ -2231,6 +2299,9 @@
           }
         }
       }
+    },
+    "Time of day" : {
+
     },
     "To" : {
       "localizations" : {
@@ -2327,6 +2398,9 @@
           }
         }
       }
+    },
+    "Unbudgeted" : {
+
     },
     "Undo" : {
       "localizations" : {

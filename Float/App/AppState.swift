@@ -45,6 +45,7 @@ final class AppState: ObservableObject {
     // Controls the shared transaction entry sheet and whether it opens in create or edit mode.
     @Published var isEntrySheetPresented = false
     @Published var editingTransaction: TransactionItem?
+    @Published var newTransactionTimestamp: Date?
 
     // Converts the stored appearance preference into the optional SwiftUI color scheme override.
     var colorScheme: ColorScheme? {
@@ -64,14 +65,16 @@ final class AppState: ObservableObject {
     }
 
     // Opens the entry sheet with empty state for a new transaction.
-    func presentNewTransaction() {
+    func presentNewTransaction(timestamp: Date? = nil) {
         editingTransaction = nil
+        newTransactionTimestamp = timestamp
         isEntrySheetPresented = true
     }
 
     // Opens the entry sheet preloaded with an existing transaction.
     func presentEditTransaction(_ transaction: TransactionItem) {
         editingTransaction = transaction
+        newTransactionTimestamp = nil
         isEntrySheetPresented = true
     }
 }

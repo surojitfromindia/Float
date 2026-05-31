@@ -11,6 +11,7 @@ struct QuickAddKeypadSheet: View {
         var transactions: [TransactionItem]
 
     let transactionToEdit: TransactionItem?
+    var initialTimestamp: Date?
     @State private var keypadText = ""
     @State private var isExpense = true
     @State private var selectedCategory: CategoryItem?
@@ -18,17 +19,22 @@ struct QuickAddKeypadSheet: View {
     @State private var note = ""
     @State private var timestamp = Date()
     @State private var validationMessage: String?
+    @State private var showingCategoryPicker = false
 
     private var palette: FloatThemePalette {
         appState.themePalette
+    }
+
+    init(transactionToEdit: TransactionItem?, initialTimestamp: Date? = nil) {
+        self.transactionToEdit = transactionToEdit
+        self.initialTimestamp = initialTimestamp
     }
 
     private var amountMinor: Int64 {
         MoneyParser.parseMinorUnits(from: keypadText)
     }
     private var visibleCategories: [CategoryItem] {
-        categories.filter { !$0.archived && $0.isIncome != isExpense }.prefix(8)
-            .map { $0 }
+        categories.filter { !$0.archived && $0.isIncome != isExpense }
     }
     private var recentCategories: [CategoryItem] {
         uniqueCategories(
@@ -40,27 +46,11 @@ struct QuickAddKeypadSheet: View {
         .prefix(6)
         .map { $0 }
     }
-    private var mostUsedCategories: [CategoryItem] {
-        let matching = transactions.filter { $0.isExpense == isExpense }
-        let counts = Dictionary(grouping: matching.compactMap(\.category)) { $0.id }
-            .mapValues(\.count)
-
-        return categories
-            .filter { !$0.archived && $0.isIncome != isExpense }
-            .sorted {
-                let lhsCount = counts[$0.id] ?? 0
-                let rhsCount = counts[$1.id] ?? 0
-                if lhsCount == rhsCount { return $0.sortOrder < $1.sortOrder }
-                return lhsCount > rhsCount
-            }
-            .prefix(6)
-            .map { $0 }
-    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 22) {
+                VStack(spacing: 18) {
                     Picker("Type", selection: $isExpense) {
                         Text("Expense").tag(true)
                         Text("Income").tag(false)
@@ -76,7 +66,7 @@ struct QuickAddKeypadSheet: View {
                     .moneyStyle(size: 46, weight: .bold)
                     .contentTransition(.numericText())
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
+                    .padding(.vertical, 6)
 
                     keypad
 
@@ -109,28 +99,6 @@ struct QuickAddKeypadSheet: View {
                                 .accessibilityLabel(validationMessage)
                         }
 
-                        Button(action: save) {
-                            Label(
-                                transactionToEdit == nil
-                                    ? "Save transaction" : "Save changes",
-                                systemImage: "checkmark.circle.fill"
-                            )
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                amountMinor > 0
-                                    ? palette.accent
-                                    : Color.secondary.opacity(0.3),
-                                in: RoundedRectangle(
-                                    cornerRadius: 20,
-                                    style: .continuous
-                                )
-                            )
-                            .foregroundStyle(.white)
-                        }
-                        .disabled(amountMinor == 0)
-
                         if transactionToEdit != nil {
                             Button(role: .destructive, action: deleteTransaction) {
                                 Label("Delete transaction", systemImage: "trash")
@@ -142,28 +110,82 @@ struct QuickAddKeypadSheet: View {
                     }
                 }
                 .padding(20)
+                .padding(.bottom, 24)
             }
             .navigationTitle(transactionToEdit == nil ? "Add" : "Edit")
             .navigationBarTitleDisplayMode(.inline)
             .keyboardDismissControls()
+            .toolbarBackground(Color(.systemGroupedBackground), for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(transactionToEdit == nil ? "Save" : "Done", action: save)
+                        .disabled(amountMinor == 0)
                 }
             }
             .floatBackground()
             .onAppear(perform: configureDefaults)
+            .onChange(of: isExpense) { _, _ in
+                if selectedCategory?.isIncome == isExpense {
+                    selectedCategory = nil
+                }
+            }
+            .sheet(isPresented: $showingCategoryPicker) {
+                CategoryPickerSheet(
+                    title: isExpense ? "Expense Category" : "Income Category",
+                    categories: visibleCategories,
+                    selectedCategory: $selectedCategory
+                )
+            }
         }
     }
 
     private var categorySection: some View {
         VStack(alignment: .leading, spacing: 14) {
             categoryChips(title: "Recent", categories: recentCategories)
-            categoryChips(title: "Most used", categories: mostUsedCategories)
-            if recentCategories.isEmpty && mostUsedCategories.isEmpty {
-                categoryChips(title: "Category", categories: visibleCategories)
-            }
+            categorySelector
         }
+    }
+
+    private var categorySelector: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Category")
+            Button {
+                showingCategoryPicker = true
+            } label: {
+                GlassCard {
+                    HStack(spacing: 12) {
+                        categorySelectorIcon
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(selectedCategory?.name ?? "Choose category")
+                                .font(.subheadline.weight(.semibold))
+                            Text("Tap to browse \(visibleCategories.count) categories")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .disabled(visibleCategories.isEmpty)
+        }
+    }
+
+    private var categorySelectorIcon: some View {
+        let icon = selectedCategory?.iconKey ?? "square.grid.2x2.fill"
+        let tint = selectedCategory.map { Color(hex: $0.colorHex) } ?? palette.accent
+        return Image(systemName: icon)
+            .font(.headline)
+            .foregroundStyle(tint)
+            .frame(width: 38, height: 38)
+            .background(tint.opacity(0.14), in: Circle())
     }
 
     @ViewBuilder
@@ -226,7 +248,7 @@ struct QuickAddKeypadSheet: View {
                         }
                     }
                     .font(.title2.weight(.semibold))
-                    .frame(maxWidth: .infinity, minHeight: 58)
+                    .frame(maxWidth: .infinity, minHeight: 52)
                     .background(
                         .thinMaterial,
                         in: RoundedRectangle(
@@ -259,6 +281,9 @@ struct QuickAddKeypadSheet: View {
             accounts.first {
                 !$0.archived && $0.id.uuidString == appState.lastUsedAccountID
             }
+        if let initialTimestamp {
+            timestamp = initialTimestamp
+        }
     }
 
     private func save() {
@@ -332,6 +357,75 @@ struct QuickAddKeypadSheet: View {
             }
             seen.insert(category.id)
             return true
+        }
+    }
+}
+
+private struct CategoryPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let title: String
+    let categories: [CategoryItem]
+    @Binding var selectedCategory: CategoryItem?
+    @State private var searchText = ""
+
+    private var filteredCategories: [CategoryItem] {
+        let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedSearch.isEmpty else { return categories }
+        return categories.filter {
+            $0.name.localizedCaseInsensitiveContains(trimmedSearch)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if filteredCategories.isEmpty {
+                    EmptyStateView(
+                        icon: "magnifyingglass",
+                        title: "No categories",
+                        message: "Try a different search."
+                    )
+                } else {
+                    ForEach(filteredCategories) { category in
+                        Button {
+                            selectedCategory = category
+                            Haptics.tick()
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 12) {
+                                ZStack {
+                                    Circle()
+                                        .fill(Color(hex: category.colorHex).opacity(0.14))
+                                    Image(systemName: category.iconKey)
+                                        .foregroundStyle(Color(hex: category.colorHex))
+                                }
+                                .frame(width: 36, height: 36)
+
+                                Text(category.name)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                if selectedCategory?.id == category.id {
+                                    Image(systemName: "checkmark")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(Color(hex: category.colorHex))
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Search categories")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
         }
     }
 }

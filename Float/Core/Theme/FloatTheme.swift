@@ -275,20 +275,10 @@ extension View {
 }
 
 private struct FloatBackgroundModifier: ViewModifier {
-    @AppStorage("selectedThemeMode") private var selectedThemeMode = "float"
-
     func body(content: Content) -> some View {
-        let palette = FloatTheme.palette(for: selectedThemeMode)
         content.background(
-            LinearGradient(
-                colors: [
-                    palette.backgroundTop,
-                    palette.backgroundBottom.opacity(0.78),
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
         )
     }
 }

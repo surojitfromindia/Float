@@ -26,7 +26,6 @@ struct GoalsView: View {
                         ? "Create a goal to reserve money before spending."
                         : "Completed goals are hidden for now."
                 )
-                .listRowBackground(Color.clear)
             }
             ForEach(visibleGoals) { goal in
                 Button {
@@ -90,6 +89,8 @@ struct GoalsView: View {
             }
         }
         .navigationTitle("Goals")
+        .scrollContentBackground(.hidden)
+        .floatBackground()
         .toolbar {
             Button {
                 editingGoal = nil
@@ -184,6 +185,8 @@ struct GoalEditorView: View {
             }
             .navigationTitle(goal == nil ? "New Goal" : "Edit Goal")
             .keyboardDismissControls()
+            .scrollContentBackground(.hidden)
+            .floatBackground()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

@@ -52,6 +52,8 @@ struct AccountManagerView: View {
             }
         }
         .navigationTitle("Accounts")
+        .scrollContentBackground(.hidden)
+        .floatBackground()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -120,6 +122,8 @@ private struct AccountEditorView: View {
             }
             .navigationTitle(account == nil ? "New Account" : "Edit Account")
             .keyboardDismissControls()
+            .scrollContentBackground(.hidden)
+            .floatBackground()
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }

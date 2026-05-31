@@ -9,6 +9,8 @@ struct MainTabView: View {
                 .tabItem { Label("Home", systemImage: "house") }
             NavigationStack { TransactionsView() }
                 .tabItem { Label("List", systemImage: "list.bullet") }
+            NavigationStack { CalendarView() }
+                .tabItem { Label("Calendar", systemImage: "calendar") }
             NavigationStack { InsightsView() }
                 .tabItem {
                     Label("Stats", systemImage: "chart.line.uptrend.xyaxis")
@@ -20,7 +22,10 @@ struct MainTabView: View {
         .toolbarBackground(.thinMaterial, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .sheet(isPresented: $appState.isEntrySheetPresented) {
-            QuickAddKeypadSheet(transactionToEdit: appState.editingTransaction)
+            QuickAddKeypadSheet(
+                transactionToEdit: appState.editingTransaction,
+                initialTimestamp: appState.newTransactionTimestamp
+            )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
