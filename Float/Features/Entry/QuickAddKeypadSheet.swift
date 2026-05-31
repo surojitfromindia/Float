@@ -46,6 +46,24 @@ struct QuickAddKeypadSheet: View {
         .prefix(6)
         .map { $0 }
     }
+    private var recentTransactionTemplates: [TransactionItem] {
+        var seen = Set<String>()
+        return transactions
+            .filter { $0.isExpense == isExpense }
+            .filter { transaction in
+                let key = [
+                    transaction.amountMinor.description,
+                    transaction.category?.id.uuidString ?? "",
+                    transaction.account?.id.uuidString ?? "",
+                    transaction.note ?? "",
+                ].joined(separator: "|")
+                guard !seen.contains(key) else { return false }
+                seen.insert(key)
+                return true
+            }
+            .prefix(4)
+            .map { $0 }
+    }
 
     var body: some View {
         NavigationStack {
@@ -69,6 +87,8 @@ struct QuickAddKeypadSheet: View {
                     .padding(.vertical, 6)
 
                     keypad
+
+                    templateSection
 
                     categorySection
 
@@ -107,6 +127,15 @@ struct QuickAddKeypadSheet: View {
                             }
                             .buttonStyle(.borderless)
                         }
+
+                        if transactionToEdit == nil && amountMinor > 0 {
+                            Button(action: saveAndAddAnother) {
+                                Label("Save and add another", systemImage: "plus.square.on.square")
+                                    .font(.subheadline.weight(.semibold))
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                        }
                     }
                 }
                 .padding(20)
@@ -133,12 +162,58 @@ struct QuickAddKeypadSheet: View {
                     selectedCategory = nil
                 }
             }
+            .onChange(of: note) { _, _ in
+                applySmartCategorySuggestion()
+            }
             .sheet(isPresented: $showingCategoryPicker) {
                 CategoryPickerSheet(
                     title: isExpense ? "Expense Category" : "Income Category",
                     categories: visibleCategories,
                     selectedCategory: $selectedCategory
                 )
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var templateSection: some View {
+        if transactionToEdit == nil && !recentTransactionTemplates.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Repeat")
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        ForEach(recentTransactionTemplates) { transaction in
+                            Button {
+                                applyTemplate(transaction)
+                            } label: {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: transaction.categoryIconKey)
+                                            .foregroundStyle(Color(hex: transaction.categoryColorHex))
+                                        Text(transaction.categoryName)
+                                            .font(.caption.weight(.semibold))
+                                            .lineLimit(1)
+                                    }
+                                    Text(
+                                        MoneyFormatter.string(
+                                            minorUnits: transaction.amountMinor,
+                                            currencyCode: appState.selectedCurrencyCode
+                                        )
+                                    )
+                                    .font(.caption.monospacedDigit().weight(.bold))
+                                    .foregroundStyle(.primary)
+                                }
+                                .padding(12)
+                                .frame(width: 132, alignment: .leading)
+                                .background(
+                                    Color.primary.opacity(0.06),
+                                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
             }
         }
     }
@@ -284,9 +359,18 @@ struct QuickAddKeypadSheet: View {
         if let initialTimestamp {
             timestamp = initialTimestamp
         }
+        applySmartCategorySuggestion()
     }
 
     private func save() {
+        save(keepOpen: false)
+    }
+
+    private func saveAndAddAnother() {
+        save(keepOpen: true)
+    }
+
+    private func save(keepOpen: Bool) {
         guard amountMinor > 0 else {
             validationMessage = "Enter an amount greater than zero."
             return
@@ -331,9 +415,41 @@ struct QuickAddKeypadSheet: View {
             appState.lastUsedCategoryID = category.id.uuidString
             appState.lastUsedAccountID = account.id.uuidString
             Haptics.confirm()
-            dismiss()
+            if keepOpen {
+                keypadText = ""
+                note = ""
+                validationMessage = nil
+                timestamp = initialTimestamp ?? Date()
+            } else {
+                dismiss()
+            }
         } catch {
             validationMessage = error.localizedDescription
+        }
+    }
+
+    private func applyTemplate(_ transaction: TransactionItem) {
+        keypadText = String(transaction.amountMinor)
+        isExpense = transaction.isExpense
+        selectedCategory = transaction.category
+        selectedAccount = transaction.account
+        note = transaction.note ?? ""
+        validationMessage = nil
+        Haptics.tick()
+    }
+
+    private func applySmartCategorySuggestion() {
+        guard transactionToEdit == nil else { return }
+        let query = note.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !query.isEmpty else { return }
+        let canReplace =
+            selectedCategory == nil
+            || selectedCategory?.id.uuidString == appState.lastUsedCategoryID
+        guard canReplace else { return }
+        if let match = visibleCategories.first(where: {
+            query.contains($0.name.lowercased())
+        }) {
+            selectedCategory = match
         }
     }
 

@@ -81,6 +81,16 @@
     "%lld transactions" : {
 
     },
+    "%lld transactions, %lld projected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld transactions, %2$lld projected"
+          }
+        }
+      }
+    },
     "About" : {
       "localizations" : {
         "bn" : {
@@ -486,6 +496,9 @@
         }
       }
     },
+    "Budget pace" : {
+
+    },
     "Budgeted categories" : {
 
     },
@@ -725,6 +738,9 @@
           }
         }
       }
+    },
+    "Copy" : {
+
     },
     "Create backup" : {
       "localizations" : {
@@ -1402,6 +1418,9 @@
     "Income vs expenses" : {
 
     },
+    "Jump to month" : {
+
+    },
     "Language" : {
       "localizations" : {
         "bn" : {
@@ -1520,6 +1539,9 @@
         }
       }
     },
+    "Month" : {
+
+    },
     "More" : {
       "localizations" : {
         "bn" : {
@@ -1635,6 +1657,9 @@
           }
         }
       }
+    },
+    "Next day" : {
+
     },
     "Next month" : {
 
@@ -1779,6 +1804,9 @@
           }
         }
       }
+    },
+    "Previous day" : {
+
     },
     "Previous month" : {
 
@@ -1967,6 +1995,9 @@
           }
         }
       }
+    },
+    "Save and add another" : {
+
     },
     "Save changes" : {
       "extractionState" : "stale",
@@ -2267,6 +2298,12 @@
           }
         }
       }
+    },
+    "This day is above the current daily allowance." : {
+
+    },
+    "This day is inside the current daily allowance." : {
+
     },
     "This period" : {
       "localizations" : {

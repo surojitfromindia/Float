@@ -26,11 +26,6 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		9723D91C2FCAD49800C8A0FF /* FloatUITests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = FloatUITests;
-			sourceTree = "<group>";
-		};
 		975A85FE2FCA038000B49849 /* Float */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -56,7 +51,6 @@
 			isa = PBXGroup;
 			children = (
 				975A85FE2FCA038000B49849 /* Float */,
-				9723D91C2FCAD49800C8A0FF /* FloatUITests */,
 				975A85FD2FCA038000B49849 /* Products */,
 				9773DCA32FCB359D00B3A2CD /* Localizable.xcstrings */,
 			);

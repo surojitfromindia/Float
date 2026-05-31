@@ -6,12 +6,31 @@ struct CalendarView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \TransactionItem.timestamp, order: .reverse) private
         var transactions: [TransactionItem]
+    @Query private var goals: [GoalItem]
+    @Query private var recurringRules: [RecurringRuleItem]
+    @Query private var budgetPeriods: [BudgetPeriodItem]
 
     @State private var displayedMonth = Calendar.current.startOfMonth(for: Date())
     @State private var selectedDay: CalendarDaySelection?
+    @State private var highlightedDay: Date?
+    @State private var jumpMonth = Date()
+    @State private var showingMonthPicker = false
 
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
+
+    private var activeBudget: BudgetPeriodItem? {
+        budgetPeriods.first { $0.isActive }
+    }
+
+    private var safeToSpend: SafeToSpendResult {
+        SafeToSpendUseCase.calculate(
+            budget: activeBudget,
+            transactions: transactions,
+            goals: goals,
+            recurringRules: recurringRules
+        )
+    }
 
     private var monthTransactions: [TransactionItem] {
         guard let interval = calendar.dateInterval(of: .month, for: displayedMonth) else {
@@ -26,9 +45,22 @@ struct CalendarView: View {
         CalendarPeriodSummary(transactions: monthTransactions)
     }
 
+    private var monthRecurringProjections: [CalendarRecurringProjection] {
+        guard let interval = calendar.dateInterval(of: .month, for: displayedMonth) else {
+            return []
+        }
+        return recurringProjections(in: interval)
+    }
+
     private var transactionGroups: [Date: [TransactionItem]] {
         Dictionary(grouping: transactions) {
             calendar.startOfDay(for: $0.timestamp)
+        }
+    }
+
+    private var recurringProjectionGroups: [Date: [CalendarRecurringProjection]] {
+        Dictionary(grouping: monthRecurringProjections) {
+            calendar.startOfDay(for: $0.date)
         }
     }
 
@@ -51,7 +83,10 @@ struct CalendarView: View {
             return CalendarDaySummary(
                 date: day,
                 isInDisplayedMonth: calendar.isDate(day, equalTo: displayedMonth, toGranularity: .month),
-                transactions: transactionGroups[day] ?? []
+                transactions: transactionGroups[day] ?? [],
+                projectedRecurring: recurringProjectionGroups[day] ?? [],
+                dailyAllowanceMinor: safeToSpend.dailyAllowanceMinor,
+                selected: highlightedDay.map { calendar.isDate($0, inSameDayAs: day) } ?? false
             )
         }
     }
@@ -65,6 +100,7 @@ struct CalendarView: View {
                 LazyVGrid(columns: columns, spacing: 8) {
                     ForEach(calendarDays) { day in
                         Button {
+                            highlightedDay = day.date
                             selectedDay = CalendarDaySelection(date: day.date)
                             Haptics.tick()
                         } label: {
@@ -80,6 +116,15 @@ struct CalendarView: View {
             }
             .padding(16)
         }
+        .gesture(
+            DragGesture(minimumDistance: 36)
+                .onEnded { value in
+                    guard abs(value.translation.width) > abs(value.translation.height) else {
+                        return
+                    }
+                    moveMonth(by: value.translation.width < 0 ? 1 : -1)
+                }
+        )
         .navigationTitle("Calendar")
         .floatBackground()
         .toolbar {
@@ -94,10 +139,34 @@ struct CalendarView: View {
         }
         .sheet(item: $selectedDay) { selection in
             NavigationStack {
-                DailyDetailView(date: selection.date)
+                DailyDetailView(initialDate: selection.date)
             }
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showingMonthPicker) {
+            NavigationStack {
+                DatePicker(
+                    "Month",
+                    selection: $jumpMonth,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                .padding()
+                .navigationTitle("Jump to month")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { showingMonthPicker = false }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") {
+                            displayedMonth = calendar.startOfMonth(for: jumpMonth)
+                            showingMonthPicker = false
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -120,9 +189,20 @@ struct CalendarView: View {
             .accessibilityLabel("Previous month")
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(displayedMonth.formatted(.dateTime.month(.abbreviated).year()))
-                    .font(.title2.weight(.bold))
-                    .lineLimit(1)
+                Button {
+                    jumpMonth = displayedMonth
+                    showingMonthPicker = true
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(displayedMonth.formatted(.dateTime.month(.abbreviated).year()))
+                            .font(.title2.weight(.bold))
+                            .lineLimit(1)
+                        Image(systemName: "chevron.down")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
                 Text("\(monthTransactions.count) transactions")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -205,6 +285,22 @@ struct CalendarView: View {
                         tint: appState.themePalette.accent
                     )
                 }
+                HStack {
+                    MetricPill(
+                        title: "Safe left",
+                        amount: safeToSpend.safeToSpendMinor,
+                        currencyCode: appState.selectedCurrencyCode,
+                        tint: appState.themePalette.positive
+                    )
+                    MetricPill(
+                        title: "Projected",
+                        amount: monthRecurringProjections
+                            .filter(\.isExpense)
+                            .reduce(Int64(0)) { $0 + $1.amountMinor },
+                        currencyCode: appState.selectedCurrencyCode,
+                        tint: appState.themePalette.caution
+                    )
+                }
             }
         }
     }
@@ -230,6 +326,18 @@ struct CalendarView: View {
                 ?? displayedMonth
         )
     }
+
+    private func recurringProjections(in interval: DateInterval) -> [CalendarRecurringProjection] {
+        recurringRules.flatMap { rule in
+            CalendarRecurringProjection.dueDates(
+                for: rule,
+                from: interval.start,
+                through: calendar.date(byAdding: .day, value: -1, to: interval.end) ?? interval.end,
+                transactions: transactions,
+                calendar: calendar
+            )
+        }
+    }
 }
 
 private struct DailyDetailView: View {
@@ -238,17 +346,44 @@ private struct DailyDetailView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \TransactionItem.timestamp, order: .forward) private
         var transactions: [TransactionItem]
+    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
+    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query private var goals: [GoalItem]
+    @Query private var recurringRules: [RecurringRuleItem]
+    @Query private var budgetPeriods: [BudgetPeriodItem]
 
-    let date: Date
+    let initialDate: Date
 
     @State private var editingTransaction: TransactionItem?
     @State private var initialTimestamp: Date?
     @State private var isEntrySheetPresented = false
+    @State private var selectedDate: Date
+    @State private var deletedSnapshot: CalendarDeletedTransactionSnapshot?
+    @State private var showingUndo = false
 
     private let calendar = Calendar.current
 
+    init(initialDate: Date) {
+        self.initialDate = initialDate
+        _selectedDate = State(initialValue: Calendar.current.startOfDay(for: initialDate))
+    }
+
+    private var activeBudget: BudgetPeriodItem? {
+        budgetPeriods.first { $0.isActive }
+    }
+
+    private var safeToSpend: SafeToSpendResult {
+        SafeToSpendUseCase.calculate(
+            budget: activeBudget,
+            transactions: transactions,
+            goals: goals,
+            recurringRules: recurringRules,
+            now: selectedDate
+        )
+    }
+
     private var dayTransactions: [TransactionItem] {
-        let start = calendar.startOfDay(for: date)
+        let start = calendar.startOfDay(for: selectedDate)
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
         return transactions
             .filter { start <= $0.timestamp && $0.timestamp < end }
@@ -257,6 +392,15 @@ private struct DailyDetailView: View {
 
     private var summary: CalendarPeriodSummary {
         CalendarPeriodSummary(transactions: dayTransactions)
+    }
+
+    private var projectedRecurring: [CalendarRecurringProjection] {
+        CalendarRecurringProjection.dueDates(
+            for: recurringRules,
+            on: selectedDate,
+            transactions: transactions,
+            calendar: calendar
+        )
     }
 
     private var categoryBreakdown: [CalendarAmountBreakdown] {
@@ -305,19 +449,44 @@ private struct DailyDetailView: View {
             VStack(alignment: .leading, spacing: 18) {
                 headerCard
                 metricGrid
+                budgetPaceCard
                 transactionSection
+                projectedRecurringSection
                 graphSection
                 breakdownSection(title: "Category breakdown", rows: categoryBreakdown)
                 breakdownSection(title: "Account breakdown", rows: accountBreakdown)
             }
             .padding(16)
         }
-        .navigationTitle(date.formatted(date: .abbreviated, time: .omitted))
+        .navigationTitle(selectedDate.formatted(date: .abbreviated, time: .omitted))
         .navigationBarTitleDisplayMode(.inline)
         .floatBackground()
+        .overlay(alignment: .bottom) {
+            if showingUndo, deletedSnapshot != nil {
+                undoBar
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Done") { dismiss() }
+            }
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    moveDay(by: -1)
+                } label: {
+                    Image(systemName: "chevron.left")
+                }
+                .accessibilityLabel("Previous day")
+
+                Button {
+                    moveDay(by: 1)
+                } label: {
+                    Image(systemName: "chevron.right")
+                }
+                .accessibilityLabel("Next day")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -343,9 +512,9 @@ private struct DailyDetailView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text(date.formatted(.dateTime.weekday(.wide).month(.wide).day()))
+                        Text(selectedDate.formatted(.dateTime.weekday(.wide).month(.wide).day()))
                             .font(.headline)
-                        Text("\(dayTransactions.count) transactions")
+                        Text("\(dayTransactions.count) transactions, \(projectedRecurring.count) projected")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -403,6 +572,35 @@ private struct DailyDetailView: View {
         }
     }
 
+    private var budgetPaceCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Label("Budget pace", systemImage: summary.expenseMinor > safeToSpend.dailyAllowanceMinor ? "exclamationmark.triangle.fill" : "checkmark.seal.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(summary.expenseMinor > safeToSpend.dailyAllowanceMinor ? appState.themePalette.caution : appState.themePalette.positive)
+                    Spacer()
+                    Text(
+                        MoneyFormatter.string(
+                            minorUnits: safeToSpend.dailyAllowanceMinor,
+                            currencyCode: appState.selectedCurrencyCode
+                        )
+                    )
+                    .font(.caption.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(.secondary)
+                }
+                ProgressView(
+                    value: Double(summary.expenseMinor),
+                    total: Double(max(safeToSpend.dailyAllowanceMinor, summary.expenseMinor, 1))
+                )
+                .tint(summary.expenseMinor > safeToSpend.dailyAllowanceMinor ? appState.themePalette.caution : appState.themePalette.positive)
+                Text(summary.expenseMinor > safeToSpend.dailyAllowanceMinor ? "This day is above the current daily allowance." : "This day is inside the current daily allowance.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
     private var transactionSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(
@@ -438,9 +636,64 @@ private struct DailyDetailView: View {
                                 } label: {
                                     Label("Delete", systemImage: "trash")
                                 }
+                                Button {
+                                    copy(transaction)
+                                } label: {
+                                    Label("Copy", systemImage: "doc.on.doc")
+                                }
+                                .tint(appState.themePalette.accent)
                             }
 
                             if transaction.id != dayTransactions.last?.id {
+                                Divider()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var projectedRecurringSection: some View {
+        if !projectedRecurring.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Projected recurring")
+                GlassCard {
+                    VStack(spacing: 0) {
+                        ForEach(projectedRecurring) { projection in
+                            HStack(spacing: 12) {
+                                Image(systemName: projection.icon)
+                                    .foregroundStyle(projection.color)
+                                    .frame(width: 34, height: 34)
+                                    .background(projection.color.opacity(0.14), in: Circle())
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(projection.title)
+                                        .font(.subheadline.weight(.semibold))
+                                    Text(projection.rule.cadence.title)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Text(
+                                    MoneyFormatter.string(
+                                        minorUnits: projection.amountMinor,
+                                        currencyCode: appState.selectedCurrencyCode,
+                                        showsSign: !projection.isExpense
+                                    )
+                                )
+                                .moneyStyle(size: 14, weight: .semibold)
+                                Button {
+                                    materialize(projection)
+                                } label: {
+                                    Image(systemName: "plus.circle.fill")
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(appState.themePalette.accent)
+                            }
+                            .padding(.vertical, 8)
+
+                            if projection.id != projectedRecurring.last?.id {
                                 Divider()
                             }
                         }
@@ -543,13 +796,13 @@ private struct DailyDetailView: View {
                     Chart {
                         ForEach(hourlyBreakdown) { item in
                             BarMark(
-                                x: .value("Hour", item.date(on: date), unit: .hour),
+                                x: .value("Hour", item.date(on: selectedDate), unit: .hour),
                                 y: .value("Expenses", item.expenseMinor)
                             )
                             .foregroundStyle(appState.themePalette.caution.opacity(0.78))
 
                             BarMark(
-                                x: .value("Hour", item.date(on: date), unit: .hour),
+                                x: .value("Hour", item.date(on: selectedDate), unit: .hour),
                                 y: .value("Income", item.incomeMinor)
                             )
                             .foregroundStyle(appState.themePalette.positive.opacity(0.78))
@@ -600,7 +853,7 @@ private struct DailyDetailView: View {
 
     private func presentNewTransaction() {
         editingTransaction = nil
-        initialTimestamp = calendar.timestamp(on: date, matchingTimeFrom: Date())
+        initialTimestamp = calendar.timestamp(on: selectedDate, matchingTimeFrom: Date())
         isEntrySheetPresented = true
     }
 
@@ -611,7 +864,88 @@ private struct DailyDetailView: View {
     }
 
     private func delete(_ transaction: TransactionItem) {
+        deletedSnapshot = CalendarDeletedTransactionSnapshot(transaction: transaction)
         try? TransactionRepository(modelContext: modelContext).delete(transaction)
+        withAnimation { showingUndo = true }
+        Haptics.tick()
+    }
+
+    private func undoDelete() {
+        guard let deletedSnapshot else { return }
+        modelContext.insert(
+            deletedSnapshot.makeTransaction(
+                categories: categories,
+                accounts: accounts,
+                recurringRules: recurringRules
+            )
+        )
+        try? modelContext.save()
+        withAnimation { showingUndo = false }
+        self.deletedSnapshot = nil
+        Haptics.confirm()
+    }
+
+    private var undoBar: some View {
+        HStack(spacing: 12) {
+            Text("Transaction deleted")
+                .font(.subheadline.weight(.medium))
+            Spacer()
+            Button("Undo", action: undoDelete)
+                .font(.subheadline.weight(.semibold))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().strokeBorder(Color.primary.opacity(0.08)))
+        .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
+    }
+
+    private func copy(_ transaction: TransactionItem) {
+        let copied = TransactionItem(
+            amountMinor: transaction.amountMinor,
+            isExpense: transaction.isExpense,
+            timestamp: calendar.timestamp(on: selectedDate, matchingTimeFrom: transaction.timestamp),
+            category: transaction.category,
+            account: transaction.account,
+            note: transaction.note
+        )
+        modelContext.insert(copied)
+        try? modelContext.save()
+        Haptics.confirm()
+    }
+
+    private func materialize(_ projection: CalendarRecurringProjection) {
+        let category = projection.rule.category ?? DefaultCategoryResolver.resolve(
+            isExpense: projection.rule.isExpense,
+            preferredID: appState.lastUsedCategoryID,
+            categories: categories,
+            modelContext: modelContext
+        )
+        let account = projection.rule.account ?? DefaultAccountResolver.resolve(
+            preferredID: appState.lastUsedAccountID,
+            accounts: accounts,
+            modelContext: modelContext,
+            currencyCode: appState.selectedCurrencyCode
+        )
+        let transaction = TransactionItem(
+            amountMinor: projection.rule.amountMinor,
+            isExpense: projection.rule.isExpense,
+            timestamp: projection.date,
+            category: category,
+            account: account,
+            note: projection.rule.note,
+            recurringRule: projection.rule
+        )
+        modelContext.insert(transaction)
+        try? modelContext.save()
+        Haptics.confirm()
+    }
+
+    private func moveDay(by value: Int) {
+        selectedDate = calendar.startOfDay(
+            for: calendar.date(byAdding: .day, value: value, to: selectedDate)
+                ?? selectedDate
+        )
         Haptics.tick()
     }
 }
@@ -622,26 +956,35 @@ private struct CalendarDayCell: View {
     let palette: FloatThemePalette
 
     private var netColor: Color {
-        if summary.transactions.isEmpty { return .secondary }
+        if summary.transactions.isEmpty && summary.projectedRecurring.isEmpty {
+            return .secondary
+        }
         return summary.netMinor >= 0 ? palette.positive : palette.caution
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(summary.date.formatted(.dateTime.day()))
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(summary.isInDisplayedMonth ? .primary : .tertiary)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 4) {
+                Text(summary.date.formatted(.dateTime.day()))
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(summary.isInDisplayedMonth ? .primary : .tertiary)
+                Spacer(minLength: 0)
+                if summary.isOverDailyAllowance {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(palette.caution)
+                }
+            }
 
             Spacer(minLength: 0)
 
-            if summary.transactions.isEmpty {
+            if summary.transactions.isEmpty && summary.projectedRecurring.isEmpty {
                 Capsule()
-                    .fill(Color.primary.opacity(0.08))
+                    .fill(Color.primary.opacity(0.045))
                     .frame(height: 4)
             } else {
                 VStack(spacing: 5) {
-                    Text("\(summary.transactions.count)")
+                    Text("\(summary.activityCount)")
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(.white)
                         .frame(width: 20, height: 20)
@@ -669,6 +1012,15 @@ private struct CalendarDayCell: View {
                                 .frame(height: 4)
                         }
                     }
+                    if !summary.projectedRecurring.isEmpty {
+                        HStack(spacing: 3) {
+                            Image(systemName: "repeat")
+                                .font(.system(size: 7, weight: .bold))
+                            Text("\(summary.projectedRecurring.count)")
+                                .font(.system(size: 8, weight: .bold, design: .rounded))
+                        }
+                        .foregroundStyle(.secondary)
+                    }
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -677,18 +1029,39 @@ private struct CalendarDayCell: View {
         .frame(height: 78)
         .frame(maxWidth: .infinity)
         .background(
-            summary.isToday
-                ? palette.accent.opacity(0.16)
-                : Color.primary.opacity(summary.isInDisplayedMonth ? 0.055 : 0.025),
+            cellBackground,
             in: RoundedRectangle(cornerRadius: 8, style: .continuous)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .strokeBorder(
-                    summary.isToday ? palette.accent.opacity(0.45) : Color.primary.opacity(0.06),
-                    lineWidth: 1
+                    cellBorder,
+                    lineWidth: summary.selected ? 1.8 : 1
                 )
         )
+    }
+
+    private var cellBackground: Color {
+        if summary.selected {
+            return palette.accent.opacity(0.18)
+        }
+        if summary.isToday {
+            return palette.accent.opacity(0.12)
+        }
+        return Color.primary.opacity(summary.isInDisplayedMonth ? 0.04 : 0.018)
+    }
+
+    private var cellBorder: Color {
+        if summary.selected {
+            return palette.accent.opacity(0.78)
+        }
+        if summary.isToday {
+            return palette.accent.opacity(0.45)
+        }
+        if summary.isOverDailyAllowance {
+            return palette.caution.opacity(0.5)
+        }
+        return Color.primary.opacity(0.055)
     }
 }
 
@@ -731,15 +1104,24 @@ private struct CalendarDaySummary: Identifiable {
     let date: Date
     let isInDisplayedMonth: Bool
     let transactions: [TransactionItem]
+    let projectedRecurring: [CalendarRecurringProjection]
+    let dailyAllowanceMinor: Int64
+    let selected: Bool
 
     var id: Date { date }
     var incomeMinor: Int64 {
         transactions.filter { !$0.isExpense }.reduce(0) { $0 + $1.amountMinor }
+            + projectedRecurring.filter { !$0.isExpense }.reduce(0) { $0 + $1.amountMinor }
     }
     var expenseMinor: Int64 {
         transactions.filter(\.isExpense).reduce(0) { $0 + $1.amountMinor }
+            + projectedRecurring.filter(\.isExpense).reduce(0) { $0 + $1.amountMinor }
     }
     var netMinor: Int64 { incomeMinor - expenseMinor }
+    var activityCount: Int { transactions.count + projectedRecurring.count }
+    var isOverDailyAllowance: Bool {
+        dailyAllowanceMinor > 0 && expenseMinor > dailyAllowanceMinor
+    }
     var isToday: Bool { Calendar.current.isDateInToday(date) }
 }
 
@@ -804,6 +1186,146 @@ private struct CalendarHourlyBreakdown: Identifiable {
     func date(on day: Date) -> Date {
         Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: day)
             ?? day
+    }
+}
+
+private struct CalendarRecurringProjection: Identifiable {
+    let rule: RecurringRuleItem
+    let date: Date
+
+    var id: String { "\(rule.id.uuidString)-\(date.timeIntervalSince1970)" }
+    var amountMinor: Int64 { rule.amountMinor }
+    var isExpense: Bool { rule.isExpense }
+    var title: String { rule.note?.nilIfBlank ?? rule.category?.name ?? "Recurring" }
+    var icon: String { rule.category?.iconKey ?? "repeat" }
+    var color: Color { Color(hex: rule.category?.colorHex ?? "#5A6B6B") }
+
+    static func dueDates(
+        for rules: [RecurringRuleItem],
+        on day: Date,
+        transactions: [TransactionItem],
+        calendar: Calendar
+    ) -> [CalendarRecurringProjection] {
+        let start = calendar.startOfDay(for: day)
+        return rules.flatMap {
+            dueDates(
+                for: $0,
+                from: start,
+                through: start,
+                transactions: transactions,
+                calendar: calendar
+            )
+        }
+        .sorted { $0.date < $1.date }
+    }
+
+    static func dueDates(
+        for rule: RecurringRuleItem,
+        from start: Date,
+        through end: Date,
+        transactions: [TransactionItem],
+        calendar: Calendar
+    ) -> [CalendarRecurringProjection] {
+        guard rule.active, rule.amountMinor > 0 else { return [] }
+        let rangeStart = calendar.startOfDay(for: start)
+        let rangeEnd = calendar.startOfDay(for: end)
+        var date = calendar.startOfDay(for: rule.nextRunDate)
+        var results: [CalendarRecurringProjection] = []
+
+        while date <= rangeEnd {
+            if let endDate = rule.endDate, date > calendar.startOfDay(for: endDate) {
+                break
+            }
+            if date >= rangeStart
+                && !hasMaterializedTransaction(
+                    for: rule,
+                    on: date,
+                    transactions: transactions,
+                    calendar: calendar
+                )
+            {
+                results.append(CalendarRecurringProjection(rule: rule, date: date))
+            }
+
+            guard
+                let next = SafeToSpendUseCase.advance(
+                    date,
+                    cadence: rule.cadence,
+                    intervalCount: rule.intervalCount,
+                    calendar: calendar
+                ),
+                next > date
+            else { break }
+            date = calendar.startOfDay(for: next)
+        }
+
+        return results
+    }
+
+    private static func hasMaterializedTransaction(
+        for rule: RecurringRuleItem,
+        on date: Date,
+        transactions: [TransactionItem],
+        calendar: Calendar
+    ) -> Bool {
+        transactions.contains {
+            $0.recurringRule?.id == rule.id
+                && calendar.isDate($0.timestamp, inSameDayAs: date)
+                && $0.amountMinor == rule.amountMinor
+                && $0.isExpense == rule.isExpense
+        }
+    }
+}
+
+private struct CalendarDeletedTransactionSnapshot {
+    let id: UUID
+    let amountMinor: Int64
+    let isExpense: Bool
+    let timestamp: Date
+    let categoryID: UUID?
+    let accountID: UUID?
+    let recurringRuleID: UUID?
+    let note: String?
+    let createdAt: Date
+    let updatedAt: Date
+
+    init(transaction: TransactionItem) {
+        id = transaction.id
+        amountMinor = transaction.amountMinor
+        isExpense = transaction.isExpense
+        timestamp = transaction.timestamp
+        categoryID = transaction.category?.id
+        accountID = transaction.account?.id
+        recurringRuleID = transaction.recurringRule?.id
+        note = transaction.note
+        createdAt = transaction.createdAt
+        updatedAt = transaction.updatedAt
+    }
+
+    func makeTransaction(
+        categories: [CategoryItem],
+        accounts: [AccountItem],
+        recurringRules: [RecurringRuleItem]
+    ) -> TransactionItem {
+        TransactionItem(
+            id: id,
+            amountMinor: amountMinor,
+            isExpense: isExpense,
+            timestamp: timestamp,
+            category: categoryID.flatMap { id in categories.first { $0.id == id } },
+            account: accountID.flatMap { id in accounts.first { $0.id == id } },
+            note: note,
+            recurringRule: recurringRuleID.flatMap { id in recurringRules.first { $0.id == id } },
+            createdAt: createdAt,
+            updatedAt: updatedAt
+        )
+    }
+}
+
+private extension String {
+    var nilIfBlank: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 

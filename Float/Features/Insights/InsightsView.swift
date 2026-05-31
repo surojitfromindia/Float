@@ -113,6 +113,7 @@ struct InsightsView: View {
 
                 executiveSummary
                 budgetHealthCard
+                calendarInsightCard
                 categoryBudgetCard
                 categoryCard
                 cashFlowTrendCard
@@ -296,6 +297,47 @@ struct InsightsView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private var calendarInsightCard: some View {
+        insightCard(
+            title: "Calendar insights",
+            subtitle: "Day and week patterns from this report range"
+        ) {
+            LazyVGrid(
+                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                spacing: 12
+            ) {
+                reportMetric(
+                    "Highest day",
+                    value: report.highestExpenseDay?.summaryText(currencyCode: appState.selectedCurrencyCode)
+                        ?? "None",
+                    icon: "calendar.badge.exclamationmark",
+                    tint: appState.themePalette.caution
+                )
+                reportMetric(
+                    "Lightest day",
+                    value: report.lowestExpenseDay?.summaryText(currencyCode: appState.selectedCurrencyCode)
+                        ?? "None",
+                    icon: "calendar",
+                    tint: appState.themePalette.positive
+                )
+                reportMetric(
+                    "Busiest day",
+                    value: report.busiestDay?.countText ?? "None",
+                    icon: "list.bullet.rectangle",
+                    tint: appState.themePalette.accent
+                )
+                reportMetric(
+                    "Week trend",
+                    value: report.weekTrendText,
+                    icon: "chart.line.uptrend.xyaxis",
+                    tint: report.weekExpenseDeltaMinor <= 0
+                        ? appState.themePalette.positive
+                        : appState.themePalette.caution
+                )
             }
         }
     }
@@ -985,6 +1027,61 @@ private struct InsightReport {
         .sorted { $0.date < $1.date }
     }
 
+    var dailyExpenseInsights: [CalendarExpenseInsight] {
+        let calendar = Calendar.current
+        let grouped = Dictionary(grouping: transactions.filter(\.isExpense)) {
+            calendar.startOfDay(for: $0.timestamp)
+        }
+        return grouped.map { day, items in
+            CalendarExpenseInsight(
+                date: day,
+                expenseMinor: items.reduce(Int64(0)) { $0 + $1.amountMinor },
+                transactionCount: items.count
+            )
+        }
+        .sorted { $0.date < $1.date }
+    }
+
+    var highestExpenseDay: CalendarExpenseInsight? {
+        dailyExpenseInsights.max { $0.expenseMinor < $1.expenseMinor }
+    }
+
+    var lowestExpenseDay: CalendarExpenseInsight? {
+        dailyExpenseInsights
+            .filter { $0.expenseMinor > 0 }
+            .min { $0.expenseMinor < $1.expenseMinor }
+    }
+
+    var busiestDay: CalendarExpenseInsight? {
+        dailyExpenseInsights.max { $0.transactionCount < $1.transactionCount }
+    }
+
+    var weekExpenseDeltaMinor: Int64 {
+        let calendar = Calendar.current
+        let end = calendar.startOfDay(for: range.end)
+        let currentWeekStart = calendar.date(byAdding: .day, value: -6, to: end) ?? end
+        let previousWeekStart = calendar.date(byAdding: .day, value: -7, to: currentWeekStart)
+            ?? currentWeekStart
+        let previousWeekEnd = calendar.date(byAdding: .day, value: -1, to: currentWeekStart)
+            ?? currentWeekStart
+        let current = expenseTotal(
+            from: currentWeekStart,
+            through: end,
+            calendar: calendar
+        )
+        let previous = expenseTotal(
+            from: previousWeekStart,
+            through: previousWeekEnd,
+            calendar: calendar
+        )
+        return current - previous
+    }
+
+    var weekTrendText: String {
+        guard weekExpenseDeltaMinor != 0 else { return "Flat" }
+        return weekExpenseDeltaMinor < 0 ? "Down" : "Up"
+    }
+
     var activeRecurringCount: Int {
         recurringRules.filter { $0.active }.count
     }
@@ -1046,6 +1143,22 @@ private struct InsightReport {
                 .sorted { $0.amountMinor > $1.amountMinor }
                 .prefix(5)
         )
+    }
+
+    private func expenseTotal(from start: Date, through end: Date, calendar: Calendar) -> Int64 {
+        let startOfRange = calendar.startOfDay(for: start)
+        let endExclusive = calendar.date(
+            byAdding: .day,
+            value: 1,
+            to: calendar.startOfDay(for: end)
+        ) ?? end
+        return transactions
+            .filter {
+                $0.isExpense
+                    && startOfRange <= $0.timestamp
+                    && $0.timestamp < endExclusive
+            }
+            .reduce(Int64(0)) { $0 + $1.amountMinor }
     }
 
     func drillDown(for category: CategoryInsight) -> CategoryDrillDown {
@@ -1183,6 +1296,25 @@ private struct CashFlowTrendPoint: Identifiable {
     let incomeMinor: Int64
     let expenseMinor: Int64
     let netMinor: Int64
+}
+
+private struct CalendarExpenseInsight: Identifiable {
+    let id = UUID()
+    let date: Date
+    let expenseMinor: Int64
+    let transactionCount: Int
+
+    var countText: String {
+        "\(transactionCount) txns"
+    }
+
+    func summaryText(currencyCode: String) -> String {
+        let amount = MoneyFormatter.string(
+            minorUnits: expenseMinor,
+            currencyCode: currencyCode
+        )
+        return "\(date.formatted(.dateTime.month(.abbreviated).day())) · \(amount)"
+    }
 }
 
 private struct RecurringInsight: Identifiable {
