@@ -106,7 +106,6 @@ struct CalendarView: View {
                         } label: {
                             CalendarDayCell(
                                 summary: day,
-                                currencyCode: appState.selectedCurrencyCode,
                                 palette: appState.themePalette
                             )
                         }
@@ -953,83 +952,57 @@ private struct DailyDetailView: View {
 
 private struct CalendarDayCell: View {
     let summary: CalendarDaySummary
-    let currencyCode: String
     let palette: FloatThemePalette
 
     private let elementRadius = FloatTheme.tileRadius
 
-    private var netColor: Color {
-        if summary.transactions.isEmpty && summary.projectedRecurring.isEmpty {
+    private var activityColor: Color {
+        if !summary.hasActivity {
             return .secondary
         }
         return summary.netMinor >= 0 ? palette.positive : palette.caution
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 4) {
                 Text(summary.date.formatted(.dateTime.day()))
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(summary.isInDisplayedMonth ? .primary : .tertiary)
                 Spacer(minLength: 0)
                 if summary.isOverDailyAllowance {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .font(.caption2)
-                        .foregroundStyle(palette.caution)
+                    Circle()
+                        .fill(palette.caution)
+                        .frame(width: 6, height: 6)
+                        .accessibilityLabel("Over daily allowance")
                 }
             }
 
             Spacer(minLength: 0)
 
-            if summary.transactions.isEmpty && summary.projectedRecurring.isEmpty {
-                Capsule()
-                    .fill(Color.primary.opacity(0.045))
-                    .frame(height: 4)
-            } else {
-                VStack(spacing: 5) {
-                    Text("\(summary.activityCount)")
-                        .font(.caption2.weight(.bold))
+            if summary.hasActivity {
+                HStack(spacing: 3) {
+                    Spacer(minLength: 0)
+                    Text(summary.cappedActivityLabel)
+                        .font(.system(size: 10, weight: .bold, design: .rounded))
                         .foregroundStyle(.white)
-                        .frame(width: 20, height: 20)
-                        .background(netColor, in: Circle())
-
-                    Text(
-                        MoneyFormatter.string(
-                            minorUnits: abs(summary.netMinor),
-                            currencyCode: currencyCode
-                        )
-                    )
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
-                    .foregroundStyle(netColor)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.65)
-                    HStack(spacing: 3) {
-                        if summary.incomeMinor > 0 {
-                            Capsule()
-                                .fill(palette.positive)
-                                .frame(height: 4)
-                        }
-                        if summary.expenseMinor > 0 {
-                            Capsule()
-                                .fill(palette.caution)
-                                .frame(height: 4)
-                        }
+                        .frame(width: 18, height: 18)
+                        .background(activityColor, in: Circle())
+                    if summary.hasRecurringProjection {
+                        Image(systemName: "repeat")
+                            .font(.system(size: 7, weight: .bold))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 10, height: 18)
                     }
-                    if !summary.projectedRecurring.isEmpty {
-                        HStack(spacing: 3) {
-                            Image(systemName: "repeat")
-                                .font(.system(size: 7, weight: .bold))
-                            Text("\(summary.projectedRecurring.count)")
-                                .font(.system(size: 8, weight: .bold, design: .rounded))
-                        }
-                        .foregroundStyle(.secondary)
-                    }
+                    Spacer(minLength: 0)
                 }
-                .frame(maxWidth: .infinity)
             }
+
+            Spacer(minLength: 0)
+            activityBars
         }
-        .padding(8)
-        .frame(height: 78)
+        .padding(7)
+        .frame(height: 66)
         .frame(maxWidth: .infinity)
         .background(
             cellBackground,
@@ -1042,6 +1015,43 @@ private struct CalendarDayCell: View {
                     lineWidth: summary.selected ? 1.8 : 1
                 )
         )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var activityBars: some View {
+        GeometryReader { proxy in
+            let availableWidth = proxy.size.width
+            let hasIncomeAndExpense = summary.incomeMinor > 0 && summary.expenseMinor > 0
+            let barWidth = max(0, availableWidth - (hasIncomeAndExpense ? 2 : 0))
+            let totalMinor = max(summary.incomeMinor + summary.expenseMinor, 1)
+            let incomeWidth = summary.incomeMinor > 0
+                ? max(5, barWidth * CGFloat(summary.incomeMinor) / CGFloat(totalMinor))
+                : 0
+            let expenseWidth = summary.expenseMinor > 0
+                ? max(5, barWidth * CGFloat(summary.expenseMinor) / CGFloat(totalMinor))
+                : 0
+
+            HStack(spacing: 2) {
+                if summary.incomeMinor > 0 {
+                    Capsule()
+                        .fill(palette.positive.opacity(summary.isInDisplayedMonth ? 0.9 : 0.35))
+                        .frame(width: incomeWidth, height: 3)
+                }
+                if summary.expenseMinor > 0 {
+                    Capsule()
+                        .fill(palette.caution.opacity(summary.isInDisplayedMonth ? 0.9 : 0.35))
+                        .frame(width: expenseWidth, height: 3)
+                }
+                if !summary.hasActivity {
+                    Capsule()
+                        .fill(Color.primary.opacity(summary.isInDisplayedMonth ? 0.08 : 0.035))
+                        .frame(height: 3)
+                }
+            }
+            .frame(width: availableWidth, alignment: .leading)
+        }
+        .frame(height: 3)
     }
 
     private var cellBackground: Color {
@@ -1065,6 +1075,20 @@ private struct CalendarDayCell: View {
             return palette.caution.opacity(0.5)
         }
         return Color.primary.opacity(0.055)
+    }
+
+    private var accessibilityLabel: String {
+        var parts = [summary.date.formatted(date: .abbreviated, time: .omitted)]
+        if summary.hasActivity {
+            parts.append("\(summary.activityCount) activities")
+        }
+        if summary.hasRecurringProjection {
+            parts.append("includes recurring projection")
+        }
+        if summary.isOverDailyAllowance {
+            parts.append("over daily allowance")
+        }
+        return parts.joined(separator: ", ")
     }
 }
 
@@ -1129,6 +1153,11 @@ private struct CalendarDaySummary: Identifiable {
     }
     var netMinor: Int64 { incomeMinor - expenseMinor }
     var activityCount: Int { transactions.count + projectedRecurring.count }
+    var hasActivity: Bool { activityCount > 0 }
+    var hasRecurringProjection: Bool { !projectedRecurring.isEmpty }
+    var cappedActivityLabel: String {
+        activityCount > 9 ? "9+" : "\(activityCount)"
+    }
     var isOverDailyAllowance: Bool {
         dailyAllowanceMinor > 0 && expenseMinor > dailyAllowanceMinor
     }

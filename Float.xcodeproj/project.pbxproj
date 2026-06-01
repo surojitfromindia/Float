@@ -7,12 +7,38 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F00100012FCE000000000001 /* FloatWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F00100022FCE000000000001 /* FloatWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9773DCA42FCB359D00B3A2CD /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 9773DCA32FCB359D00B3A2CD /* Localizable.xcstrings */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		F001000A2FCE000000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 975A85F42FCA038000B49849 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F00100082FCE000000000001;
+			remoteInfo = FloatWidgets;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F00100092FCE000000000001 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				F00100012FCE000000000001 /* FloatWidgets.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		975A85FC2FCA038000B49849 /* Float.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Float.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9773DCA32FCB359D00B3A2CD /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		F00100022FCE000000000001 /* FloatWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FloatWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -22,6 +48,13 @@
 				Info.plist,
 			);
 			target = 975A85FB2FCA038000B49849 /* Float */;
+		};
+		F00100042FCE000000000001 /* Exceptions for "FloatWidgets" folder in "FloatWidgets" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F00100082FCE000000000001 /* FloatWidgets */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -34,10 +67,25 @@
 			path = Float;
 			sourceTree = "<group>";
 		};
+		F00100032FCE000000000001 /* FloatWidgets */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F00100042FCE000000000001 /* Exceptions for "FloatWidgets" folder in "FloatWidgets" target */,
+			);
+			path = FloatWidgets;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		975A85F92FCA038000B49849 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F00100062FCE000000000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -51,6 +99,7 @@
 			isa = PBXGroup;
 			children = (
 				975A85FE2FCA038000B49849 /* Float */,
+				F00100032FCE000000000001 /* FloatWidgets */,
 				975A85FD2FCA038000B49849 /* Products */,
 				9773DCA32FCB359D00B3A2CD /* Localizable.xcstrings */,
 			);
@@ -60,6 +109,7 @@
 			isa = PBXGroup;
 			children = (
 				975A85FC2FCA038000B49849 /* Float.app */,
+				F00100022FCE000000000001 /* FloatWidgets.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -74,10 +124,12 @@
 				975A85F82FCA038000B49849 /* Sources */,
 				975A85F92FCA038000B49849 /* Frameworks */,
 				975A85FA2FCA038000B49849 /* Resources */,
+				F00100092FCE000000000001 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				F001000B2FCE000000000001 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				975A85FE2FCA038000B49849 /* Float */,
@@ -88,6 +140,28 @@
 			productName = Float;
 			productReference = 975A85FC2FCA038000B49849 /* Float.app */;
 			productType = "com.apple.product-type.application";
+		};
+		F00100082FCE000000000001 /* FloatWidgets */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F001000C2FCE000000000001 /* Build configuration list for PBXNativeTarget "FloatWidgets" */;
+			buildPhases = (
+				F00100052FCE000000000001 /* Sources */,
+				F00100062FCE000000000001 /* Frameworks */,
+				F00100072FCE000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				F00100032FCE000000000001 /* FloatWidgets */,
+			);
+			name = FloatWidgets;
+			packageProductDependencies = (
+			);
+			productName = FloatWidgets;
+			productReference = F00100022FCE000000000001 /* FloatWidgets.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -100,6 +174,9 @@
 				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					975A85FB2FCA038000B49849 = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					F00100082FCE000000000001 = {
 						CreatedOnToolsVersion = 26.5;
 					};
 				};
@@ -119,6 +196,7 @@
 			projectRoot = "";
 			targets = (
 				975A85FB2FCA038000B49849 /* Float */,
+				F00100082FCE000000000001 /* FloatWidgets */,
 			);
 		};
 /* End PBXProject section */
@@ -132,6 +210,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F00100072FCE000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -142,7 +227,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F00100052FCE000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F001000B2FCE000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F00100082FCE000000000001 /* FloatWidgets */;
+			targetProxy = F001000A2FCE000000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		975A86072FCA038200B49849 /* Debug */ = {
@@ -271,6 +371,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Float/Float.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = NDH67X9Q6R;
@@ -304,6 +405,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = Float/Float.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = NDH67X9Q6R;
@@ -332,6 +434,63 @@
 			};
 			name = Release;
 		};
+		F001000D2FCE000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = FloatWidgets/FloatWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NDH67X9Q6R;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FloatWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Float Widgets";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.reducer.Float.FloatWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F001000E2FCE000000000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = FloatWidgets/FloatWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = NDH67X9Q6R;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FloatWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Float Widgets";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.reducer.Float.FloatWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -349,6 +508,15 @@
 			buildConfigurations = (
 				975A860A2FCA038200B49849 /* Debug */,
 				975A860B2FCA038200B49849 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F001000C2FCE000000000001 /* Build configuration list for PBXNativeTarget "FloatWidgets" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F001000D2FCE000000000001 /* Debug */,
+				F001000E2FCE000000000001 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

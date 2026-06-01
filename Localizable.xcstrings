@@ -1763,6 +1763,9 @@
         }
       }
     },
+    "Over daily allowance" : {
+
+    },
     "per day left this period" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2173,6 +2176,9 @@
           }
         }
       }
+    },
+    "Spend with clarity" : {
+
     },
     "spent so far" : {
       "extractionState" : "stale",
