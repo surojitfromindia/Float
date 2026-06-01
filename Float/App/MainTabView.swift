@@ -30,5 +30,13 @@ struct MainTabView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $appState.isTransferSheetPresented) {
+            TransferEditorSheet(
+                transferToEdit: appState.editingTransfer,
+                initialTimestamp: appState.newTransferTimestamp
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
     }
 }

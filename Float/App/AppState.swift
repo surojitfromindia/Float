@@ -41,12 +41,16 @@ final class AppState: ObservableObject {
     @AppStorage("selectedLanguageCode") var selectedLanguageCode = "system"
     @AppStorage("lastUsedCategoryID") var lastUsedCategoryID = ""
     @AppStorage("lastUsedAccountID") var lastUsedAccountID = ""
+    @AppStorage("isAppLockEnabled") var isAppLockEnabled = false
 
     // Controls the shared transaction entry sheet and whether it opens in create or edit mode.
     @Published var isEntrySheetPresented = false
     @Published var editingTransaction: TransactionItem?
     @Published var newTransactionTimestamp: Date?
     @Published var newTransactionIsExpense: Bool?
+    @Published var isTransferSheetPresented = false
+    @Published var editingTransfer: TransferItem?
+    @Published var newTransferTimestamp: Date?
 
     // Converts the stored appearance preference into the optional SwiftUI color scheme override.
     var colorScheme: ColorScheme? {
@@ -79,5 +83,17 @@ final class AppState: ObservableObject {
         newTransactionTimestamp = nil
         newTransactionIsExpense = nil
         isEntrySheetPresented = true
+    }
+
+    func presentNewTransfer(timestamp: Date? = nil) {
+        editingTransfer = nil
+        newTransferTimestamp = timestamp
+        isTransferSheetPresented = true
+    }
+
+    func presentEditTransfer(_ transfer: TransferItem) {
+        editingTransfer = transfer
+        newTransferTimestamp = nil
+        isTransferSheetPresented = true
     }
 }

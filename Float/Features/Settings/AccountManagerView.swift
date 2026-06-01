@@ -5,6 +5,10 @@ struct AccountManagerView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query(sort: \TransactionItem.timestamp, order: .reverse) private
+        var transactions: [TransactionItem]
+    @Query(sort: \TransferItem.timestamp, order: .reverse) private
+        var transfers: [TransferItem]
     @State private var showingEditor = false
     @State private var editingAccount: AccountItem?
 
@@ -35,6 +39,18 @@ struct AccountManagerView: View {
                             .foregroundStyle(.secondary)
                         }
                         Spacer()
+                        Text(
+                            MoneyFormatter.string(
+                                minorUnits: AccountBalanceUseCase.balance(
+                                    for: account,
+                                    transactions: transactions,
+                                    transfers: transfers
+                                ),
+                                currencyCode: account.currencyCode
+                            )
+                        )
+                        .font(.subheadline.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(.secondary)
                         if account.archived {
                             Text("Archived")
                                 .font(.caption.weight(.medium))

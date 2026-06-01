@@ -179,6 +179,38 @@ final class TransactionTemplateItem {
     }
 }
 
+@Model
+final class TransferItem {
+    var id: UUID = UUID()
+    var amountMinor: Int64 = 0
+    var fromAccount: AccountItem?
+    var toAccount: AccountItem?
+    var timestamp: Date = Date()
+    var note: String?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        amountMinor: Int64,
+        fromAccount: AccountItem? = nil,
+        toAccount: AccountItem? = nil,
+        timestamp: Date = Date(),
+        note: String? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.fromAccount = fromAccount
+        self.toAccount = toAccount
+        self.timestamp = timestamp
+        self.note = note?.nilIfBlank
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
 extension TransactionTemplateItem {
     var displayTitle: String {
         title.nilIfBlank ?? note?.nilIfBlank ?? category?.name ?? "Template"
@@ -361,6 +393,37 @@ extension TransactionItem {
         self.timestamp = timestamp
         self.category = category
         self.account = account
+        self.note = note?.nilIfBlank
+        updatedAt = Date()
+    }
+}
+
+extension TransferItem {
+    var fromAccountName: String {
+        fromAccount?.name.nilIfBlank ?? "Unknown Account"
+    }
+
+    var toAccountName: String {
+        toAccount?.name.nilIfBlank ?? "Unknown Account"
+    }
+
+    var currencyCode: String {
+        fromAccount?.currencyCode.nilIfBlank
+            ?? toAccount?.currencyCode.nilIfBlank
+            ?? "USD"
+    }
+
+    func apply(
+        amountMinor: Int64,
+        fromAccount: AccountItem,
+        toAccount: AccountItem,
+        timestamp: Date,
+        note: String?
+    ) {
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.fromAccount = fromAccount
+        self.toAccount = toAccount
+        self.timestamp = timestamp
         self.note = note?.nilIfBlank
         updatedAt = Date()
     }

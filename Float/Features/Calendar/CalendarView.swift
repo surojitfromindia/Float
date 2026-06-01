@@ -6,6 +6,8 @@ struct CalendarView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \TransactionItem.timestamp, order: .reverse) private
         var transactions: [TransactionItem]
+    @Query(sort: \TransferItem.timestamp, order: .reverse) private
+        var transfers: [TransferItem]
     @Query private var goals: [GoalItem]
     @Query private var recurringRules: [RecurringRuleItem]
     @Query private var budgetPeriods: [BudgetPeriodItem]
@@ -41,6 +43,15 @@ struct CalendarView: View {
         }
     }
 
+    private var monthTransfers: [TransferItem] {
+        guard let interval = calendar.dateInterval(of: .month, for: displayedMonth) else {
+            return []
+        }
+        return transfers.filter {
+            interval.start <= $0.timestamp && $0.timestamp < interval.end
+        }
+    }
+
     private var monthSummary: CalendarPeriodSummary {
         CalendarPeriodSummary(transactions: monthTransactions)
     }
@@ -54,6 +65,12 @@ struct CalendarView: View {
 
     private var transactionGroups: [Date: [TransactionItem]] {
         Dictionary(grouping: transactions) {
+            calendar.startOfDay(for: $0.timestamp)
+        }
+    }
+
+    private var transferGroups: [Date: [TransferItem]] {
+        Dictionary(grouping: transfers) {
             calendar.startOfDay(for: $0.timestamp)
         }
     }
@@ -84,6 +101,7 @@ struct CalendarView: View {
                 date: day,
                 isInDisplayedMonth: calendar.isDate(day, equalTo: displayedMonth, toGranularity: .month),
                 transactions: transactionGroups[day] ?? [],
+                transfers: transferGroups[day] ?? [],
                 projectedRecurring: recurringProjectionGroups[day] ?? [],
                 dailyAllowanceMinor: safeToSpend.dailyAllowanceMinor,
                 selected: highlightedDay.map { calendar.isDate($0, inSameDayAs: day) } ?? false
@@ -202,7 +220,7 @@ struct CalendarView: View {
                     }
                 }
                 .buttonStyle(.plain)
-                Text("\(monthTransactions.count) transactions")
+                Text("\(monthTransactions.count) transactions, \(monthTransfers.count) transfers")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -346,6 +364,8 @@ private struct DailyDetailView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \TransactionItem.timestamp, order: .forward) private
         var transactions: [TransactionItem]
+    @Query(sort: \TransferItem.timestamp, order: .forward) private
+        var transfers: [TransferItem]
     @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
     @Query private var goals: [GoalItem]
@@ -355,8 +375,11 @@ private struct DailyDetailView: View {
     let initialDate: Date
 
     @State private var editingTransaction: TransactionItem?
+    @State private var editingTransfer: TransferItem?
     @State private var initialTimestamp: Date?
+    @State private var initialTransferTimestamp: Date?
     @State private var isEntrySheetPresented = false
+    @State private var isTransferSheetPresented = false
     @State private var selectedDate: Date
     @State private var deletedSnapshot: CalendarDeletedTransactionSnapshot?
     @State private var showingUndo = false
@@ -386,6 +409,14 @@ private struct DailyDetailView: View {
         let start = calendar.startOfDay(for: selectedDate)
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
         return transactions
+            .filter { start <= $0.timestamp && $0.timestamp < end }
+            .sorted { $0.timestamp > $1.timestamp }
+    }
+
+    private var dayTransfers: [TransferItem] {
+        let start = calendar.startOfDay(for: selectedDate)
+        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
+        return transfers
             .filter { start <= $0.timestamp && $0.timestamp < end }
             .sorted { $0.timestamp > $1.timestamp }
     }
@@ -451,6 +482,7 @@ private struct DailyDetailView: View {
                 metricGrid
                 budgetPaceCard
                 transactionSection
+                transferSection
                 projectedRecurringSection
                 graphSection
                 breakdownSection(title: "Category breakdown", rows: categoryBreakdown)
@@ -505,6 +537,14 @@ private struct DailyDetailView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $isTransferSheetPresented) {
+            TransferEditorSheet(
+                transferToEdit: editingTransfer,
+                initialTimestamp: initialTransferTimestamp
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
     }
 
     private var headerCard: some View {
@@ -514,7 +554,7 @@ private struct DailyDetailView: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(selectedDate.formatted(.dateTime.weekday(.wide).month(.wide).day()))
                             .font(.headline)
-                        Text("\(dayTransactions.count) transactions, \(projectedRecurring.count) projected")
+                        Text("\(dayTransactions.count) transactions, \(dayTransfers.count) transfers, \(projectedRecurring.count) projected")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -645,6 +685,53 @@ private struct DailyDetailView: View {
                             }
 
                             if transaction.id != dayTransactions.last?.id {
+                                Divider()
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var transferSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(
+                title: "Transfers",
+                actionTitle: "Add",
+                action: presentNewTransfer
+            )
+
+            if dayTransfers.isEmpty {
+                GlassCard {
+                    EmptyStateView(
+                        icon: "arrow.left.arrow.right.circle",
+                        title: "No transfers",
+                        message: "Move money between accounts for this day."
+                    )
+                }
+            } else {
+                GlassCard {
+                    VStack(spacing: 0) {
+                        ForEach(dayTransfers) { transfer in
+                            Button {
+                                presentEditTransfer(transfer)
+                            } label: {
+                                TransferRowView(
+                                    transfer: transfer,
+                                    currencyCode: transfer.currencyCode
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .swipeActions {
+                                Button(role: .destructive) {
+                                    delete(transfer)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+
+                            if transfer.id != dayTransfers.last?.id {
                                 Divider()
                             }
                         }
@@ -857,16 +944,33 @@ private struct DailyDetailView: View {
         isEntrySheetPresented = true
     }
 
+    private func presentNewTransfer() {
+        editingTransfer = nil
+        initialTransferTimestamp = calendar.timestamp(on: selectedDate, matchingTimeFrom: Date())
+        isTransferSheetPresented = true
+    }
+
     private func presentEditTransaction(_ transaction: TransactionItem) {
         editingTransaction = transaction
         initialTimestamp = nil
         isEntrySheetPresented = true
     }
 
+    private func presentEditTransfer(_ transfer: TransferItem) {
+        editingTransfer = transfer
+        initialTransferTimestamp = nil
+        isTransferSheetPresented = true
+    }
+
     private func delete(_ transaction: TransactionItem) {
         deletedSnapshot = CalendarDeletedTransactionSnapshot(transaction: transaction)
         try? TransactionRepository(modelContext: modelContext).delete(transaction)
         withAnimation { showingUndo = true }
+        Haptics.tick()
+    }
+
+    private func delete(_ transfer: TransferItem) {
+        try? TransferRepository(modelContext: modelContext).delete(transfer)
         Haptics.tick()
     }
 
@@ -1138,6 +1242,7 @@ private struct CalendarDaySummary: Identifiable {
     let date: Date
     let isInDisplayedMonth: Bool
     let transactions: [TransactionItem]
+    let transfers: [TransferItem]
     let projectedRecurring: [CalendarRecurringProjection]
     let dailyAllowanceMinor: Int64
     let selected: Bool
@@ -1152,7 +1257,7 @@ private struct CalendarDaySummary: Identifiable {
             + projectedRecurring.filter(\.isExpense).reduce(0) { $0 + $1.amountMinor }
     }
     var netMinor: Int64 { incomeMinor - expenseMinor }
-    var activityCount: Int { transactions.count + projectedRecurring.count }
+    var activityCount: Int { transactions.count + transfers.count + projectedRecurring.count }
     var hasActivity: Bool { activityCount > 0 }
     var hasRecurringProjection: Bool { !projectedRecurring.isEmpty }
     var cappedActivityLabel: String {

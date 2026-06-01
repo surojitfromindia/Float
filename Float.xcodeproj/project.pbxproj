@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F00100012FCE000000000001 /* FloatWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F00100022FCE000000000001 /* FloatWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		9773DCA42FCB359D00B3A2CD /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 9773DCA32FCB359D00B3A2CD /* Localizable.xcstrings */; };
+		F00100012FCE000000000001 /* FloatWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F00100022FCE000000000001 /* FloatWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */

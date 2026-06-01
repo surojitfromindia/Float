@@ -16,6 +16,8 @@ struct SettingsView: View {
         var transactions: [TransactionItem]
     @Query(sort: \TransactionTemplateItem.createdAt, order: .reverse) private
         var transactionTemplates: [TransactionTemplateItem]
+    @Query(sort: \TransferItem.timestamp, order: .reverse) private
+        var transfers: [TransferItem]
     @Query private var accounts: [AccountItem]
     @Query private var categories: [CategoryItem]
     @Query private var goals: [GoalItem]
@@ -73,6 +75,7 @@ struct SettingsView: View {
                             .tag(theme.rawValue)
                     }
                 }
+                Toggle("Privacy Lock", isOn: $appState.isAppLockEnabled)
                 ThemePreviewCard(palette: appState.themePalette)
             }
             Section("Manage") {
@@ -166,6 +169,7 @@ struct SettingsView: View {
                 categories: categories,
                 transactions: transactions,
                 transactionTemplates: transactionTemplates,
+                transfers: transfers,
                 goals: goals,
                 recurringRules: recurringRules,
                 budgets: budgets,
@@ -196,6 +200,7 @@ struct SettingsView: View {
     private func resetAllData(reseedDefaults: Bool = true) {
         for item in transactions { modelContext.delete(item) }
         for item in transactionTemplates { modelContext.delete(item) }
+        for item in transfers { modelContext.delete(item) }
         for item in recurringRules { modelContext.delete(item) }
         for item in goals { modelContext.delete(item) }
         for item in categoryBudgets { modelContext.delete(item) }

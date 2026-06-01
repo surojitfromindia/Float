@@ -7,6 +7,8 @@ struct HomeView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \TransactionItem.timestamp, order: .reverse) private
         var transactions: [TransactionItem]
+    @Query(sort: \TransferItem.timestamp, order: .reverse) private
+        var transfers: [TransferItem]
     @Query private var goals: [GoalItem]
     @Query private var recurringRules: [RecurringRuleItem]
     @Query private var budgets: [BudgetPeriodItem]
@@ -73,6 +75,7 @@ struct HomeView: View {
         CashFlowForecastUseCase.calculate(
             accounts: accounts,
             transactions: transactions,
+            transfers: transfers,
             budget: activeBudget,
             safeToSpend: result,
             goals: goals,
@@ -210,6 +213,14 @@ struct HomeView: View {
                 tint: appState.themePalette.positive
             ) {
                 appState.presentNewTransaction(isExpense: false)
+            }
+            HomeActionButton(
+                title: "Transfer",
+                icon: "arrow.left.arrow.right.circle.fill",
+                tint: appState.themePalette.accent,
+                isEnabled: accounts.filter { !$0.archived }.count >= 2
+            ) {
+                appState.presentNewTransfer()
             }
             HomeActionButton(
                 title: "Add to goal",

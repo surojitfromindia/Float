@@ -127,6 +127,61 @@ struct TransactionTemplateRepository {
 }
 
 @MainActor
+struct TransferRepository {
+    let modelContext: ModelContext
+
+    func create(
+        amountMinor: Int64,
+        fromAccount: AccountItem,
+        toAccount: AccountItem,
+        timestamp: Date,
+        note: String?
+    ) throws -> TransferItem {
+        let transfer = TransferItem(
+            amountMinor: amountMinor,
+            fromAccount: fromAccount,
+            toAccount: toAccount,
+            timestamp: timestamp,
+            note: note?.trimmedNilIfBlank
+        )
+        modelContext.insert(transfer)
+        try save()
+        return transfer
+    }
+
+    func update(
+        _ transfer: TransferItem,
+        amountMinor: Int64,
+        fromAccount: AccountItem,
+        toAccount: AccountItem,
+        timestamp: Date,
+        note: String?
+    ) throws {
+        transfer.apply(
+            amountMinor: amountMinor,
+            fromAccount: fromAccount,
+            toAccount: toAccount,
+            timestamp: timestamp,
+            note: note
+        )
+        try save()
+    }
+
+    func delete(_ transfer: TransferItem) throws {
+        modelContext.delete(transfer)
+        try save()
+    }
+
+    private func save() throws {
+        do {
+            try modelContext.save()
+        } catch {
+            throw DataIntegrityError.saveFailed
+        }
+    }
+}
+
+@MainActor
 struct CategoryRepository {
     let modelContext: ModelContext
 
@@ -213,6 +268,13 @@ struct AccountRepository {
     private func isAccountInUse(_ account: AccountItem) -> Bool {
         let transactions = (try? modelContext.fetch(FetchDescriptor<TransactionItem>())) ?? []
         if transactions.contains(where: { $0.account?.id == account.id }) {
+            return true
+        }
+
+        let transfers = (try? modelContext.fetch(FetchDescriptor<TransferItem>())) ?? []
+        if transfers.contains(where: {
+            $0.fromAccount?.id == account.id || $0.toAccount?.id == account.id
+        }) {
             return true
         }
 
@@ -463,6 +525,7 @@ struct SettingsRepository {
     func resetAllData(currencyCode: String) throws {
         try modelContext.delete(model: TransactionItem.self)
         try modelContext.delete(model: TransactionTemplateItem.self)
+        try modelContext.delete(model: TransferItem.self)
         try modelContext.delete(model: RecurringRuleItem.self)
         try modelContext.delete(model: GoalItem.self)
         try modelContext.delete(model: CategoryBudgetItem.self)

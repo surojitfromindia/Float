@@ -17,6 +17,8 @@
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Float uses Face ID to protect your financial data when privacy lock is enabled.</string>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>

@@ -98,15 +98,22 @@
     "%lld shown" : {
 
     },
-    "%lld transactions" : {
-
-    },
-    "%lld transactions, %lld projected" : {
+    "%lld transactions, %lld transfers" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$lld transactions, %2$lld projected"
+            "value" : "%1$lld transactions, %2$lld transfers"
+          }
+        }
+      }
+    },
+    "%lld transactions, %lld transfers, %lld projected" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld transactions, %2$lld transfers, %3$lld projected"
           }
         }
       }
@@ -959,6 +966,9 @@
         }
       }
     },
+    "Delete transfer" : {
+
+    },
     "Details" : {
       "localizations" : {
         "bn" : {
@@ -1035,6 +1045,9 @@
       }
     },
     "Edit Template" : {
+
+    },
+    "Edit Transfer" : {
 
     },
     "Edit upcoming recurring rule" : {
@@ -1254,6 +1267,9 @@
           }
         }
       }
+    },
+    "Float is locked" : {
+
     },
     "Formatted amount" : {
       "localizations" : {
@@ -1881,6 +1897,9 @@
         }
       }
     },
+    "Privacy Lock" : {
+
+    },
     "Range" : {
       "localizations" : {
         "bn" : {
@@ -2094,6 +2113,9 @@
           }
         }
       }
+    },
+    "Select" : {
+
     },
     "Set a budget for one budget period." : {
 
@@ -2474,6 +2496,9 @@
         }
       }
     },
+    "Transfer" : {
+
+    },
     "Type" : {
       "localizations" : {
         "bn" : {
@@ -2521,6 +2546,12 @@
         }
       }
     },
+    "Unlock" : {
+
+    },
+    "Unlocking" : {
+
+    },
     "Upcoming recurring" : {
       "localizations" : {
         "bn" : {
@@ -2552,6 +2583,9 @@
           }
         }
       }
+    },
+    "Use Face ID, Touch ID, or your passcode to continue." : {
+
     },
     "You can spend" : {
       "localizations" : {

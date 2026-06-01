@@ -19,6 +19,7 @@ enum CashFlowForecastUseCase {
         horizons: [Int] = [7, 14, 30],
         accounts: [AccountItem],
         transactions: [TransactionItem],
+        transfers: [TransferItem] = [],
         budget: BudgetPeriodItem?,
         safeToSpend: SafeToSpendResult,
         goals: [GoalItem],
@@ -26,7 +27,11 @@ enum CashFlowForecastUseCase {
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [CashFlowForecastItem] {
-        let balance = currentBalanceMinor(accounts: accounts, transactions: transactions)
+        let balance = AccountBalanceUseCase.totalBalance(
+            accounts: accounts,
+            transactions: transactions,
+            transfers: transfers
+        )
         return horizons.map { days in
             let horizonEnd =
                 calendar.date(byAdding: .day, value: max(1, days) - 1, to: now)
@@ -66,19 +71,6 @@ enum CashFlowForecastUseCase {
                 budgetAllowanceMinor: budgetAllowance
             )
         }
-    }
-
-    private static func currentBalanceMinor(
-        accounts: [AccountItem],
-        transactions: [TransactionItem]
-    ) -> Int64 {
-        let opening = accounts
-            .filter { !$0.archived }
-            .reduce(Int64(0)) { $0 + $1.openingBalanceMinor }
-        let netTransactions = transactions.reduce(Int64(0)) { total, transaction in
-            total + (transaction.isExpense ? -transaction.amountMinor : transaction.amountMinor)
-        }
-        return opening + netTransactions
     }
 
     private static func recurringTotals(

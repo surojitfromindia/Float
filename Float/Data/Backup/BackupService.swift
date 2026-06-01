@@ -8,6 +8,7 @@ enum BackupService {
         categories: [CategoryItem],
         transactions: [TransactionItem],
         transactionTemplates: [TransactionTemplateItem],
+        transfers: [TransferItem],
         goals: [GoalItem],
         recurringRules: [RecurringRuleItem],
         budgets: [BudgetPeriodItem],
@@ -19,6 +20,7 @@ enum BackupService {
             categories: categories.map(CategoryDTO.init),
             transactions: transactions.map(TransactionDTO.init),
             transactionTemplates: transactionTemplates.map(TransactionTemplateDTO.init),
+            transfers: transfers.map(TransferDTO.init),
             goals: goals.map(GoalDTO.init),
             recurringRules: recurringRules.map(RecurringRuleDTO.init),
             budgets: budgets.map(BudgetDTO.init),
@@ -80,6 +82,16 @@ enum BackupService {
             )
         }
 
+        for item in dto.transfers {
+            modelContext.insert(
+                TransferItem(
+                    dto: item,
+                    fromAccount: item.fromAccountID.flatMap { accountMap[$0] },
+                    toAccount: item.toAccountID.flatMap { accountMap[$0] }
+                )
+            )
+        }
+
         var recurringMap: [UUID: RecurringRuleItem] = [:]
         for item in dto.recurringRules {
             let model = RecurringRuleItem(
@@ -115,6 +127,7 @@ enum BackupService {
     private static func deleteExistingData(in modelContext: ModelContext) throws {
         try modelContext.delete(model: TransactionItem.self)
         try modelContext.delete(model: TransactionTemplateItem.self)
+        try modelContext.delete(model: TransferItem.self)
         try modelContext.delete(model: RecurringRuleItem.self)
         try modelContext.delete(model: GoalItem.self)
         try modelContext.delete(model: CategoryBudgetItem.self)
@@ -182,6 +195,21 @@ private extension TransactionTemplateDTO {
             isExpense: item.isExpense,
             categoryID: item.category?.id,
             accountID: item.account?.id,
+            note: item.note,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension TransferDTO {
+    init(_ item: TransferItem) {
+        self.init(
+            id: item.id,
+            amountMinor: item.amountMinor,
+            fromAccountID: item.fromAccount?.id,
+            toAccountID: item.toAccount?.id,
+            timestamp: item.timestamp,
             note: item.note,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt
@@ -392,6 +420,25 @@ private extension TransactionTemplateItem {
             isExpense: dto.isExpense,
             category: category,
             account: account,
+            note: dto.note,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension TransferItem {
+    convenience init(
+        dto: TransferDTO,
+        fromAccount: AccountItem?,
+        toAccount: AccountItem?
+    ) {
+        self.init(
+            id: dto.id,
+            amountMinor: dto.amountMinor,
+            fromAccount: fromAccount,
+            toAccount: toAccount,
+            timestamp: dto.timestamp,
             note: dto.note,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt

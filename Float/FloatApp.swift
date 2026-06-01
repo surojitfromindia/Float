@@ -11,6 +11,7 @@ struct FloatApp: App {
             CategoryItem.self,
             TransactionItem.self,
             TransactionTemplateItem.self,
+            TransferItem.self,
             RecurringRuleItem.self,
             GoalItem.self,
             BudgetPeriodItem.self,

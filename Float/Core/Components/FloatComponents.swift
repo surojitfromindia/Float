@@ -373,6 +373,74 @@ struct TransactionRowView: View {
     }
 }
 
+struct TransferRowView: View {
+    let transfer: TransferItem
+    let currencyCode: String
+
+    private var noteText: String? {
+        guard let note = transfer.note?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !note.isEmpty
+        else {
+            return nil
+        }
+        return note
+    }
+
+    private var accountAndTimeText: String {
+        let timestamp = transfer.timestamp.formatted(date: .abbreviated, time: .shortened)
+        return "\(transfer.fromAccountName) -> \(transfer.toAccountName) • \(timestamp)"
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 10) {
+                ZStack {
+                    Circle().fill(Color(hex: "#0A6FAE").opacity(0.16))
+                    Image(systemName: "arrow.left.arrow.right")
+                        .foregroundStyle(Color(hex: "#0A6FAE"))
+                }
+                .font(.subheadline.weight(.semibold))
+                .frame(width: 34, height: 34)
+
+                Text("Transfer")
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Text(
+                    MoneyFormatter.string(
+                        minorUnits: transfer.amountMinor,
+                        currencyCode: currencyCode
+                    )
+                )
+                .moneyStyle(size: 15, weight: .semibold)
+                .foregroundStyle(Color(hex: "#0A6FAE"))
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+                .frame(minWidth: 88, alignment: .trailing)
+            }
+
+            VStack(alignment: .leading, spacing: 1) {
+                if let noteText {
+                    Text(noteText)
+                        .font(.caption2)
+                        .foregroundStyle(Color.primary.opacity(0.68))
+                        .lineLimit(1)
+                }
+
+                Text(accountAndTimeText)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(Color.primary.opacity(0.52))
+                    .lineLimit(1)
+            }
+            .padding(.leading, 44)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 struct AccountPicker: View {
     @Binding var selectedAccount: AccountItem?
     let accounts: [AccountItem]

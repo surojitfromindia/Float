@@ -6,6 +6,8 @@ struct TransactionsView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \TransactionItem.timestamp, order: .reverse) private
         var transactions: [TransactionItem]
+    @Query(sort: \TransferItem.timestamp, order: .reverse) private
+        var transfers: [TransferItem]
     @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
     @State private var searchText = ""
@@ -26,8 +28,8 @@ struct TransactionsView: View {
     @State private var showingUndo = false
     @State private var showingFilters = false
 
-    private var filtered: [TransactionItem] {
-        let filteredTransactions = transactions.filter { transaction in
+    private var filteredTransactions: [TransactionItem] {
+        transactions.filter { transaction in
             let matchesSearch =
                 searchText.isEmpty
                 || (transaction.note ?? "").localizedCaseInsensitiveContains(
@@ -58,6 +60,8 @@ struct TransactionsView: View {
                 matchesType = transaction.isExpense
             case .income:
                 matchesType = !transaction.isExpense
+            case .transfers:
+                matchesType = false
             }
             let matchesDate =
                 !useDateRange
@@ -76,20 +80,65 @@ struct TransactionsView: View {
             return matchesSearch && matchesCategory && matchesAccount
                 && matchesType && matchesDate && matchesMinimum && matchesMaximum
         }
+    }
 
-        switch selectedSort {
-        case .newestFirst:
-            return filteredTransactions.sorted { $0.timestamp > $1.timestamp }
-        case .oldestFirst:
-            return filteredTransactions.sorted { $0.timestamp < $1.timestamp }
-        case .highestAmount:
-            return filteredTransactions.sorted { $0.amountMinor > $1.amountMinor }
-        case .lowestAmount:
-            return filteredTransactions.sorted { $0.amountMinor < $1.amountMinor }
+    private var filteredTransfers: [TransferItem] {
+        transfers.filter { transfer in
+            let matchesSearch =
+                searchText.isEmpty
+                || (transfer.note ?? "").localizedCaseInsensitiveContains(searchText)
+                || transfer.fromAccountName.localizedCaseInsensitiveContains(searchText)
+                || transfer.toAccountName.localizedCaseInsensitiveContains(searchText)
+                || transfer.timestamp.formatted(date: .abbreviated, time: .shortened)
+                    .localizedCaseInsensitiveContains(searchText)
+                || MoneyFormatter.string(
+                    minorUnits: transfer.amountMinor,
+                    currencyCode: transfer.currencyCode
+                )
+                .localizedCaseInsensitiveContains(searchText)
+            let matchesCategory = selectedCategoryID == nil
+            let matchesAccount =
+                selectedAccountID == nil
+                || transfer.fromAccount?.id == selectedAccountID
+                || transfer.toAccount?.id == selectedAccountID
+            let matchesType = selectedType == .all || selectedType == .transfers
+            let matchesDate =
+                !useDateRange
+                || (
+                    Calendar.current.startOfDay(for: startDate)
+                        <= transfer.timestamp
+                        && transfer.timestamp
+                            <= Calendar.current.endOfDay(for: endDate)
+                )
+            let matchesMinimum =
+                minimumAmountMinor == nil
+                || transfer.amountMinor >= (minimumAmountMinor ?? 0)
+            let matchesMaximum =
+                maximumAmountMinor == nil
+                || transfer.amountMinor <= (maximumAmountMinor ?? Int64.max)
+            return matchesSearch && matchesCategory && matchesAccount
+                && matchesType && matchesDate && matchesMinimum && matchesMaximum
         }
     }
 
-    private var grouped: [(Date, [TransactionItem])] {
+    private var filtered: [LedgerListItem] {
+        let filteredItems =
+            filteredTransactions.map(LedgerListItem.transaction)
+            + filteredTransfers.map(LedgerListItem.transfer)
+
+        switch selectedSort {
+        case .newestFirst:
+            return filteredItems.sorted { $0.timestamp > $1.timestamp }
+        case .oldestFirst:
+            return filteredItems.sorted { $0.timestamp < $1.timestamp }
+        case .highestAmount:
+            return filteredItems.sorted { $0.amountMinor > $1.amountMinor }
+        case .lowestAmount:
+            return filteredItems.sorted { $0.amountMinor < $1.amountMinor }
+        }
+    }
+
+    private var grouped: [(Date, [LedgerListItem])] {
         Dictionary(grouping: filtered) {
             Calendar.current.startOfDay(for: $0.timestamp)
         }
@@ -114,11 +163,11 @@ struct TransactionsView: View {
     }
 
     private var filteredExpenseMinor: Int64 {
-        filtered.filter(\.isExpense).reduce(Int64(0)) { $0 + $1.amountMinor }
+        filteredTransactions.filter(\.isExpense).reduce(Int64(0)) { $0 + $1.amountMinor }
     }
 
     private var filteredIncomeMinor: Int64 {
-        filtered.filter { !$0.isExpense }.reduce(Int64(0)) { $0 + $1.amountMinor }
+        filteredTransactions.filter { !$0.isExpense }.reduce(Int64(0)) { $0 + $1.amountMinor }
     }
 
     var body: some View {
@@ -198,7 +247,7 @@ struct TransactionsView: View {
                             currencyCode: appState.selectedCurrencyCode,
                             showsSign: filteredIncomeMinor > 0
                         ),
-                        caption: "\(filtered.filter { !$0.isExpense }.count) entries",
+                        caption: "\(filteredTransactions.filter { !$0.isExpense }.count) entries",
                         icon: "arrow.down.circle.fill",
                         tint: appState.themePalette.positive
                     )
@@ -208,7 +257,7 @@ struct TransactionsView: View {
                             minorUnits: filteredExpenseMinor,
                             currencyCode: appState.selectedCurrencyCode
                         ),
-                        caption: "\(filtered.filter(\.isExpense).count) entries",
+                        caption: "\(filteredTransactions.filter(\.isExpense).count) entries",
                         icon: "arrow.up.circle.fill",
                         tint: appState.themePalette.caution
                     )
@@ -241,7 +290,7 @@ struct TransactionsView: View {
         return amount
     }
 
-    private func transactionSection(day: Date, items: [TransactionItem]) -> some View {
+    private func transactionSection(day: Date, items: [LedgerListItem]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text(day.formatted(date: .complete, time: .omitted))
@@ -257,24 +306,44 @@ struct TransactionsView: View {
 
             GlassCard(padding: 14) {
                 VStack(spacing: 6) {
-                    ForEach(items) { transaction in
-                        Button {
-                            appState.presentEditTransaction(transaction)
-                        } label: {
-                            TransactionRowView(
-                                transaction: transaction,
-                                currencyCode: appState.selectedCurrencyCode
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                delete(transaction)
+                    ForEach(items) { item in
+                        switch item {
+                        case .transaction(let transaction):
+                            Button {
+                                appState.presentEditTransaction(transaction)
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                TransactionRowView(
+                                    transaction: transaction,
+                                    currencyCode: appState.selectedCurrencyCode
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    delete(transaction)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        case .transfer(let transfer):
+                            Button {
+                                appState.presentEditTransfer(transfer)
+                            } label: {
+                                TransferRowView(
+                                    transfer: transfer,
+                                    currencyCode: transfer.currencyCode
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    delete(transfer)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                         }
-                        if transaction.id != items.last?.id {
+                        if item.id != items.last?.id {
                             Divider()
                         }
                     }
@@ -385,9 +454,10 @@ struct TransactionsView: View {
         }
     }
 
-    private func dayTotal(_ items: [TransactionItem]) -> String {
-        let income = items.filter { !$0.isExpense }.reduce(Int64(0)) { $0 + $1.amountMinor }
-        let expenses = items.filter(\.isExpense).reduce(Int64(0)) { $0 + $1.amountMinor }
+    private func dayTotal(_ items: [LedgerListItem]) -> String {
+        let transactions = items.compactMap(\.transaction)
+        let income = transactions.filter { !$0.isExpense }.reduce(Int64(0)) { $0 + $1.amountMinor }
+        let expenses = transactions.filter(\.isExpense).reduce(Int64(0)) { $0 + $1.amountMinor }
         let net = income - expenses
         let amount = MoneyFormatter.string(
             minorUnits: abs(net),
@@ -460,6 +530,10 @@ struct TransactionsView: View {
         try? TransactionRepository(modelContext: modelContext)
             .delete(transaction)
         withAnimation { showingUndo = true }
+    }
+
+    private func delete(_ transfer: TransferItem) {
+        try? TransferRepository(modelContext: modelContext).delete(transfer)
     }
 
     private func undoDelete() {
@@ -535,6 +609,7 @@ private enum TransactionTypeFilter: String, CaseIterable, Identifiable {
     case all
     case expenses
     case income
+    case transfers
 
     var id: String { rawValue }
 
@@ -543,7 +618,39 @@ private enum TransactionTypeFilter: String, CaseIterable, Identifiable {
         case .all: "All"
         case .expenses: "Expenses"
         case .income: "Income"
+        case .transfers: "Transfers"
         }
+    }
+}
+
+private enum LedgerListItem: Identifiable {
+    case transaction(TransactionItem)
+    case transfer(TransferItem)
+
+    var id: String {
+        switch self {
+        case .transaction(let transaction): "transaction-\(transaction.id.uuidString)"
+        case .transfer(let transfer): "transfer-\(transfer.id.uuidString)"
+        }
+    }
+
+    var timestamp: Date {
+        switch self {
+        case .transaction(let transaction): transaction.timestamp
+        case .transfer(let transfer): transfer.timestamp
+        }
+    }
+
+    var amountMinor: Int64 {
+        switch self {
+        case .transaction(let transaction): transaction.amountMinor
+        case .transfer(let transfer): transfer.amountMinor
+        }
+    }
+
+    var transaction: TransactionItem? {
+        if case .transaction(let transaction) = self { return transaction }
+        return nil
     }
 }
 
