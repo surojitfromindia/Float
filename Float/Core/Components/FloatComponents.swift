@@ -1,5 +1,111 @@
 import SwiftUI
 
+extension View {
+    @ViewBuilder
+    func floatGlassSurface(
+        cornerRadius: CGFloat = FloatTheme.tileRadius,
+        material: Material = .thinMaterial,
+        tint: Color? = nil,
+        interactive: Bool = false,
+        strokeOpacity: Double = 0.08,
+        shadowOpacity: Double = 0,
+        shadowRadius: CGFloat = 0,
+        shadowY: CGFloat = 0
+    ) -> some View {
+        let shape = RoundedRectangle(
+            cornerRadius: cornerRadius,
+            style: .continuous
+        )
+
+        if #available(iOS 26.0, *) {
+            if let tint {
+                if interactive {
+                    self
+                        .glassEffect(
+                            .regular.tint(tint.opacity(0.14)).interactive(),
+                            in: .rect(cornerRadius: cornerRadius)
+                        )
+                        .overlay(shape.strokeBorder(Color.primary.opacity(strokeOpacity), lineWidth: 1))
+                        .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
+                } else {
+                    self
+                        .glassEffect(
+                            .regular.tint(tint.opacity(0.14)),
+                            in: .rect(cornerRadius: cornerRadius)
+                        )
+                        .overlay(shape.strokeBorder(Color.primary.opacity(strokeOpacity), lineWidth: 1))
+                        .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
+                }
+            } else if interactive {
+                self
+                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cornerRadius))
+                    .overlay(shape.strokeBorder(Color.primary.opacity(strokeOpacity), lineWidth: 1))
+                    .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
+            } else {
+                self
+                    .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+                    .overlay(shape.strokeBorder(Color.primary.opacity(strokeOpacity), lineWidth: 1))
+                    .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
+            }
+        } else {
+            self
+                .background(material, in: shape)
+                .background((tint ?? Color.clear).opacity(0.07), in: shape)
+                .overlay(shape.strokeBorder(Color.primary.opacity(strokeOpacity), lineWidth: 1))
+                .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
+        }
+    }
+
+    @ViewBuilder
+    func floatGlassCircle(
+        material: Material = .thinMaterial,
+        tint: Color? = nil,
+        interactive: Bool = false,
+        strokeOpacity: Double = 0.08,
+        shadowOpacity: Double = 0,
+        shadowRadius: CGFloat = 0,
+        shadowY: CGFloat = 0
+    ) -> some View {
+        if #available(iOS 26.0, *) {
+            if let tint {
+                if interactive {
+                    self
+                        .glassEffect(
+                            .regular.tint(tint.opacity(0.16)).interactive(),
+                            in: .circle
+                        )
+                        .overlay(Circle().strokeBorder(Color.primary.opacity(strokeOpacity), lineWidth: 1))
+                        .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
+                } else {
+                    self
+                        .glassEffect(
+                            .regular.tint(tint.opacity(0.16)),
+                            in: .circle
+                        )
+                        .overlay(Circle().strokeBorder(Color.primary.opacity(strokeOpacity), lineWidth: 1))
+                        .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
+                }
+            } else if interactive {
+                self
+                    .glassEffect(.regular.interactive(), in: .circle)
+                    .overlay(Circle().strokeBorder(Color.primary.opacity(strokeOpacity), lineWidth: 1))
+                    .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
+            } else {
+                self
+                    .glassEffect(.regular, in: .circle)
+                    .overlay(Circle().strokeBorder(Color.primary.opacity(strokeOpacity), lineWidth: 1))
+                    .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
+            }
+        } else {
+            self
+                .background(material, in: Circle())
+                .background((tint ?? Color.clear).opacity(0.1), in: Circle())
+                .overlay(Circle().strokeBorder(Color.primary.opacity(strokeOpacity), lineWidth: 1))
+                .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
+        }
+    }
+}
+
 struct GlassCard<Content: View>: View {
     let content: Content
     let padding: CGFloat
@@ -12,21 +118,14 @@ struct GlassCard<Content: View>: View {
     var body: some View {
         content
             .padding(padding)
-            .background(
-                .ultraThinMaterial,
-                in: RoundedRectangle(
-                    cornerRadius: FloatTheme.radius,
-                    style: .continuous
-                )
+            .floatGlassSurface(
+                cornerRadius: FloatTheme.radius,
+                material: .ultraThinMaterial,
+                strokeOpacity: 0.08,
+                shadowOpacity: 0.08,
+                shadowRadius: 24,
+                shadowY: 14
             )
-            .overlay(
-                RoundedRectangle(
-                    cornerRadius: FloatTheme.radius,
-                    style: .continuous
-                )
-                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.08), radius: 24, x: 0, y: 14)
     }
 }
 
@@ -45,19 +144,10 @@ struct GlassButton<Label: View>: View {
                 .font(.headline)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(
-                    .thinMaterial,
-                    in: RoundedRectangle(
-                        cornerRadius: FloatTheme.controlRadius,
-                        style: .continuous
-                    )
-                )
-                .overlay(
-                    RoundedRectangle(
-                        cornerRadius: FloatTheme.controlRadius,
-                        style: .continuous
-                    )
-                        .stroke(Color.primary.opacity(0.08))
+                .floatGlassSurface(
+                    cornerRadius: FloatTheme.controlRadius,
+                    interactive: true,
+                    strokeOpacity: 0.08
                 )
         }
         .buttonStyle(.plain)
@@ -72,12 +162,10 @@ struct GlassTextField: View {
         TextField(title, text: $text)
             .textFieldStyle(.plain)
             .padding(14)
-            .background(
-                .thinMaterial,
-                in: RoundedRectangle(
-                    cornerRadius: FloatTheme.tileRadius,
-                    style: .continuous
-                )
+            .floatGlassSurface(
+                cornerRadius: FloatTheme.tileRadius,
+                material: .thinMaterial,
+                strokeOpacity: 0.06
             )
     }
 }
@@ -251,14 +339,15 @@ struct FloatingAddButton: View {
         Button(action: action) {
             Image(systemName: "plus")
                 .font(.system(size: 24, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(accent)
                 .frame(width: 64, height: 64)
-                .background(accent, in: Circle())
-                .shadow(
-                    color: accent.opacity(0.32),
-                    radius: 22,
-                    x: 0,
-                    y: 12
+                .floatGlassCircle(
+                    tint: accent,
+                    interactive: true,
+                    strokeOpacity: 0.12,
+                    shadowOpacity: 0.16,
+                    shadowRadius: 22,
+                    shadowY: 12
                 )
         }
         .accessibilityLabel("Add transaction")

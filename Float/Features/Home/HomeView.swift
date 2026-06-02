@@ -196,10 +196,7 @@ struct HomeView: View {
     }
 
     private var quickActions: some View {
-        LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 2),
-            spacing: 10
-        ) {
+        HStack(spacing: 10) {
             HomeActionButton(
                 title: "Expense",
                 icon: "minus.circle.fill",
@@ -239,6 +236,7 @@ struct HomeView: View {
                 markUpcomingRecurringPaid()
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
     private var cashFlowForecast: some View {
@@ -454,28 +452,21 @@ private struct HomeActionButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 9) {
-                Image(systemName: icon)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(tint)
-                Text(title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 11)
-            .frame(maxWidth: .infinity)
+            Image(systemName: icon)
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(maxWidth: .infinity)
+                .frame(height: 46)
             .background(
                 tint.opacity(isEnabled ? 0.09 : 0.04),
                 in: RoundedRectangle(
-                    cornerRadius: FloatTheme.tileRadius,
+                    cornerRadius: FloatTheme.controlRadius,
                     style: .continuous
                 )
             )
             .overlay(
                 RoundedRectangle(
-                    cornerRadius: FloatTheme.tileRadius,
+                    cornerRadius: FloatTheme.controlRadius,
                     style: .continuous
                 )
                 .strokeBorder(tint.opacity(isEnabled ? 0.14 : 0.06), lineWidth: 1)
@@ -484,6 +475,7 @@ private struct HomeActionButton: View {
         .buttonStyle(.plain)
         .disabled(!isEnabled)
         .opacity(isEnabled ? 1 : 0.48)
+        .accessibilityLabel(title)
     }
 }
 
@@ -785,26 +777,11 @@ private struct BudgetStatusChart: View {
             }
         }
         .padding(16)
-        .background(
-            .thinMaterial,
-            in: RoundedRectangle(
-                cornerRadius: FloatTheme.controlRadius,
-                style: .continuous
-            )
-        )
-        .background(
-            palette.accent.opacity(0.06),
-            in: RoundedRectangle(
-                cornerRadius: FloatTheme.controlRadius,
-                style: .continuous
-            )
-        )
-        .overlay(
-            RoundedRectangle(
-                cornerRadius: FloatTheme.controlRadius,
-                style: .continuous
-            )
-                .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
+        .floatGlassSurface(
+            cornerRadius: FloatTheme.controlRadius,
+            material: .thinMaterial,
+            tint: palette.accent,
+            strokeOpacity: 0.1
         )
     }
 

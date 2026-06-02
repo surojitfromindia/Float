@@ -396,19 +396,11 @@ struct TransactionsView: View {
                 .buttonStyle(.plain)
             }
             .padding(10)
-            .background(
-                .thinMaterial,
-                in: RoundedRectangle(
-                    cornerRadius: FloatTheme.controlRadius,
-                    style: .continuous
-                )
-            )
-            .overlay(
-                RoundedRectangle(
-                    cornerRadius: FloatTheme.controlRadius,
-                    style: .continuous
-                )
-                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
+            .floatGlassSurface(
+                cornerRadius: FloatTheme.controlRadius,
+                material: .thinMaterial,
+                interactive: true,
+                strokeOpacity: 0.08
             )
 
             if hasActiveFilters {
@@ -426,12 +418,11 @@ struct TransactionsView: View {
                                 .font(.caption.weight(.semibold))
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 6)
-                                .background(
-                                    Color.primary.opacity(0.08),
-                                    in: RoundedRectangle(
-                                        cornerRadius: FloatTheme.tileRadius,
-                                        style: .continuous
-                                    )
+                                .floatGlassSurface(
+                                    cornerRadius: FloatTheme.tileRadius,
+                                    tint: Color(hex: "#0A6FAE"),
+                                    interactive: true,
+                                    strokeOpacity: 0.06
                                 )
                             }
                             .buttonStyle(.plain)
@@ -441,12 +432,10 @@ struct TransactionsView: View {
                             .font(.caption.weight(.semibold))
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
-                            .background(
-                                Color.primary.opacity(0.08),
-                                in: RoundedRectangle(
-                                    cornerRadius: FloatTheme.tileRadius,
-                                    style: .continuous
-                                )
+                            .floatGlassSurface(
+                                cornerRadius: FloatTheme.tileRadius,
+                                interactive: true,
+                                strokeOpacity: 0.06
                             )
                     }
                 }
@@ -508,21 +497,15 @@ struct TransactionsView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(
-            .ultraThinMaterial,
-            in: RoundedRectangle(
-                cornerRadius: FloatTheme.controlRadius,
-                style: .continuous
-            )
+        .floatGlassSurface(
+            cornerRadius: FloatTheme.controlRadius,
+            material: .ultraThinMaterial,
+            interactive: true,
+            strokeOpacity: 0.08,
+            shadowOpacity: 0.12,
+            shadowRadius: 18,
+            shadowY: 8
         )
-        .overlay(
-            RoundedRectangle(
-                cornerRadius: FloatTheme.controlRadius,
-                style: .continuous
-            )
-            .strokeBorder(Color.primary.opacity(0.08))
-        )
-        .shadow(color: .black.opacity(0.12), radius: 18, y: 8)
     }
 
     private func delete(_ transaction: TransactionItem) {
@@ -593,15 +576,13 @@ private struct FilterControlLabel: View {
             .font(.subheadline.weight(.semibold))
             .lineLimit(1)
             .minimumScaleFactor(0.75)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 8)
-            .background(
-                Color.primary.opacity(0.045),
-                in: RoundedRectangle(
-                    cornerRadius: FloatTheme.tileRadius,
-                    style: .continuous
-                )
-            )
+        .padding(.horizontal, 8)
+        .padding(.vertical, 8)
+        .floatGlassSurface(
+            cornerRadius: FloatTheme.tileRadius,
+            interactive: true,
+            strokeOpacity: 0.04
+        )
     }
 }
 

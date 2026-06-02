@@ -201,7 +201,11 @@ struct CalendarView: View {
                 Image(systemName: "chevron.left")
                     .font(.headline.weight(.semibold))
                     .frame(width: 38, height: 38)
-                    .background(.thinMaterial, in: Circle())
+                    .floatGlassCircle(
+                        tint: appState.themePalette.accent,
+                        interactive: true,
+                        strokeOpacity: 0.08
+                    )
             }
             .accessibilityLabel("Previous month")
 
@@ -239,18 +243,11 @@ struct CalendarView: View {
                             ? appState.themePalette.accent
                             : Color.primary
                     )
-                    .background(
-                        Color.primary.opacity(0.08),
-                        in: Capsule()
-                    )
-                    .overlay(
-                        Capsule()
-                            .strokeBorder(
-                                isShowingCurrentMonth
-                                    ? appState.themePalette.accent.opacity(0.65)
-                                    : Color.clear,
-                                lineWidth: 1.5
-                            )
+                    .floatGlassSurface(
+                        cornerRadius: FloatTheme.controlRadius,
+                        tint: appState.themePalette.accent,
+                        interactive: true,
+                        strokeOpacity: isShowingCurrentMonth ? 0.14 : 0.06
                     )
             }
             .buttonStyle(.plain)
@@ -261,7 +258,11 @@ struct CalendarView: View {
                 Image(systemName: "chevron.right")
                     .font(.headline.weight(.semibold))
                     .frame(width: 38, height: 38)
-                    .background(.thinMaterial, in: Circle())
+                    .floatGlassCircle(
+                        tint: appState.themePalette.accent,
+                        interactive: true,
+                        strokeOpacity: 0.08
+                    )
             }
             .accessibilityLabel("Next month")
         }
