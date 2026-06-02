@@ -98,6 +98,9 @@
     "%lld shown" : {
 
     },
+    "%lld spending days" : {
+
+    },
     "%lld transactions, %lld transfers" : {
       "localizations" : {
         "en" : {
@@ -458,6 +461,9 @@
           }
         }
       }
+    },
+    "Avg %@ / day" : {
+
     },
     "Bengali" : {
       "localizations" : {
@@ -1492,6 +1498,9 @@
         }
       }
     },
+    "Less" : {
+
+    },
     "Light" : {
       "localizations" : {
         "bn" : {
@@ -2198,6 +2207,9 @@
           }
         }
       }
+    },
+    "Spend activity heatmap" : {
+
     },
     "Spend with clarity" : {
 

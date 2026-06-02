@@ -23,6 +23,7 @@ struct InsightsView: View {
     @State private var exportingReport = false
     @State private var reportDocument = ReportPDFDocument()
     @State private var selectedCategory: CategoryDrillDown?
+    @State private var spendActivityMode = SpendActivityMode.daily
 
     private var palette: [Color] {
         appState.themePalette.chartColors
@@ -71,6 +72,7 @@ struct InsightsView: View {
             range: activeRange,
             transactions: currentTransactions,
             previousTransactions: previousRangeTransactions,
+            allTransactions: transactions,
             budgets: budgets,
             categoryBudgets: categoryBudgets,
             goals: goals,
@@ -114,6 +116,7 @@ struct InsightsView: View {
                 executiveSummary
                 budgetHealthCard
                 calendarInsightCard
+                spendActivityCard
                 categoryBudgetCard
                 categoryCard
                 cashFlowTrendCard
@@ -339,6 +342,23 @@ struct InsightsView: View {
                         : appState.themePalette.caution
                 )
             }
+        }
+    }
+
+    private var spendActivityCard: some View {
+        insightCard(
+            title: "Spend activity",
+            subtitle: spendActivityMode == .year
+                ? "Expense intensity by day across \(report.spendActivityYearText)"
+                : "Expense intensity by day across this report range"
+        ) {
+            SpendActivityHeatmap(
+                days: spendActivityMode == .year
+                    ? report.yearSpendActivityDays
+                    : report.spendActivityDays,
+                mode: $spendActivityMode,
+                currencyCode: appState.selectedCurrencyCode
+            )
         }
     }
 
@@ -812,11 +832,306 @@ private struct NetFlowBadge: View {
     }
 }
 
+private struct SpendActivityHeatmap: View {
+    let days: [SpendActivityDay]
+    @Binding var mode: SpendActivityMode
+    let currencyCode: String
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    private let cellSize: CGFloat = 14
+    private let cellSpacing: CGFloat = 4
+
+    private var weeks: [[SpendActivityDay]] {
+        stride(from: 0, to: days.count, by: 7).map { index in
+            Array(days[index..<min(index + 7, days.count)])
+        }
+    }
+
+    private var maxActivityMinor: Int64 {
+        max(days.map { activityValue(for: $0) }.max() ?? 0, 1)
+    }
+
+    private var heatmapWidth: CGFloat {
+        guard !weeks.isEmpty else { return 0 }
+        return 30
+            + CGFloat(weeks.count) * cellSize
+            + CGFloat(max(0, weeks.count - 1)) * cellSpacing
+    }
+
+    private var activeDayCount: Int {
+        days.filter { $0.isInsideRange && $0.expenseMinor > 0 }.count
+    }
+
+    private var averageSpendMinor: Int64 {
+        let rangeDays = days.filter(\.isInsideRange)
+        guard !rangeDays.isEmpty else { return 0 }
+        let total = rangeDays.reduce(Int64(0)) { $0 + $1.expenseMinor }
+        return total / Int64(rangeDays.count)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            modePicker
+
+            if days.isEmpty {
+                EmptyStateView(
+                    icon: "square.grid.3x3",
+                    title: "No range selected",
+                    message: "Choose a report range to build the spend activity map."
+                )
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        monthHeader
+                        heatmapGrid
+                    }
+                    .padding(.vertical, 2)
+                }
+                .accessibilityLabel("Spend activity heatmap")
+
+                footer
+            }
+        }
+    }
+
+    private var modePicker: some View {
+        HStack(spacing: 6) {
+            ForEach(SpendActivityMode.allCases) { item in
+                Button {
+                    mode = item
+                } label: {
+                    Text(item.title)
+                        .font(.caption2.weight(.semibold))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.84)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 7)
+                        .background(
+                            mode == item
+                                ? Color.primary.opacity(0.10)
+                                : Color.primary.opacity(0.04),
+                            in: Capsule()
+                        )
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(Color.primary.opacity(mode == item ? 0.12 : 0.04), lineWidth: 1)
+                        )
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(mode == item ? .primary : .secondary)
+                .accessibilityLabel(item.accessibilityLabel)
+            }
+        }
+    }
+
+    private var monthHeader: some View {
+        ZStack(alignment: .leading) {
+            ForEach(weeks.indices.filter { !monthLabel(for: $0).isEmpty }, id: \.self) { index in
+                Text(monthLabel(for: index))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .offset(x: 30 + CGFloat(index) * (cellSize + cellSpacing))
+            }
+        }
+        .frame(width: heatmapWidth, height: 16, alignment: .leading)
+    }
+
+    private var heatmapGrid: some View {
+        HStack(alignment: .top, spacing: 6) {
+            weekdayLabels
+
+            HStack(alignment: .top, spacing: cellSpacing) {
+                ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
+                    VStack(spacing: cellSpacing) {
+                        ForEach(week) { day in
+                            SpendActivityCell(
+                                day: day,
+                                valueMinor: activityValue(for: day),
+                                maxValueMinor: maxActivityMinor,
+                                currencyCode: currencyCode,
+                                colorScheme: colorScheme
+                            )
+                            .frame(width: cellSize, height: cellSize)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private var weekdayLabels: some View {
+        let labels = orderedWeekdayLabels()
+        return VStack(alignment: .trailing, spacing: cellSpacing) {
+            ForEach(Array(labels.enumerated()), id: \.offset) { index, label in
+                Text(index.isMultiple(of: 2) ? label : "")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 24, height: cellSize, alignment: .trailing)
+            }
+        }
+    }
+
+    private var footer: some View {
+        HStack(spacing: 10) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("\(activeDayCount) spending days")
+                    .font(.caption.weight(.semibold))
+                Text("Avg \(money(averageSpendMinor)) / day")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            HStack(spacing: 5) {
+                Text("Less")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                ForEach(0..<5, id: \.self) { level in
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(legendColor(level: level))
+                        .frame(width: 12, height: 12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                .strokeBorder(Color.primary.opacity(0.05), lineWidth: 1)
+                        )
+                }
+                Text("More")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func activityValue(for day: SpendActivityDay) -> Int64 {
+        switch mode {
+        case .daily:
+            return day.expenseMinor
+        case .weekly:
+            return day.weeklyExpenseMinor
+        case .cumulative:
+            return day.cumulativeExpenseMinor
+        case .year:
+            return day.expenseMinor
+        }
+    }
+
+    private func monthLabel(for index: Int) -> String {
+        guard let firstDay = weeks[index].first else { return "" }
+        if index == 0 {
+            return firstDay.date.formatted(.dateTime.month(.abbreviated))
+        }
+        guard let previous = weeks[index - 1].first else { return "" }
+        let calendar = Calendar.current
+        return calendar.isDate(firstDay.date, equalTo: previous.date, toGranularity: .month)
+            ? ""
+            : firstDay.date.formatted(.dateTime.month(.abbreviated))
+    }
+
+    private func orderedWeekdayLabels() -> [String] {
+        let calendar = Calendar.current
+        let symbols = calendar.veryShortStandaloneWeekdaySymbols
+        return Array(symbols[(calendar.firstWeekday - 1)...])
+            + Array(symbols[..<(calendar.firstWeekday - 1)])
+    }
+
+    private func legendColor(level: Int) -> Color {
+        switch level {
+        case 0:
+            return emptyCellColor
+        case 1:
+            return Color(hex: "#A7F3D0")
+        case 2:
+            return Color(hex: "#34D399")
+        case 3:
+            return Color(hex: "#F59E0B")
+        default:
+            return Color(hex: "#DC2626")
+        }
+    }
+
+    private var emptyCellColor: Color {
+        Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.07)
+    }
+
+    private func money(_ amount: Int64) -> String {
+        MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
+    }
+}
+
+private struct SpendActivityCell: View {
+    let day: SpendActivityDay
+    let valueMinor: Int64
+    let maxValueMinor: Int64
+    let currencyCode: String
+    let colorScheme: ColorScheme
+
+    private var ratio: Double {
+        guard valueMinor > 0 else { return 0 }
+        return min(max(Double(valueMinor) / Double(maxValueMinor), 0), 1)
+    }
+
+    private var fill: Color {
+        guard day.isInsideRange else {
+            return Color.primary.opacity(colorScheme == .dark ? 0.055 : 0.035)
+        }
+        guard valueMinor > 0 else {
+            return Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.07)
+        }
+        switch ratio {
+        case 0..<0.18:
+            return Color(hex: "#A7F3D0")
+        case 0.18..<0.38:
+            return Color(hex: "#34D399")
+        case 0.38..<0.62:
+            return Color(hex: "#F59E0B")
+        case 0.62..<0.82:
+            return Color(hex: "#F97316")
+        default:
+            return Color(hex: "#DC2626")
+        }
+    }
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 3.5, style: .continuous)
+            .fill(fill)
+            .overlay(
+                RoundedRectangle(cornerRadius: 3.5, style: .continuous)
+                    .strokeBorder(borderColor, lineWidth: day.isToday ? 1.4 : 1)
+            )
+            .opacity(day.isInsideRange ? 1 : 0.46)
+            .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var borderColor: Color {
+        if day.isToday {
+            return Color.accentColor.opacity(0.75)
+        }
+        return Color.primary.opacity(day.isInsideRange ? 0.05 : 0.03)
+    }
+
+    private var accessibilityLabel: String {
+        let date = day.date.formatted(date: .abbreviated, time: .omitted)
+        let amount = MoneyFormatter.string(
+            minorUnits: day.expenseMinor,
+            currencyCode: currencyCode
+        )
+        if day.transactionCount == 1 {
+            return "\(date), \(amount), 1 expense"
+        }
+        return "\(date), \(amount), \(day.transactionCount) expenses"
+    }
+}
+
 private struct InsightReport {
     let title: String
     let range: BudgetPeriod
     let transactions: [TransactionItem]
     let previousTransactions: [TransactionItem]
+    let allTransactions: [TransactionItem]
     let budgets: [BudgetPeriodItem]
     let categoryBudgets: [CategoryBudgetItem]
     let goals: [GoalItem]
@@ -1022,6 +1337,87 @@ private struct InsightReport {
         .sorted { $0.date < $1.date }
     }
 
+    var spendActivityDays: [SpendActivityDay] {
+        spendActivityDays(
+            from: range.start,
+            through: range.end,
+            transactions: transactions
+        )
+    }
+
+    var yearSpendActivityDays: [SpendActivityDay] {
+        let calendar = Calendar.current
+        let yearComponents = calendar.dateComponents([.year], from: range.end)
+        let yearStart = calendar.date(from: yearComponents) ?? range.start
+        let nextYearStart = calendar.date(byAdding: .year, value: 1, to: yearStart)
+            ?? range.end
+        let yearEnd = calendar.date(byAdding: .day, value: -1, to: nextYearStart)
+            ?? range.end
+
+        return spendActivityDays(
+            from: yearStart,
+            through: yearEnd,
+            transactions: allTransactions
+        )
+    }
+
+    var spendActivityYearText: String {
+        let year = Calendar.current.component(.year, from: range.end)
+        return "\(year)"
+    }
+
+    private func spendActivityDays(
+        from start: Date,
+        through end: Date,
+        transactions sourceTransactions: [TransactionItem]
+    ) -> [SpendActivityDay] {
+        let calendar = Calendar.current
+        let rangeStart = calendar.startOfDay(for: start)
+        let rangeEnd = calendar.startOfDay(for: end)
+        let gridStart = startOfActivityWeek(containing: rangeStart, calendar: calendar)
+        let gridEnd = calendar.date(
+            byAdding: .day,
+            value: 6,
+            to: startOfActivityWeek(containing: rangeEnd, calendar: calendar)
+        ) ?? rangeEnd
+
+        let grouped = Dictionary(grouping: sourceTransactions.filter(\.isExpense)) {
+            calendar.startOfDay(for: $0.timestamp)
+        }
+        let expenseByDay = grouped.mapValues { items in
+            items.reduce(Int64(0)) { $0 + $1.amountMinor }
+        }
+        let countByDay = grouped.mapValues(\.count)
+
+        let rangeDates = dates(from: rangeStart, through: rangeEnd, calendar: calendar)
+        let weekTotals = Dictionary(grouping: rangeDates) {
+            startOfActivityWeek(containing: $0, calendar: calendar)
+        }
+        .mapValues { dates in
+            dates.reduce(Int64(0)) { $0 + (expenseByDay[$1] ?? 0) }
+        }
+
+        var runningTotal: Int64 = 0
+        var cumulativeByDay: [Date: Int64] = [:]
+        for day in rangeDates {
+            runningTotal += expenseByDay[day] ?? 0
+            cumulativeByDay[day] = runningTotal
+        }
+
+        return dates(from: gridStart, through: gridEnd, calendar: calendar).map { day in
+            let isInsideRange = day >= rangeStart && day <= rangeEnd
+            let weekStart = startOfActivityWeek(containing: day, calendar: calendar)
+            return SpendActivityDay(
+                date: day,
+                isInsideRange: isInsideRange,
+                expenseMinor: isInsideRange ? expenseByDay[day] ?? 0 : 0,
+                transactionCount: isInsideRange ? countByDay[day] ?? 0 : 0,
+                weeklyExpenseMinor: isInsideRange ? weekTotals[weekStart] ?? 0 : 0,
+                cumulativeExpenseMinor: isInsideRange ? cumulativeByDay[day] ?? 0 : 0
+            )
+        }
+    }
+
     var highestExpenseDay: CalendarExpenseInsight? {
         dailyExpenseInsights.max { $0.expenseMinor < $1.expenseMinor }
     }
@@ -1139,6 +1535,27 @@ private struct InsightReport {
                     && $0.timestamp < endExclusive
             }
             .reduce(Int64(0)) { $0 + $1.amountMinor }
+    }
+
+    private func dates(from start: Date, through end: Date, calendar: Calendar) -> [Date] {
+        var results: [Date] = []
+        var cursor = calendar.startOfDay(for: start)
+        let last = calendar.startOfDay(for: end)
+        while cursor <= last {
+            results.append(cursor)
+            guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else {
+                break
+            }
+            cursor = next
+        }
+        return results
+    }
+
+    private func startOfActivityWeek(containing date: Date, calendar: Calendar) -> Date {
+        let day = calendar.startOfDay(for: date)
+        let weekday = calendar.component(.weekday, from: day)
+        let offset = (weekday - calendar.firstWeekday + 7) % 7
+        return calendar.date(byAdding: .day, value: -offset, to: day) ?? day
     }
 
     func drillDown(for category: CategoryInsight) -> CategoryDrillDown {
@@ -1294,6 +1711,47 @@ private struct CalendarExpenseInsight: Identifiable {
             currencyCode: currencyCode
         )
         return "\(date.formatted(.dateTime.month(.abbreviated).day())) · \(amount)"
+    }
+}
+
+private struct SpendActivityDay: Identifiable {
+    let date: Date
+    let isInsideRange: Bool
+    let expenseMinor: Int64
+    let transactionCount: Int
+    let weeklyExpenseMinor: Int64
+    let cumulativeExpenseMinor: Int64
+
+    var id: Date { date }
+
+    var isToday: Bool {
+        Calendar.current.isDateInToday(date)
+    }
+}
+
+private enum SpendActivityMode: String, CaseIterable, Identifiable {
+    case daily
+    case weekly
+    case cumulative
+    case year
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .daily:
+            return "Daily"
+        case .weekly:
+            return "Weekly"
+        case .cumulative:
+            return "Cumulative"
+        case .year:
+            return "Year"
+        }
+    }
+
+    var accessibilityLabel: String {
+        "\(title) spend activity"
     }
 }
 

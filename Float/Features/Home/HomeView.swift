@@ -151,10 +151,9 @@ struct HomeView: View {
                         currencyCode: appState.selectedCurrencyCode
                     )
                 }
-
+                budgetOverview
                 cashFlowForecast
                 budgetAlertsSection
-                budgetOverview
                 upcomingRecurring
                 nearestGoal
                 recentTransactions

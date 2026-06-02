@@ -201,23 +201,18 @@ private struct LaunchSplashView: View {
             .ignoresSafeArea()
 
             VStack(spacing: 18) {
-                ZStack {
-                    Circle()
-                        .fill(palette.accent.opacity(0.16))
-                        .frame(width: 118, height: 118)
-                        .scaleEffect(isAnimating ? 1.08 : 0.96)
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .frame(width: 86, height: 86)
-                        .overlay(
-                            Circle()
-                                .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-                        )
-                    Image(systemName: "creditcard.fill")
-                        .font(.system(size: 36, weight: .bold))
-                        .foregroundStyle(palette.accent)
-                        .scaleEffect(isAnimating ? 1 : 0.9)
-                }
+                Image("SplashIcon")
+                    .resizable()
+                    .interpolation(.high)
+                    .scaledToFit()
+                    .frame(width: 112, height: 112)
+                    .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+                    .shadow(
+                        color: palette.accent.opacity(0.24),
+                        radius: isAnimating ? 26 : 16,
+                        y: isAnimating ? 16 : 10
+                    )
+                    .scaleEffect(isAnimating ? 1.04 : 0.96)
 
                 VStack(spacing: 6) {
                     Text("Float")
