@@ -177,14 +177,13 @@ struct TransactionsView: View {
                 compactFilterSection
 
                 if filtered.isEmpty {
-                    GlassCard {
-                        EmptyStateView(
-                            icon: "list.bullet.rectangle",
-                            title: "No matching transactions",
-                            message:
-                                "Your transactions will appear here as you add them."
-                        )
-                    }
+                    EmptyStateView(
+                        icon: "list.bullet.rectangle",
+                        title: "No matching transactions",
+                        message:
+                            "Your transactions will appear here as you add them."
+                    )
+                    .transactionPlainSurface(cornerRadius: FloatTheme.controlRadius)
                 } else {
                     ForEach(grouped, id: \.0) { day, items in
                         transactionSection(day: day, items: items)
@@ -304,51 +303,51 @@ struct TransactionsView: View {
             }
             .padding(.horizontal, 4)
 
-            GlassCard(padding: 14) {
-                VStack(spacing: 6) {
-                    ForEach(items) { item in
-                        switch item {
-                        case .transaction(let transaction):
-                            Button {
-                                appState.presentEditTransaction(transaction)
+            VStack(spacing: 6) {
+                ForEach(items) { item in
+                    switch item {
+                    case .transaction(let transaction):
+                        Button {
+                            appState.presentEditTransaction(transaction)
+                        } label: {
+                            TransactionRowView(
+                                transaction: transaction,
+                                currencyCode: appState.selectedCurrencyCode
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                delete(transaction)
                             } label: {
-                                TransactionRowView(
-                                    transaction: transaction,
-                                    currencyCode: appState.selectedCurrencyCode
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    delete(transaction)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        case .transfer(let transfer):
-                            Button {
-                                appState.presentEditTransfer(transfer)
-                            } label: {
-                                TransferRowView(
-                                    transfer: transfer,
-                                    currencyCode: transfer.currencyCode
-                                )
-                            }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    delete(transfer)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
+                                Label("Delete", systemImage: "trash")
                             }
                         }
-                        if item.id != items.last?.id {
-                            Divider()
+                    case .transfer(let transfer):
+                        Button {
+                            appState.presentEditTransfer(transfer)
+                        } label: {
+                            TransferRowView(
+                                transfer: transfer,
+                                currencyCode: transfer.currencyCode
+                            )
                         }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                delete(transfer)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    }
+                    if item.id != items.last?.id {
+                        Divider()
                     }
                 }
             }
+            .padding(14)
+            .transactionPlainSurface(cornerRadius: FloatTheme.controlRadius)
         }
     }
 
@@ -395,13 +394,7 @@ struct TransactionsView: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(10)
-            .floatGlassSurface(
-                cornerRadius: FloatTheme.controlRadius,
-                material: .thinMaterial,
-                interactive: true,
-                strokeOpacity: 0.08
-            )
+            .padding(.horizontal, 2)
 
             if hasActiveFilters {
                 ScrollView(.horizontal, showsIndicators: false) {
@@ -416,27 +409,16 @@ struct TransactionsView: View {
                                         .font(.caption2.weight(.bold))
                                 }
                                 .font(.caption.weight(.semibold))
-                                .padding(.horizontal, 10)
+                                .padding(.horizontal, 2)
                                 .padding(.vertical, 6)
-                                .floatGlassSurface(
-                                    cornerRadius: FloatTheme.tileRadius,
-                                    tint: Color(hex: "#0A6FAE"),
-                                    interactive: true,
-                                    strokeOpacity: 0.06
-                                )
                             }
                             .buttonStyle(.plain)
                         }
 
                         Button("Clear", action: clearFilters)
                             .font(.caption.weight(.semibold))
-                            .padding(.horizontal, 10)
+                            .padding(.horizontal, 2)
                             .padding(.vertical, 6)
-                            .floatGlassSurface(
-                                cornerRadius: FloatTheme.tileRadius,
-                                interactive: true,
-                                strokeOpacity: 0.06
-                            )
                     }
                 }
             }
@@ -576,13 +558,36 @@ private struct FilterControlLabel: View {
             .font(.subheadline.weight(.semibold))
             .lineLimit(1)
             .minimumScaleFactor(0.75)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
-        .floatGlassSurface(
-            cornerRadius: FloatTheme.tileRadius,
-            interactive: true,
-            strokeOpacity: 0.04
+            .padding(.horizontal, 2)
+            .padding(.vertical, 8)
+    }
+}
+
+private extension View {
+    func transactionPlainSurface(
+        cornerRadius: CGFloat,
+        tint: Color? = nil
+    ) -> some View {
+        let shape = RoundedRectangle(
+            cornerRadius: cornerRadius,
+            style: .continuous
         )
+
+        return self
+            .background(
+                Color(.secondarySystemGroupedBackground),
+                in: shape
+            )
+            .background(
+                (tint ?? Color.clear).opacity(tint == nil ? 0 : 0.08),
+                in: shape
+            )
+            .overlay(
+                shape.strokeBorder(
+                    (tint ?? Color.primary).opacity(tint == nil ? 0.06 : 0.14),
+                    lineWidth: 1
+                )
+            )
     }
 }
 
