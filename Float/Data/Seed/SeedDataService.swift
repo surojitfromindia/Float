@@ -117,6 +117,343 @@ enum SeedDataService {
     static func ensureSeedData(modelContext: ModelContext, currencyCode: String) {
         DataIntegrityService.repair(modelContext: modelContext, currencyCode: currencyCode)
     }
+
+    @MainActor
+    @discardableResult
+    static func seedLargeTransactionHistory(
+        modelContext: ModelContext,
+        currencyCode: String
+    ) throws -> SeededDataSummary {
+        DataIntegrityService.repair(modelContext: modelContext, currencyCode: currencyCode)
+
+        let categorySeed = SeedData.defaultCategories
+        var categories = (try? modelContext.fetch(FetchDescriptor<CategoryItem>())) ?? []
+        var accounts = (try? modelContext.fetch(FetchDescriptor<AccountItem>())) ?? []
+
+        let cash = ensureAccount(
+            named: "Cash",
+            type: .cash,
+            openingBalanceMinor: 18_000,
+            currencyCode: currencyCode,
+            accounts: &accounts,
+            modelContext: modelContext
+        )
+        let checking = ensureAccount(
+            named: "Checking",
+            type: .bank,
+            openingBalanceMinor: 210_000,
+            currencyCode: currencyCode,
+            accounts: &accounts,
+            modelContext: modelContext
+        )
+        let savings = ensureAccount(
+            named: "Savings",
+            type: .bank,
+            openingBalanceMinor: 640_000,
+            currencyCode: currencyCode,
+            accounts: &accounts,
+            modelContext: modelContext
+        )
+        let card = ensureAccount(
+            named: "Credit Card",
+            type: .card,
+            openingBalanceMinor: 0,
+            currencyCode: currencyCode,
+            accounts: &accounts,
+            modelContext: modelContext
+        )
+        let wallet = ensureAccount(
+            named: "Wallet",
+            type: .wallet,
+            openingBalanceMinor: 38_000,
+            currencyCode: currencyCode,
+            accounts: &accounts,
+            modelContext: modelContext
+        )
+
+        for (index, item) in categorySeed.enumerated() {
+            _ = ensureCategory(
+                named: item.0,
+                iconKey: item.1,
+                colorHex: item.2,
+                isIncome: item.3,
+                sortOrder: index,
+                categories: &categories,
+                modelContext: modelContext
+            )
+        }
+
+        let expensePlans = SeedExpensePlan.defaults.compactMap { plan in
+            categories.first {
+                !$0.archived
+                    && !$0.isIncome
+                    && $0.name.localizedCaseInsensitiveCompare(plan.categoryName) == .orderedSame
+            }.map { (plan, $0) }
+        }
+        let salaryCategory = incomeCategory(named: "Salary", categories: categories)
+        let freelanceCategory = incomeCategory(named: "Freelance", categories: categories)
+        let bonusCategory = incomeCategory(named: "Bonus", categories: categories)
+        let refundCategory = incomeCategory(named: "Refund", categories: categories)
+        let spendingAccounts = [cash, checking, card, wallet]
+        let transferAccounts = [checking, savings, wallet, cash]
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let startDate = calendar.date(byAdding: .year, value: -2, to: today) ?? today
+        var currentDate = startDate
+        var rng = SeededRandomNumberGenerator(seed: UInt64(today.timeIntervalSince1970))
+        var insertedTransactions = 0
+        var insertedTransfers = 0
+
+        while currentDate <= today {
+            let day = calendar.component(.day, from: currentDate)
+            let weekday = calendar.component(.weekday, from: currentDate)
+            let month = calendar.component(.month, from: currentDate)
+            let dailyCount = 10 + Int.random(in: 0...4, using: &rng)
+
+            for index in 0..<dailyCount {
+                guard let item = expensePlans.randomElement(using: &rng) else { continue }
+                let account = spendingAccounts.randomElement(using: &rng) ?? checking
+                let amount = item.0.randomAmount(using: &rng)
+                let timestamp = timestamp(
+                    on: currentDate,
+                    hour: item.0.hour + index,
+                    minute: Int.random(in: 0...54, using: &rng)
+                )
+                modelContext.insert(
+                    TransactionItem(
+                        amountMinor: amount,
+                        isExpense: true,
+                        timestamp: timestamp,
+                        category: item.1,
+                        account: account,
+                        note: item.0.randomNote(using: &rng)
+                    )
+                )
+                insertedTransactions += 1
+            }
+
+            if day == 1 {
+                modelContext.insert(
+                    TransactionItem(
+                        amountMinor: 420_000 + Int64.random(in: 0...85_000, using: &rng),
+                        isExpense: false,
+                        timestamp: timestamp(on: currentDate, hour: 9, minute: 15),
+                        category: salaryCategory,
+                        account: checking,
+                        note: "Monthly salary"
+                    )
+                )
+                insertedTransactions += 1
+            }
+
+            if day == 15 && month % 2 == 0 {
+                modelContext.insert(
+                    TransactionItem(
+                        amountMinor: 55_000 + Int64.random(in: 0...45_000, using: &rng),
+                        isExpense: false,
+                        timestamp: timestamp(on: currentDate, hour: 14, minute: 10),
+                        category: freelanceCategory,
+                        account: checking,
+                        note: "Freelance project"
+                    )
+                )
+                insertedTransactions += 1
+            }
+
+            if day == 20 && month % 3 == 0 {
+                modelContext.insert(
+                    TransactionItem(
+                        amountMinor: 25_000 + Int64.random(in: 0...120_000, using: &rng),
+                        isExpense: false,
+                        timestamp: timestamp(on: currentDate, hour: 10, minute: 35),
+                        category: bonusCategory,
+                        account: savings,
+                        note: "Quarterly bonus"
+                    )
+                )
+                insertedTransactions += 1
+            }
+
+            if weekday == 6 && day % 2 == 0 {
+                let from = transferAccounts.randomElement(using: &rng) ?? checking
+                let to = transferAccounts.first { $0.id != from.id } ?? savings
+                modelContext.insert(
+                    TransferItem(
+                        amountMinor: 10_000 + Int64.random(in: 0...65_000, using: &rng),
+                        fromAccount: from,
+                        toAccount: to,
+                        timestamp: timestamp(on: currentDate, hour: 18, minute: 30),
+                        note: "Account transfer"
+                    )
+                )
+                insertedTransfers += 1
+            }
+
+            if day % 19 == 0 {
+                modelContext.insert(
+                    TransactionItem(
+                        amountMinor: 1_500 + Int64.random(in: 0...18_500, using: &rng),
+                        isExpense: false,
+                        timestamp: timestamp(on: currentDate, hour: 16, minute: 5),
+                        category: refundCategory,
+                        account: card,
+                        note: "Refund"
+                    )
+                )
+                insertedTransactions += 1
+            }
+
+            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? today
+        }
+
+        try modelContext.save()
+        return SeededDataSummary(
+            transactionCount: insertedTransactions,
+            transferCount: insertedTransfers
+        )
+    }
+
+    @MainActor
+    private static func ensureAccount(
+        named name: String,
+        type: AccountType,
+        openingBalanceMinor: Int64,
+        currencyCode: String,
+        accounts: inout [AccountItem],
+        modelContext: ModelContext
+    ) -> AccountItem {
+        if let account = accounts.first(where: {
+            $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame
+                && $0.currencyCode == currencyCode
+        }) {
+            account.archived = false
+            account.type = type
+            account.updatedAt = Date()
+            return account
+        }
+
+        let account = AccountItem(
+            name: name,
+            type: type,
+            openingBalanceMinor: openingBalanceMinor,
+            currencyCode: currencyCode
+        )
+        modelContext.insert(account)
+        accounts.append(account)
+        return account
+    }
+
+    @MainActor
+    private static func ensureCategory(
+        named name: String,
+        iconKey: String,
+        colorHex: String,
+        isIncome: Bool,
+        sortOrder: Int,
+        categories: inout [CategoryItem],
+        modelContext: ModelContext
+    ) -> CategoryItem {
+        if let category = categories.first(where: {
+            $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame
+                && $0.isIncome == isIncome
+        }) {
+            category.archived = false
+            category.updatedAt = Date()
+            return category
+        }
+
+        let category = CategoryItem(
+            name: name,
+            iconKey: iconKey,
+            colorHex: colorHex,
+            isIncome: isIncome,
+            sortOrder: sortOrder,
+            isDefault: true
+        )
+        modelContext.insert(category)
+        categories.append(category)
+        return category
+    }
+
+    private static func incomeCategory(
+        named name: String,
+        categories: [CategoryItem]
+    ) -> CategoryItem? {
+        categories.first {
+            !$0.archived
+                && $0.isIncome
+                && $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame
+        }
+    }
+
+    private static func timestamp(on date: Date, hour: Int, minute: Int) -> Date {
+        Calendar.current.date(
+            bySettingHour: min(hour, 23),
+            minute: min(max(minute, 0), 59),
+            second: 0,
+            of: date
+        ) ?? date
+    }
+}
+
+struct SeededDataSummary {
+    let transactionCount: Int
+    let transferCount: Int
+}
+
+private struct SeedExpensePlan {
+    let categoryName: String
+    let notes: [String]
+    let minAmountMinor: Int64
+    let maxAmountMinor: Int64
+    let hour: Int
+
+    func randomAmount(using rng: inout SeededRandomNumberGenerator) -> Int64 {
+        Int64.random(in: minAmountMinor...maxAmountMinor, using: &rng)
+    }
+
+    func randomNote(using rng: inout SeededRandomNumberGenerator) -> String {
+        notes.randomElement(using: &rng) ?? categoryName
+    }
+
+    static let defaults: [SeedExpensePlan] = [
+        SeedExpensePlan(categoryName: "Food", notes: ["Breakfast", "Lunch", "Snacks", "Coffee"], minAmountMinor: 250, maxAmountMinor: 3_500, hour: 8),
+        SeedExpensePlan(categoryName: "Transport", notes: ["Cab", "Metro", "Bus pass", "Parking"], minAmountMinor: 180, maxAmountMinor: 5_200, hour: 9),
+        SeedExpensePlan(categoryName: "Bills", notes: ["Phone bill", "Water bill", "Service charge"], minAmountMinor: 1_200, maxAmountMinor: 18_000, hour: 11),
+        SeedExpensePlan(categoryName: "Groceries", notes: ["Weekly groceries", "Fresh produce", "Household supplies"], minAmountMinor: 1_500, maxAmountMinor: 14_000, hour: 17),
+        SeedExpensePlan(categoryName: "Shopping", notes: ["Clothes", "Accessories", "Online order"], minAmountMinor: 900, maxAmountMinor: 28_000, hour: 19),
+        SeedExpensePlan(categoryName: "Health", notes: ["Pharmacy", "Doctor visit", "Vitamins"], minAmountMinor: 700, maxAmountMinor: 22_000, hour: 12),
+        SeedExpensePlan(categoryName: "Entertainment", notes: ["Movie", "Streaming", "Games", "Concert"], minAmountMinor: 600, maxAmountMinor: 12_500, hour: 20),
+        SeedExpensePlan(categoryName: "Rent", notes: ["Monthly rent"], minAmountMinor: 85_000, maxAmountMinor: 145_000, hour: 10),
+        SeedExpensePlan(categoryName: "Utilities", notes: ["Electricity", "Gas", "Maintenance"], minAmountMinor: 2_500, maxAmountMinor: 24_000, hour: 13),
+        SeedExpensePlan(categoryName: "Internet", notes: ["Broadband", "Mobile data"], minAmountMinor: 900, maxAmountMinor: 5_500, hour: 14),
+        SeedExpensePlan(categoryName: "Fuel", notes: ["Fuel", "Charging", "Vehicle wash"], minAmountMinor: 1_000, maxAmountMinor: 9_000, hour: 16),
+        SeedExpensePlan(categoryName: "Travel", notes: ["Hotel", "Train ticket", "Flight add-on"], minAmountMinor: 4_000, maxAmountMinor: 65_000, hour: 15),
+        SeedExpensePlan(categoryName: "Education", notes: ["Course", "Books", "Workshop"], minAmountMinor: 1_500, maxAmountMinor: 40_000, hour: 18),
+        SeedExpensePlan(categoryName: "Subscriptions", notes: ["Music plan", "Cloud storage", "App subscription"], minAmountMinor: 199, maxAmountMinor: 4_500, hour: 7),
+        SeedExpensePlan(categoryName: "Dining", notes: ["Dinner", "Cafe", "Takeout"], minAmountMinor: 800, maxAmountMinor: 9_500, hour: 21),
+        SeedExpensePlan(categoryName: "Fitness", notes: ["Gym", "Yoga class", "Sports gear"], minAmountMinor: 900, maxAmountMinor: 11_000, hour: 6),
+        SeedExpensePlan(categoryName: "Maintenance", notes: ["Repairs", "Cleaning", "Tools"], minAmountMinor: 500, maxAmountMinor: 18_000, hour: 12),
+        SeedExpensePlan(categoryName: "Insurance", notes: ["Health insurance", "Vehicle insurance"], minAmountMinor: 8_000, maxAmountMinor: 45_000, hour: 10),
+        SeedExpensePlan(categoryName: "Gifts", notes: ["Birthday gift", "Donation", "Celebration"], minAmountMinor: 700, maxAmountMinor: 25_000, hour: 18),
+        SeedExpensePlan(categoryName: "Other", notes: ["Miscellaneous", "Cash adjustment", "Small purchase"], minAmountMinor: 100, maxAmountMinor: 8_000, hour: 13),
+    ]
+}
+
+private struct SeededRandomNumberGenerator: RandomNumberGenerator {
+    private var state: UInt64
+
+    init(seed: UInt64) {
+        state = seed == 0 ? 0x9E3779B97F4A7C15 : seed
+    }
+
+    mutating func next() -> UInt64 {
+        state &+= 0x9E3779B97F4A7C15
+        var value = state
+        value = (value ^ (value >> 30)) &* 0xBF58476D1CE4E5B9
+        value = (value ^ (value >> 27)) &* 0x94D049BB133111EB
+        return value ^ (value >> 31)
+    }
 }
 
 enum DataIntegrityService {

@@ -5,9 +5,8 @@ import UniformTypeIdentifiers
 import UIKit
 
 struct InsightsView: View {
+    @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \TransactionItem.timestamp, order: .reverse) private
-        var transactions: [TransactionItem]
     @Query private var budgets: [BudgetPeriodItem]
     @Query private var categoryBudgets: [CategoryBudgetItem]
     @Query private var goals: [GoalItem]
@@ -24,6 +23,10 @@ struct InsightsView: View {
     @State private var reportDocument = ReportPDFDocument()
     @State private var selectedCategory: CategoryDrillDown?
     @State private var spendActivityMode = SpendActivityMode.daily
+    @State private var report = InsightReport.placeholder
+    @State private var isLoadingReport = false
+    @State private var reportError: String?
+    @State private var hasLoadedReport = false
 
     private var palette: [Color] {
         appState.themePalette.chartColors
@@ -66,42 +69,31 @@ struct InsightsView: View {
         }
     }
 
-    private var report: InsightReport {
-        InsightReport(
-            title: selectedRange.title,
-            range: activeRange,
-            transactions: currentTransactions,
-            previousTransactions: previousRangeTransactions,
-            allTransactions: transactions,
-            budgets: budgets,
-            categoryBudgets: categoryBudgets,
-            goals: goals,
-            recurringRules: recurringRules,
-            activeBudget: activeBudget,
-            palette: palette
-        )
-    }
-
-    private var currentTransactions: [TransactionItem] {
-        transactions.filter {
-            activeRange.contains($0.timestamp, calendar: .current)
-        }
-    }
-
-    private var previousRangeTransactions: [TransactionItem] {
+    private var previousRange: BudgetPeriod {
         let calendar = Calendar.current
         let days = rangeDayCount(activeRange)
         let previousEnd = calendar.date(byAdding: .day, value: -1, to: activeRange.start)
             ?? activeRange.start
         let previousStart = calendar.date(byAdding: .day, value: -days + 1, to: previousEnd)
             ?? previousEnd
-        let previousRange = BudgetPeriod(
+        return BudgetPeriod(
             start: calendar.startOfDay(for: previousStart),
             end: calendar.startOfDay(for: previousEnd)
         )
-        return transactions.filter {
-            previousRange.contains($0.timestamp, calendar: calendar)
-        }
+    }
+
+    private var reportLoadKey: InsightReportLoadKey {
+        InsightReportLoadKey(
+            range: selectedRange,
+            customStart: Calendar.current.startOfDay(for: customStart),
+            customEnd: Calendar.current.startOfDay(for: customEnd),
+            activeBudgetID: activeBudget?.id,
+            activeBudgetUpdatedAt: activeBudget?.updatedAt,
+            categoryBudgetUpdatedAt: categoryBudgets.map(\.updatedAt).max(),
+            goalUpdatedAt: goals.map(\.updatedAt).max(),
+            recurringUpdatedAt: recurringRules.map(\.updatedAt).max(),
+            themeMode: appState.selectedThemeMode
+        )
     }
 
     var body: some View {
@@ -113,16 +105,22 @@ struct InsightsView: View {
                     customRangeControls
                 }
 
-                executiveSummary
-                budgetHealthCard
-                calendarInsightCard
-                spendActivityCard
-                categoryBudgetCard
-                categoryCard
-                cashFlowTrendCard
-                recurringCard
-                goalsCard
-                topTransactionsCard
+                if isLoadingReport && report.transactions.isEmpty {
+                    loadingReportCard
+                } else if let reportError {
+                    reportErrorCard(reportError)
+                } else {
+                    executiveSummary
+                    budgetHealthCard
+                    calendarInsightCard
+                    spendActivityCard
+                    categoryBudgetCard
+                    categoryCard
+                    cashFlowTrendCard
+                    recurringCard
+                    goalsCard
+                    topTransactionsCard
+                }
             }
             .padding(20)
             .padding(.bottom, 40)
@@ -147,6 +145,14 @@ struct InsightsView: View {
                 category: category,
                 currencyCode: appState.selectedCurrencyCode
             )
+        }
+        .task(id: reportLoadKey) {
+            loadReportTransactions()
+        }
+        .onAppear {
+            if hasLoadedReport {
+                loadReportTransactions()
+            }
         }
         .floatBackground()
     }
@@ -189,6 +195,34 @@ struct InsightsView: View {
                 DatePicker("From", selection: $customStart, displayedComponents: .date)
                 DatePicker("To", selection: $customEnd, displayedComponents: .date)
             }
+        }
+    }
+
+    private var loadingReportCard: some View {
+        GlassCard {
+            HStack(spacing: 12) {
+                ProgressView()
+                Text("Loading report")
+                    .font(.subheadline.weight(.medium))
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func reportErrorCard(_ message: String) -> some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Report could not load", systemImage: "exclamationmark.triangle.fill")
+                    .font(.headline)
+                    .foregroundStyle(appState.themePalette.caution)
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Button("Retry", action: loadReportTransactions)
+                    .buttonStyle(.bordered)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -807,12 +841,83 @@ struct InsightsView: View {
         exportingReport = true
     }
 
+    private func loadReportTransactions() {
+        isLoadingReport = true
+        reportError = nil
+
+        do {
+            let active = activeRange
+            let previous = previousRange
+            let currentTransactions = try fetchTransactions(in: active)
+            let previousRangeTransactions = try fetchTransactions(in: previous)
+            let yearTransactions = try fetchTransactions(in: activityYearRange(for: active))
+            report = InsightReport(
+                title: selectedRange.title,
+                range: active,
+                transactions: currentTransactions,
+                previousTransactions: previousRangeTransactions,
+                allTransactions: yearTransactions,
+                budgets: budgets,
+                categoryBudgets: categoryBudgets,
+                goals: goals,
+                recurringRules: recurringRules,
+                activeBudget: activeBudget,
+                palette: palette
+            )
+        } catch {
+            reportError = error.localizedDescription
+        }
+
+        hasLoadedReport = true
+        isLoadingReport = false
+    }
+
+    private func fetchTransactions(in range: BudgetPeriod) throws -> [TransactionItem] {
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: range.start)
+        let endExclusive = calendar.date(
+            byAdding: .day,
+            value: 1,
+            to: calendar.startOfDay(for: range.end)
+        ) ?? range.end
+        let descriptor = FetchDescriptor<TransactionItem>(
+            predicate: #Predicate<TransactionItem> { transaction in
+                transaction.timestamp >= start && transaction.timestamp < endExclusive
+            },
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
+    private func activityYearRange(for range: BudgetPeriod) -> BudgetPeriod {
+        let calendar = Calendar.current
+        let yearComponents = calendar.dateComponents([.year], from: range.end)
+        let yearStart = calendar.date(from: yearComponents) ?? range.start
+        let nextYearStart = calendar.date(byAdding: .year, value: 1, to: yearStart)
+            ?? range.end
+        let yearEnd = calendar.date(byAdding: .day, value: -1, to: nextYearStart)
+            ?? range.end
+        return BudgetPeriod(start: yearStart, end: yearEnd)
+    }
+
     private func rangeDayCount(_ range: BudgetPeriod) -> Int {
         max(
             1,
             (Calendar.current.dateComponents([.day], from: range.start, to: range.end).day ?? 0) + 1
         )
     }
+}
+
+private struct InsightReportLoadKey: Hashable {
+    let range: InsightRange
+    let customStart: Date
+    let customEnd: Date
+    let activeBudgetID: UUID?
+    let activeBudgetUpdatedAt: Date?
+    let categoryBudgetUpdatedAt: Date?
+    let goalUpdatedAt: Date?
+    let recurringUpdatedAt: Date?
+    let themeMode: String
 }
 
 private struct NetFlowBadge: View {
@@ -1138,6 +1243,23 @@ private struct InsightReport {
     let recurringRules: [RecurringRuleItem]
     let activeBudget: BudgetPeriodItem?
     let palette: [Color]
+
+    static var placeholder: InsightReport {
+        let today = Calendar.current.startOfDay(for: Date())
+        return InsightReport(
+            title: InsightRange.currentPeriod.title,
+            range: BudgetPeriod(start: today, end: today),
+            transactions: [],
+            previousTransactions: [],
+            allTransactions: [],
+            budgets: [],
+            categoryBudgets: [],
+            goals: [],
+            recurringRules: [],
+            activeBudget: nil,
+            palette: FloatTheme.palette(for: "float").chartColors
+        )
+    }
 
     var dateRangeText: String {
         "\(range.start.formatted(date: .abbreviated, time: .omitted)) - \(range.end.formatted(date: .abbreviated, time: .omitted))"
@@ -1775,7 +1897,7 @@ private struct GoalInsight: Identifiable {
     let detail: String
 }
 
-private enum InsightRange: String, CaseIterable, Identifiable {
+private enum InsightRange: String, CaseIterable, Identifiable, Hashable {
     case currentPeriod
     case lastPeriod
     case lastThreePeriods

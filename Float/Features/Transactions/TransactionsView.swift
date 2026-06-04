@@ -4,12 +4,13 @@ import SwiftUI
 struct TransactionsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \TransactionItem.timestamp, order: .reverse) private
-        var transactions: [TransactionItem]
-    @Query(sort: \TransferItem.timestamp, order: .reverse) private
-        var transfers: [TransferItem]
     @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @State private var ledgerItems: [LedgerListItem] = []
+    @State private var nextPageEndDate: Date?
+    @State private var isLoadingPage = false
+    @State private var hasMorePages = true
+    @State private var pageError: String?
     @State private var searchText = ""
     @State private var selectedCategoryID: UUID?
     @State private var selectedAccountID: UUID?
@@ -27,114 +28,17 @@ struct TransactionsView: View {
     @State private var deletedSnapshot: DeletedTransactionSnapshot?
     @State private var showingUndo = false
     @State private var showingFilters = false
-
-    private var filteredTransactions: [TransactionItem] {
-        transactions.filter { transaction in
-            let matchesSearch =
-                searchText.isEmpty
-                || (transaction.note ?? "").localizedCaseInsensitiveContains(
-                    searchText
-                )
-                || transaction.categoryName
-                    .localizedCaseInsensitiveContains(searchText)
-                || transaction.accountName
-                    .localizedCaseInsensitiveContains(searchText)
-                || transaction.timestamp.formatted(date: .abbreviated, time: .shortened)
-                    .localizedCaseInsensitiveContains(searchText)
-                || MoneyFormatter.string(
-                    minorUnits: transaction.amountMinor,
-                    currencyCode: appState.selectedCurrencyCode
-                )
-                .localizedCaseInsensitiveContains(searchText)
-            let matchesCategory =
-                selectedCategoryID == nil
-                || transaction.category?.id == selectedCategoryID
-            let matchesAccount =
-                selectedAccountID == nil
-                || transaction.account?.id == selectedAccountID
-            let matchesType: Bool
-            switch selectedType {
-            case .all:
-                matchesType = true
-            case .expenses:
-                matchesType = transaction.isExpense
-            case .income:
-                matchesType = !transaction.isExpense
-            case .transfers:
-                matchesType = false
-            }
-            let matchesDate =
-                !useDateRange
-                || (
-                    Calendar.current.startOfDay(for: startDate)
-                        <= transaction.timestamp
-                        && transaction.timestamp
-                            <= Calendar.current.endOfDay(for: endDate)
-                )
-            let matchesMinimum =
-                minimumAmountMinor == nil
-                || transaction.amountMinor >= (minimumAmountMinor ?? 0)
-            let matchesMaximum =
-                maximumAmountMinor == nil
-                || transaction.amountMinor <= (maximumAmountMinor ?? Int64.max)
-            return matchesSearch && matchesCategory && matchesAccount
-                && matchesType && matchesDate && matchesMinimum && matchesMaximum
-        }
-    }
-
-    private var filteredTransfers: [TransferItem] {
-        transfers.filter { transfer in
-            let matchesSearch =
-                searchText.isEmpty
-                || (transfer.note ?? "").localizedCaseInsensitiveContains(searchText)
-                || transfer.fromAccountName.localizedCaseInsensitiveContains(searchText)
-                || transfer.toAccountName.localizedCaseInsensitiveContains(searchText)
-                || transfer.timestamp.formatted(date: .abbreviated, time: .shortened)
-                    .localizedCaseInsensitiveContains(searchText)
-                || MoneyFormatter.string(
-                    minorUnits: transfer.amountMinor,
-                    currencyCode: transfer.currencyCode
-                )
-                .localizedCaseInsensitiveContains(searchText)
-            let matchesCategory = selectedCategoryID == nil
-            let matchesAccount =
-                selectedAccountID == nil
-                || transfer.fromAccount?.id == selectedAccountID
-                || transfer.toAccount?.id == selectedAccountID
-            let matchesType = selectedType == .all || selectedType == .transfers
-            let matchesDate =
-                !useDateRange
-                || (
-                    Calendar.current.startOfDay(for: startDate)
-                        <= transfer.timestamp
-                        && transfer.timestamp
-                            <= Calendar.current.endOfDay(for: endDate)
-                )
-            let matchesMinimum =
-                minimumAmountMinor == nil
-                || transfer.amountMinor >= (minimumAmountMinor ?? 0)
-            let matchesMaximum =
-                maximumAmountMinor == nil
-                || transfer.amountMinor <= (maximumAmountMinor ?? Int64.max)
-            return matchesSearch && matchesCategory && matchesAccount
-                && matchesType && matchesDate && matchesMinimum && matchesMaximum
-        }
-    }
+    @State private var editingTransaction: TransactionItem?
+    @State private var editingTransfer: TransferItem?
+    @State private var isEntrySheetPresented = false
+    @State private var isTransferSheetPresented = false
 
     private var filtered: [LedgerListItem] {
-        let filteredItems =
-            filteredTransactions.map(LedgerListItem.transaction)
-            + filteredTransfers.map(LedgerListItem.transfer)
-
         switch selectedSort {
         case .newestFirst:
-            return filteredItems.sorted { $0.timestamp > $1.timestamp }
+            return ledgerItems.sorted { $0.timestamp > $1.timestamp }
         case .oldestFirst:
-            return filteredItems.sorted { $0.timestamp < $1.timestamp }
-        case .highestAmount:
-            return filteredItems.sorted { $0.amountMinor > $1.amountMinor }
-        case .lowestAmount:
-            return filteredItems.sorted { $0.amountMinor < $1.amountMinor }
+            return ledgerItems.sorted { $0.timestamp < $1.timestamp }
         }
     }
 
@@ -162,32 +66,23 @@ struct TransactionsView: View {
             || minimumAmountMinor != nil || maximumAmountMinor != nil
     }
 
-    private var filteredExpenseMinor: Int64 {
-        filteredTransactions.filter(\.isExpense).reduce(Int64(0)) { $0 + $1.amountMinor }
-    }
-
-    private var filteredIncomeMinor: Int64 {
-        filteredTransactions.filter { !$0.isExpense }.reduce(Int64(0)) { $0 + $1.amountMinor }
-    }
-
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                transactionSummary
+            LazyVStack(alignment: .leading, spacing: 18) {
                 compactFilterSection
 
-                if filtered.isEmpty {
+                if filtered.isEmpty && !isLoadingPage {
                     EmptyStateView(
                         icon: "list.bullet.rectangle",
-                        title: "No matching transactions",
-                        message:
-                            "Your transactions will appear here as you add them."
+                        title: emptyStateTitle,
+                        message: emptyStateMessage
                     )
                     .transactionPlainSurface(cornerRadius: FloatTheme.controlRadius)
                 } else {
                     ForEach(grouped, id: \.0) { day, items in
                         transactionSection(day: day, items: items)
                     }
+                    paginationFooter
                 }
             }
             .padding(20)
@@ -208,11 +103,21 @@ struct TransactionsView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    appState.presentNewTransaction()
+                    presentNewTransaction()
                 } label: {
                     Image(systemName: "plus")
                 }
             }
+        }
+        .sheet(isPresented: $isEntrySheetPresented) {
+            QuickAddKeypadSheet(transactionToEdit: editingTransaction)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $isTransferSheetPresented) {
+            TransferEditorSheet(transferToEdit: editingTransfer)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showingFilters) {
             TransactionFilterSheet(
@@ -233,60 +138,79 @@ struct TransactionsView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
-    }
-
-    private var transactionSummary: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 10) {
-                    SummaryMetricTile(
-                        title: "Income",
-                        value: MoneyFormatter.string(
-                            minorUnits: filteredIncomeMinor,
-                            currencyCode: appState.selectedCurrencyCode,
-                            showsSign: filteredIncomeMinor > 0
-                        ),
-                        caption: "\(filteredTransactions.filter { !$0.isExpense }.count) entries",
-                        icon: "arrow.down.circle.fill",
-                        tint: appState.themePalette.positive
-                    )
-                    SummaryMetricTile(
-                        title: "Expenses",
-                        value: MoneyFormatter.string(
-                            minorUnits: filteredExpenseMinor,
-                            currencyCode: appState.selectedCurrencyCode
-                        ),
-                        caption: "\(filteredTransactions.filter(\.isExpense).count) entries",
-                        icon: "arrow.up.circle.fill",
-                        tint: appState.themePalette.caution
-                    )
-                }
-
-                HStack {
-                    Label("\(filtered.count) shown", systemImage: "list.bullet.rectangle")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(netText)
-                        .moneyStyle(size: 14, weight: .semibold)
-                        .foregroundStyle(netMinor >= 0 ? appState.themePalette.positive : appState.themePalette.caution)
-                }
+        .task {
+            resetAndLoadFirstPage()
+        }
+        .onChange(of: searchText) { _, _ in resetAndLoadFirstPage() }
+        .onChange(of: selectedCategoryID) { _, _ in resetAndLoadFirstPage() }
+        .onChange(of: selectedAccountID) { _, _ in resetAndLoadFirstPage() }
+        .onChange(of: selectedType) { _, _ in resetAndLoadFirstPage() }
+        .onChange(of: selectedSort) { _, _ in resetAndLoadFirstPage() }
+        .onChange(of: useDateRange) { _, _ in resetAndLoadFirstPage() }
+        .onChange(of: startDate) { _, _ in
+            if useDateRange { resetAndLoadFirstPage() }
+        }
+        .onChange(of: endDate) { _, _ in
+            if useDateRange { resetAndLoadFirstPage() }
+        }
+        .onChange(of: minimumAmountText) { _, _ in resetAndLoadFirstPage() }
+        .onChange(of: maximumAmountText) { _, _ in resetAndLoadFirstPage() }
+        .onChange(of: isEntrySheetPresented) { _, isPresented in
+            if !isPresented {
+                editingTransaction = nil
+                resetAndLoadFirstPage()
+            }
+        }
+        .onChange(of: isTransferSheetPresented) { _, isPresented in
+            if !isPresented {
+                editingTransfer = nil
+                resetAndLoadFirstPage()
             }
         }
     }
 
-    private var netMinor: Int64 {
-        filteredIncomeMinor - filteredExpenseMinor
+    @ViewBuilder
+    private var paginationFooter: some View {
+        if let pageError {
+            Button {
+                loadOlderPage()
+            } label: {
+                Label(pageError, systemImage: "arrow.clockwise")
+                    .font(.footnote.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+        } else if hasMorePages {
+            HStack(spacing: 10) {
+                if isLoadingPage {
+                    ProgressView()
+                }
+                Text(isLoadingPage ? "Loading older data" : "Load older data")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .onAppear {
+                loadOlderPage()
+            }
+        }
     }
 
-    private var netText: String {
-        let amount = MoneyFormatter.string(
-            minorUnits: abs(netMinor),
-            currencyCode: appState.selectedCurrencyCode
-        )
-        if netMinor > 0 { return "+\(amount)" }
-        if netMinor < 0 { return "-\(amount)" }
-        return amount
+    private var emptyStateTitle: String {
+        if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !hasActiveFilters {
+            return "No transactions yet"
+        }
+        return "No matching transactions"
+    }
+
+    private var emptyStateMessage: String {
+        if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !hasActiveFilters {
+            return "Your transactions will appear here as you add them."
+        }
+        return "Try changing your search or filters."
     }
 
     private func transactionSection(day: Date, items: [LedgerListItem]) -> some View {
@@ -308,7 +232,7 @@ struct TransactionsView: View {
                     switch item {
                     case .transaction(let transaction):
                         Button {
-                            appState.presentEditTransaction(transaction)
+                            presentEditTransaction(transaction)
                         } label: {
                             TransactionRowView(
                                 transaction: transaction,
@@ -323,9 +247,12 @@ struct TransactionsView: View {
                                 Label("Delete", systemImage: "trash")
                             }
                         }
+                        .onAppear {
+                            loadOlderPageIfNeeded(afterDisplaying: item)
+                        }
                     case .transfer(let transfer):
                         Button {
-                            appState.presentEditTransfer(transfer)
+                            presentEditTransfer(transfer)
                         } label: {
                             TransferRowView(
                                 transfer: transfer,
@@ -339,6 +266,9 @@ struct TransactionsView: View {
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
+                        }
+                        .onAppear {
+                            loadOlderPageIfNeeded(afterDisplaying: item)
                         }
                     }
                     if item.id != items.last?.id {
@@ -494,11 +424,13 @@ struct TransactionsView: View {
         deletedSnapshot = DeletedTransactionSnapshot(transaction: transaction)
         try? TransactionRepository(modelContext: modelContext)
             .delete(transaction)
+        removeLoadedItem(id: "transaction-\(transaction.id.uuidString)")
         withAnimation { showingUndo = true }
     }
 
     private func delete(_ transfer: TransferItem) {
         try? TransferRepository(modelContext: modelContext).delete(transfer)
+        removeLoadedItem(id: "transfer-\(transfer.id.uuidString)")
     }
 
     private func undoDelete() {
@@ -508,8 +440,274 @@ struct TransactionsView: View {
             accounts: accounts
         ))
         try? modelContext.save()
+        resetAndLoadFirstPage()
         withAnimation { showingUndo = false }
         deletedSnapshot = nil
+    }
+
+    private func presentNewTransaction() {
+        editingTransaction = nil
+        isEntrySheetPresented = true
+    }
+
+    private func presentEditTransaction(_ transaction: TransactionItem) {
+        editingTransaction = transaction
+        isEntrySheetPresented = true
+    }
+
+    private func presentEditTransfer(_ transfer: TransferItem) {
+        editingTransfer = transfer
+        isTransferSheetPresented = true
+    }
+
+    private func resetAndLoadFirstPage() {
+        ledgerItems = []
+        nextPageEndDate = firstPageEndDate
+        hasMorePages = true
+        pageError = nil
+        loadOlderPage()
+    }
+
+    private func loadOlderPage() {
+        guard !isLoadingPage, hasMorePages else { return }
+        isLoadingPage = true
+        pageError = nil
+
+        do {
+            var accumulated: [LedgerListItem] = []
+            var pageEnd = nextPageEndDate ?? firstPageEndDate
+            var shouldContinue = true
+            let lowerBound = try effectiveLowerPagingBound()
+
+            while accumulated.isEmpty && shouldContinue {
+                let window = pageWindow(endingAt: pageEnd)
+                let fetched = try fetchLedgerItems(
+                    from: window.start,
+                    through: window.end
+                )
+                accumulated.append(contentsOf: fetched)
+
+                guard let nextEnd = Calendar.current.date(
+                    byAdding: .second,
+                    value: -1,
+                    to: window.start
+                ) else {
+                    shouldContinue = false
+                    continue
+                }
+
+                pageEnd = nextEnd
+                shouldContinue = window.start > lowerBound
+            }
+
+            mergeLoadedItems(accumulated)
+            nextPageEndDate = pageEnd
+            hasMorePages = shouldContinue
+            isLoadingPage = false
+        } catch {
+            pageError = "Could not load older data"
+            isLoadingPage = false
+        }
+    }
+
+    private func loadOlderPageIfNeeded(afterDisplaying item: LedgerListItem) {
+        guard shouldLoadOlderPage(afterDisplaying: item) else { return }
+        loadOlderPage()
+    }
+
+    private func shouldLoadOlderPage(afterDisplaying item: LedgerListItem) -> Bool {
+        guard hasMorePages, !isLoadingPage, pageError == nil else { return false }
+
+        let triggerItems = selectedSort == .oldestFirst
+            ? filtered.prefix(5)
+            : filtered.suffix(5)
+        return triggerItems.contains { $0.id == item.id }
+    }
+
+    private var firstPageEndDate: Date {
+        if useDateRange {
+            return Calendar.current.endOfDay(for: endDate)
+        }
+        return Date()
+    }
+
+    private var lowerPagingBound: Date {
+        if useDateRange {
+            return Calendar.current.startOfDay(for: startDate)
+        }
+        return .distantPast
+    }
+
+    private func pageWindow(endingAt end: Date) -> (start: Date, end: Date) {
+        let calendar = Calendar.current
+        let endOfPage = min(end, firstPageEndDate)
+        let startCandidate = calendar.startOfDay(
+            for: calendar.date(byAdding: .day, value: -14, to: endOfPage) ?? endOfPage
+        )
+        return (max(startCandidate, lowerPagingBound), endOfPage)
+    }
+
+    private func effectiveLowerPagingBound() throws -> Date {
+        if useDateRange {
+            return Calendar.current.startOfDay(for: startDate)
+        }
+
+        let dates = try [
+            oldestTransactionDate(),
+            oldestTransferDate(),
+        ].compactMap { $0 }
+
+        guard let oldest = dates.min() else {
+            return Calendar.current.startOfDay(for: firstPageEndDate)
+        }
+        return Calendar.current.startOfDay(for: oldest)
+    }
+
+    private func fetchLedgerItems(from start: Date, through end: Date) throws
+        -> [LedgerListItem]
+    {
+        let transactions = try fetchTransactions(from: start, through: end)
+            .filter(matchesTransaction)
+            .map(LedgerListItem.transaction)
+        let transfers = try fetchTransfers(from: start, through: end)
+            .filter(matchesTransfer)
+            .map(LedgerListItem.transfer)
+        return (transactions + transfers).sorted { $0.timestamp > $1.timestamp }
+    }
+
+    private func fetchTransactions(from start: Date, through end: Date) throws
+        -> [TransactionItem]
+    {
+        let minAmount = minimumAmountMinor
+        let maxAmount = maximumAmountMinor
+        let includeExpenses = selectedType == .all || selectedType == .expenses
+        let includeIncome = selectedType == .all || selectedType == .income
+        guard includeExpenses || includeIncome else { return [] }
+
+        let descriptor = FetchDescriptor<TransactionItem>(
+            predicate: #Predicate<TransactionItem> { transaction in
+                transaction.timestamp >= start
+                    && transaction.timestamp <= end
+                    && (minAmount == nil || transaction.amountMinor >= minAmount!)
+                    && (maxAmount == nil || transaction.amountMinor <= maxAmount!)
+                    && (
+                        (includeExpenses && transaction.isExpense)
+                            || (includeIncome && !transaction.isExpense)
+                    )
+            },
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
+    private func oldestTransactionDate() throws -> Date? {
+        let includeExpenses = selectedType == .all || selectedType == .expenses
+        let includeIncome = selectedType == .all || selectedType == .income
+        guard includeExpenses || includeIncome else { return nil }
+
+        var descriptor = FetchDescriptor<TransactionItem>(
+            predicate: #Predicate<TransactionItem> { transaction in
+                (includeExpenses && transaction.isExpense)
+                    || (includeIncome && !transaction.isExpense)
+            },
+            sortBy: [SortDescriptor(\.timestamp, order: .forward)]
+        )
+        descriptor.fetchLimit = 1
+        return try modelContext.fetch(descriptor).first?.timestamp
+    }
+
+    private func fetchTransfers(from start: Date, through end: Date) throws
+        -> [TransferItem]
+    {
+        let minAmount = minimumAmountMinor
+        let maxAmount = maximumAmountMinor
+        guard selectedType == .all || selectedType == .transfers else { return [] }
+
+        let descriptor = FetchDescriptor<TransferItem>(
+            predicate: #Predicate<TransferItem> { transfer in
+                transfer.timestamp >= start
+                    && transfer.timestamp <= end
+                    && (minAmount == nil || transfer.amountMinor >= minAmount!)
+                    && (maxAmount == nil || transfer.amountMinor <= maxAmount!)
+            },
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
+    private func oldestTransferDate() throws -> Date? {
+        guard selectedType == .all || selectedType == .transfers else { return nil }
+
+        var descriptor = FetchDescriptor<TransferItem>(
+            sortBy: [SortDescriptor(\.timestamp, order: .forward)]
+        )
+        descriptor.fetchLimit = 1
+        return try modelContext.fetch(descriptor).first?.timestamp
+    }
+
+    private func matchesTransaction(_ transaction: TransactionItem) -> Bool {
+        let matchesCategory =
+            selectedCategoryID == nil
+            || transaction.category?.id == selectedCategoryID
+        let matchesAccount =
+            selectedAccountID == nil
+            || transaction.account?.id == selectedAccountID
+        return matchesCategory && matchesAccount && matchesSearch(transaction)
+    }
+
+    private func matchesTransfer(_ transfer: TransferItem) -> Bool {
+        let matchesCategory = selectedCategoryID == nil
+        let matchesAccount =
+            selectedAccountID == nil
+            || transfer.fromAccount?.id == selectedAccountID
+            || transfer.toAccount?.id == selectedAccountID
+        return matchesCategory && matchesAccount && matchesSearch(transfer)
+    }
+
+    private func matchesSearch(_ transaction: TransactionItem) -> Bool {
+        let query = normalizedSearchText
+        guard !query.isEmpty else { return true }
+        return (transaction.note ?? "").localizedCaseInsensitiveContains(query)
+            || transaction.categoryName.localizedCaseInsensitiveContains(query)
+            || transaction.accountName.localizedCaseInsensitiveContains(query)
+            || transaction.timestamp.formatted(date: .abbreviated, time: .shortened)
+                .localizedCaseInsensitiveContains(query)
+            || MoneyFormatter.string(
+                minorUnits: transaction.amountMinor,
+                currencyCode: appState.selectedCurrencyCode
+            )
+            .localizedCaseInsensitiveContains(query)
+    }
+
+    private func matchesSearch(_ transfer: TransferItem) -> Bool {
+        let query = normalizedSearchText
+        guard !query.isEmpty else { return true }
+        return (transfer.note ?? "").localizedCaseInsensitiveContains(query)
+            || transfer.fromAccountName.localizedCaseInsensitiveContains(query)
+            || transfer.toAccountName.localizedCaseInsensitiveContains(query)
+            || transfer.timestamp.formatted(date: .abbreviated, time: .shortened)
+                .localizedCaseInsensitiveContains(query)
+            || MoneyFormatter.string(
+                minorUnits: transfer.amountMinor,
+                currencyCode: transfer.currencyCode
+            )
+            .localizedCaseInsensitiveContains(query)
+    }
+
+    private var normalizedSearchText: String {
+        searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func mergeLoadedItems(_ items: [LedgerListItem]) {
+        var existingIDs = Set(ledgerItems.map(\.id))
+        for item in items where !existingIDs.contains(item.id) {
+            ledgerItems.append(item)
+            existingIDs.insert(item.id)
+        }
+    }
+
+    private func removeLoadedItem(id: String) {
+        ledgerItems.removeAll { $0.id == id }
     }
 
     private func clearFilters() {
@@ -643,8 +841,6 @@ private enum LedgerListItem: Identifiable {
 private enum TransactionSortOption: String, CaseIterable, Identifiable {
     case newestFirst
     case oldestFirst
-    case highestAmount
-    case lowestAmount
 
     var id: String { rawValue }
 
@@ -652,8 +848,6 @@ private enum TransactionSortOption: String, CaseIterable, Identifiable {
         switch self {
         case .newestFirst: "Newest first"
         case .oldestFirst: "Oldest first"
-        case .highestAmount: "Highest amount"
-        case .lowestAmount: "Lowest amount"
         }
     }
 }

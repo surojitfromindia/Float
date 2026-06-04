@@ -4,8 +4,6 @@ import SwiftUI
 struct BudgetSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \TransactionItem.timestamp, order: .reverse) private
-        var transactions: [TransactionItem]
     @Query private var goals: [GoalItem]
     @Query private var recurringRules: [RecurringRuleItem]
     @Query private var budgets: [BudgetPeriodItem]
@@ -19,6 +17,8 @@ struct BudgetSettingsView: View {
     @State private var categoryBudgetTexts: [UUID: String] = [:]
     @State private var editingCategory: CategoryItem?
     @State private var message = ""
+    @State private var periodTransactions: [TransactionItem] = []
+    @State private var periodTransactionLoadFailed = false
 
     private var activeBudget: BudgetPeriodItem? {
         budgets.first { $0.isActive } ?? budgets.first
@@ -32,7 +32,7 @@ struct BudgetSettingsView: View {
                 startDayOfWeek: cadence == .weekly ? startDayOfWeek : nil
             ),
             expectedIncomeMinor: previewExpectedIncomeMinor,
-            transactions: transactions,
+            transactions: periodTransactions,
             goals: goals,
             recurringRules: recurringRules
         )
@@ -69,6 +69,13 @@ struct BudgetSettingsView: View {
 
     private var unbudgetedCategoryCount: Int {
         max(0, expenseCategories.count - budgetedCategoryCount)
+    }
+
+    private var periodTransactionLoadKey: BudgetSettingsTransactionLoadKey {
+        BudgetSettingsTransactionLoadKey(
+            periodStart: previewPeriod.start,
+            periodEnd: previewPeriod.end
+        )
     }
 
     var body: some View {
@@ -114,6 +121,9 @@ struct BudgetSettingsView: View {
             }
 
             Section {
+                if periodTransactionLoadFailed {
+                    Button("Reload transactions", action: loadPeriodTransactions)
+                }
                 budgetRow("Expected income", previewResult.expectedIncomeMinor)
                 budgetRow("Category budgets", categoryBudgetTotalMinor)
                 budgetRow("Recurring due", previewResult.recurringDueMinor)
@@ -186,6 +196,9 @@ struct BudgetSettingsView: View {
             }
         }
         .onAppear(perform: configure)
+        .task(id: periodTransactionLoadKey) {
+            loadPeriodTransactions()
+        }
         .sheet(item: $editingCategory) { category in
             CategoryBudgetEditorSheet(
                 category: category,
@@ -289,7 +302,7 @@ struct BudgetSettingsView: View {
     }
 
     private func categorySpentMinor(for category: CategoryItem) -> Int64 {
-        transactions
+        periodTransactions
             .filter {
                 $0.isExpense
                     && $0.category?.id == category.id
@@ -347,6 +360,34 @@ struct BudgetSettingsView: View {
         categoryBudgetTexts = values
     }
 
+    private func loadPeriodTransactions() {
+        let period = previewPeriod
+        let start = period.start
+        let end = Self.endOfDay(for: period.end, calendar: .current)
+
+        do {
+            let descriptor = FetchDescriptor<TransactionItem>(
+                predicate: #Predicate<TransactionItem> { transaction in
+                    transaction.timestamp >= start && transaction.timestamp <= end
+                },
+                sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+            )
+            periodTransactions = try modelContext.fetch(descriptor)
+            periodTransactionLoadFailed = false
+        } catch {
+            periodTransactions = []
+            periodTransactionLoadFailed = true
+        }
+    }
+
+    private static func endOfDay(for date: Date, calendar: Calendar) -> Date {
+        let start = calendar.startOfDay(for: date)
+        return calendar.date(
+            byAdding: DateComponents(day: 1, second: -1),
+            to: start
+        ) ?? date
+    }
+
     private func save() {
         let budget = activeBudget ?? BudgetPeriodItem(
             currencyCode: appState.selectedCurrencyCode
@@ -396,6 +437,11 @@ struct BudgetSettingsView: View {
         )
         message = amountMinor > 0 ? "\(category.name) budget saved." : "\(category.name) budget cleared."
     }
+}
+
+private struct BudgetSettingsTransactionLoadKey: Hashable {
+    let periodStart: Date
+    let periodEnd: Date
 }
 
 private struct CategoryBudgetEditorSheet: View {

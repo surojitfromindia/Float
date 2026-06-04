@@ -4,19 +4,24 @@ struct MainTabView: View {
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
-        TabView {
+        TabView(selection: $appState.selectedTab) {
             NavigationStack { HomeView() }
-                .tabItem { Label("Home", systemImage: "house") }
+                .tabItem { Label("Home", systemImage: "square.grid.2x2") }
+                .tag(FloatTab.home)
             NavigationStack { TransactionsView() }
-                .tabItem { Label("List", systemImage: "list.bullet") }
+                .tabItem { Label("List", systemImage: "line.3.horizontal.decrease") }
+                .tag(FloatTab.transactions)
             NavigationStack { CalendarView() }
-                .tabItem { Label("Calendar", systemImage: "calendar") }
+                .tabItem { Label("Calendar", systemImage: "calendar.day.timeline.left") }
+                .tag(FloatTab.calendar)
             NavigationStack { InsightsView() }
                 .tabItem {
-                    Label("Stats", systemImage: "chart.line.uptrend.xyaxis")
+                    Label("Stats", systemImage: "chart.xyaxis.line")
                 }
+                .tag(FloatTab.insights)
             NavigationStack { SettingsView() }
-                .tabItem { Label("More", systemImage: "gearshape.fill") }
+                .tabItem { Label("More", systemImage: "ellipsis") }
+                .tag(FloatTab.settings)
         }
         .tint(appState.themePalette.accent)
         .toolbarBackground(.thinMaterial, for: .tabBar)

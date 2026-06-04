@@ -5,10 +5,6 @@ struct HomeView: View {
     // model context is database context, like database connection.
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \TransactionItem.timestamp, order: .reverse) private
-        var transactions: [TransactionItem]
-    @Query(sort: \TransferItem.timestamp, order: .reverse) private
-        var transfers: [TransferItem]
     @Query private var goals: [GoalItem]
     @Query private var recurringRules: [RecurringRuleItem]
     @Query private var budgets: [BudgetPeriodItem]
@@ -16,6 +12,9 @@ struct HomeView: View {
     @Query private var categoryBudgets: [CategoryBudgetItem]
     @State private var recurringRuleToEdit: RecurringRuleItem?
     @State private var contributionGoal: GoalItem?
+    @State private var dashboardSnapshot = HomeDashboardSnapshot.placeholder
+    @State private var isEntrySheetPresented = false
+    @State private var newTransactionIsExpense: Bool?
 
     // Prefer the active budget period for all home-screen math; fall back to the first
     // saved period so the dashboard can still render while setup data is incomplete.
@@ -28,33 +27,17 @@ struct HomeView: View {
     // - variable spending already recorded through today. The returned result also
     // includes derived values such as daily allowance, days left, and progress.
     private var result: SafeToSpendResult {
-        SafeToSpendUseCase.calculate(
-            budget: activeBudget,
-            transactions: transactions,
-            goals: goals,
-            recurringRules: recurringRules
-        )
+        dashboardSnapshot.result
     }
 
     // The "Today" tile is separate from the period calculation: it only sums
     // expense transactions whose timestamps fall on the current calendar day.
     private var todayExpenses: Int64 {
-        transactions.filter {
-            $0.isExpense && Calendar.current.isDateInToday($0.timestamp)
-        }.reduce(0) { $0 + $1.amountMinor }
+        dashboardSnapshot.todayExpensesMinor
     }
 
     private var yesterdayExpenses: Int64 {
-        guard let yesterday = Calendar.current.date(
-            byAdding: .day,
-            value: -1,
-            to: Date()
-        ) else {
-            return 0
-        }
-        return transactions.filter {
-            $0.isExpense && Calendar.current.isDate($0.timestamp, inSameDayAs: yesterday)
-        }.reduce(0) { $0 + $1.amountMinor }
+        dashboardSnapshot.yesterdayExpensesMinor
     }
 
     private var upcomingRecurringExpense: RecurringRuleItem? {
@@ -72,23 +55,11 @@ struct HomeView: View {
     }
 
     private var forecastItems: [CashFlowForecastItem] {
-        CashFlowForecastUseCase.calculate(
-            accounts: accounts,
-            transactions: transactions,
-            transfers: transfers,
-            budget: activeBudget,
-            safeToSpend: result,
-            goals: goals,
-            recurringRules: recurringRules
-        )
+        dashboardSnapshot.forecastItems
     }
 
     private var budgetAlerts: [BudgetAlertItem] {
-        BudgetAlertsUseCase.calculate(
-            categoryBudgets: categoryBudgets,
-            transactions: transactions,
-            period: BudgetPeriod(start: result.periodStart, end: result.periodEnd)
-        )
+        dashboardSnapshot.budgetAlerts
     }
 
     private var periodDailyAverageMinor: Int64 {
@@ -154,9 +125,10 @@ struct HomeView: View {
                 budgetOverview
                 cashFlowForecast
                 budgetAlertsSection
+                reviewQueueLink
                 upcomingRecurring
                 nearestGoal
-                recentTransactions
+                recentTransactionsSection
             }
             .padding(20)
             .padding(.bottom, 150)
@@ -165,7 +137,7 @@ struct HomeView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    appState.presentNewTransaction()
+                    presentNewTransaction()
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -181,16 +153,33 @@ struct HomeView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $isEntrySheetPresented) {
+            QuickAddKeypadSheet(
+                transactionToEdit: nil,
+                initialIsExpense: newTransactionIsExpense
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
         .onAppear {
             MaterializeRecurringTransactionsUseCase.run(
                 modelContext: modelContext
             )
-            LocalNotificationScheduler.refresh(
-                recurringRules: recurringRules,
-                budgetAlerts: budgetAlerts,
-                goals: goals,
-                currencyCode: appState.selectedCurrencyCode
-            )
+        }
+        .task(id: dashboardLoadKey) {
+            await loadDashboardSnapshot()
+        }
+        .onChange(of: appState.isEntrySheetPresented) { _, isPresented in
+            guard !isPresented else { return }
+            Task { await loadDashboardSnapshot() }
+        }
+        .onChange(of: isEntrySheetPresented) { _, isPresented in
+            guard !isPresented else { return }
+            Task { await loadDashboardSnapshot() }
+        }
+        .onChange(of: appState.isTransferSheetPresented) { _, isPresented in
+            guard !isPresented else { return }
+            Task { await loadDashboardSnapshot() }
         }
     }
 
@@ -201,14 +190,14 @@ struct HomeView: View {
                 icon: "minus.circle.fill",
                 tint: appState.themePalette.caution
             ) {
-                appState.presentNewTransaction(isExpense: true)
+                presentNewTransaction(isExpense: true)
             }
             HomeActionButton(
                 title: "Income",
                 icon: "plus.circle.fill",
                 tint: appState.themePalette.positive
             ) {
-                appState.presentNewTransaction(isExpense: false)
+                presentNewTransaction(isExpense: false)
             }
             HomeActionButton(
                 title: "Transfer",
@@ -277,6 +266,35 @@ struct HomeView: View {
                 }
             }
         }
+    }
+
+    private var reviewQueueLink: some View {
+        NavigationLink {
+            ReviewQueueView()
+        } label: {
+            GlassCard {
+                HStack(spacing: 12) {
+                    FloatIconBadge(
+                        icon: "checklist",
+                        tint: appState.themePalette.accent,
+                        size: 38
+                    )
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Review queue")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Find missing details, duplicates, and large transactions.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     private var budgetOverview: some View {
@@ -389,13 +407,19 @@ struct HomeView: View {
         }
         try? modelContext.save()
         Haptics.confirm()
+        Task { await loadDashboardSnapshot() }
     }
 
-    private var recentTransactions: some View {
+    private func presentNewTransaction(isExpense: Bool? = nil) {
+        newTransactionIsExpense = isExpense
+        isEntrySheetPresented = true
+    }
+
+    private var recentTransactionsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: "Recent")
             GlassCard {
-                if transactions.isEmpty {
+                if dashboardSnapshot.recentTransactions.isEmpty {
                     EmptyStateView(
                         icon: "sparkles",
                         title: "No transactions yet",
@@ -403,12 +427,12 @@ struct HomeView: View {
                     )
                 } else {
                     VStack(spacing: 8) {
-                        ForEach(transactions.prefix(4)) { transaction in
+                        ForEach(dashboardSnapshot.recentTransactions) { transaction in
                             TransactionRowView(
                                 transaction: transaction,
                                 currencyCode: appState.selectedCurrencyCode
                             )
-                            if transaction.id != transactions.prefix(4).last?.id
+                            if transaction.id != dashboardSnapshot.recentTransactions.last?.id
                             {
                                 Divider()
                             }
@@ -417,6 +441,272 @@ struct HomeView: View {
                 }
             }
         }
+    }
+
+    private var dashboardLoadKey: HomeDashboardLoadKey {
+        HomeDashboardLoadKey(
+            currencyCode: appState.selectedCurrencyCode,
+            budgetID: activeBudget?.id,
+            budgetUpdatedAt: activeBudget?.updatedAt,
+            goalsUpdatedAt: goals.map(\.updatedAt).max(),
+            recurringRulesUpdatedAt: recurringRules.map(\.updatedAt).max(),
+            accountsUpdatedAt: accounts.map(\.updatedAt).max(),
+            categoryBudgetsUpdatedAt: categoryBudgets.map(\.updatedAt).max(),
+            recurringRemindersEnabled: appState.recurringRemindersEnabled,
+            budgetAlertsEnabled: appState.budgetAlertsEnabled,
+            goalRemindersEnabled: appState.goalRemindersEnabled,
+            recurringReminderMinutes: appState.recurringReminderMinutes,
+            goalReminderMinutes: appState.goalReminderMinutes,
+            budgetAlertSensitivityRaw: appState.budgetAlertSensitivityRaw
+        )
+    }
+
+    private func loadDashboardSnapshot() async {
+        await Task.yield()
+        dashboardSnapshot = fetchDashboardSnapshot()
+        LocalNotificationScheduler.refresh(
+            recurringRules: recurringRules,
+            budgetAlerts: dashboardSnapshot.budgetAlerts,
+            goals: goals,
+            currencyCode: appState.selectedCurrencyCode,
+            preferences: appState.reminderPreferences
+        )
+    }
+
+    private func fetchDashboardSnapshot() -> HomeDashboardSnapshot {
+        let now = Date()
+        let calendar = Calendar.current
+        let budget = activeBudget
+        let period = BudgetPeriodCalculator.currentPeriod(
+            for: budget,
+            now: now,
+            calendar: calendar
+        )
+        let periodEnd = endOfDay(for: period.end, calendar: calendar)
+        let periodTransactions = fetchTransactions(from: period.start, through: periodEnd)
+        let comparisonTransactions = fetchComparisonTransactions(now: now, calendar: calendar)
+        let result = SafeToSpendUseCase.calculate(
+            period: period,
+            expectedIncomeMinor: budget?.expectedIncomeMinor ?? 0,
+            transactions: periodTransactions,
+            goals: goals,
+            recurringRules: recurringRules,
+            now: now,
+            calendar: calendar
+        )
+        let alerts = BudgetAlertsUseCase.calculate(
+            categoryBudgets: categoryBudgets,
+            transactions: periodTransactions,
+            period: period,
+            now: now,
+            calendar: calendar
+        )
+        let forecast = CashFlowForecastUseCase.calculate(
+            currentBalanceMinor: fetchCurrentBalanceMinor(),
+            budget: budget,
+            safeToSpend: result,
+            goals: goals,
+            recurringRules: recurringRules,
+            now: now,
+            calendar: calendar
+        )
+
+        return HomeDashboardSnapshot(
+            result: result,
+            todayExpensesMinor: sumExpenses(
+                comparisonTransactions,
+                onSameDayAs: now,
+                calendar: calendar
+            ),
+            yesterdayExpensesMinor: sumYesterdayExpenses(
+                comparisonTransactions,
+                now: now,
+                calendar: calendar
+            ),
+            forecastItems: forecast,
+            budgetAlerts: alerts,
+            recentTransactions: fetchRecentTransactions()
+        )
+    }
+
+    private func fetchTransactions(from start: Date, through end: Date)
+        -> [TransactionItem]
+    {
+        do {
+            let descriptor = FetchDescriptor<TransactionItem>(
+                predicate: #Predicate<TransactionItem> { transaction in
+                    transaction.timestamp >= start && transaction.timestamp <= end
+                },
+                sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+            )
+            return try modelContext.fetch(descriptor)
+        } catch {
+            return []
+        }
+    }
+
+    private func fetchComparisonTransactions(now: Date, calendar: Calendar)
+        -> [TransactionItem]
+    {
+        guard
+            let yesterday = calendar.date(byAdding: .day, value: -1, to: now)
+        else {
+            return []
+        }
+        let start = calendar.startOfDay(for: yesterday)
+        let end = endOfDay(for: now, calendar: calendar)
+
+        do {
+            let descriptor = FetchDescriptor<TransactionItem>(
+                predicate: #Predicate<TransactionItem> { transaction in
+                    transaction.isExpense
+                        && transaction.timestamp >= start
+                        && transaction.timestamp <= end
+                }
+            )
+            return try modelContext.fetch(descriptor)
+        } catch {
+            return []
+        }
+    }
+
+    private func fetchRecentTransactions() -> [TransactionItem] {
+        do {
+            var descriptor = FetchDescriptor<TransactionItem>(
+                sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+            )
+            descriptor.fetchLimit = 4
+            return try modelContext.fetch(descriptor)
+        } catch {
+            return []
+        }
+    }
+
+    private func fetchCurrentBalanceMinor() -> Int64 {
+        let activeAccountIDs = Set(accounts.filter { !$0.archived }.map(\.id))
+        let openingBalance = accounts
+            .filter { !$0.archived }
+            .reduce(Int64(0)) { $0 + $1.openingBalanceMinor }
+        guard !activeAccountIDs.isEmpty else { return 0 }
+
+        let transactionNet = fetchAllTransactionsForBalance().reduce(Int64(0)) {
+            total,
+            transaction in
+            guard
+                let accountID = transaction.account?.id,
+                activeAccountIDs.contains(accountID)
+            else {
+                return total
+            }
+            return total + (transaction.isExpense ? -transaction.amountMinor : transaction.amountMinor)
+        }
+        let transferNet = fetchAllTransfersForBalance().reduce(Int64(0)) {
+            total,
+            transfer in
+            var net = total
+            if
+                let fromID = transfer.fromAccount?.id,
+                activeAccountIDs.contains(fromID)
+            {
+                net -= transfer.amountMinor
+            }
+            if
+                let toID = transfer.toAccount?.id,
+                activeAccountIDs.contains(toID)
+            {
+                net += transfer.amountMinor
+            }
+            return net
+        }
+
+        return openingBalance + transactionNet + transferNet
+    }
+
+    private func fetchAllTransactionsForBalance() -> [TransactionItem] {
+        do {
+            return try modelContext.fetch(FetchDescriptor<TransactionItem>())
+        } catch {
+            return []
+        }
+    }
+
+    private func fetchAllTransfersForBalance() -> [TransferItem] {
+        do {
+            return try modelContext.fetch(FetchDescriptor<TransferItem>())
+        } catch {
+            return []
+        }
+    }
+
+    private func sumExpenses(
+        _ transactions: [TransactionItem],
+        onSameDayAs date: Date,
+        calendar: Calendar
+    ) -> Int64 {
+        transactions
+            .filter { calendar.isDate($0.timestamp, inSameDayAs: date) }
+            .reduce(Int64(0)) { $0 + $1.amountMinor }
+    }
+
+    private func sumYesterdayExpenses(
+        _ transactions: [TransactionItem],
+        now: Date,
+        calendar: Calendar
+    ) -> Int64 {
+        guard let yesterday = calendar.date(byAdding: .day, value: -1, to: now) else {
+            return 0
+        }
+        return sumExpenses(transactions, onSameDayAs: yesterday, calendar: calendar)
+    }
+
+    private func endOfDay(for date: Date, calendar: Calendar) -> Date {
+        let start = calendar.startOfDay(for: date)
+        return calendar.date(
+            byAdding: DateComponents(day: 1, second: -1),
+            to: start
+        ) ?? date
+    }
+}
+
+private struct HomeDashboardLoadKey: Equatable {
+    let currencyCode: String
+    let budgetID: UUID?
+    let budgetUpdatedAt: Date?
+    let goalsUpdatedAt: Date?
+    let recurringRulesUpdatedAt: Date?
+    let accountsUpdatedAt: Date?
+    let categoryBudgetsUpdatedAt: Date?
+    let recurringRemindersEnabled: Bool
+    let budgetAlertsEnabled: Bool
+    let goalRemindersEnabled: Bool
+    let recurringReminderMinutes: Int
+    let goalReminderMinutes: Int
+    let budgetAlertSensitivityRaw: String
+}
+
+private struct HomeDashboardSnapshot {
+    let result: SafeToSpendResult
+    let todayExpensesMinor: Int64
+    let yesterdayExpensesMinor: Int64
+    let forecastItems: [CashFlowForecastItem]
+    let budgetAlerts: [BudgetAlertItem]
+    let recentTransactions: [TransactionItem]
+
+    static var placeholder: HomeDashboardSnapshot {
+        let result = SafeToSpendUseCase.calculate(
+            budget: nil,
+            transactions: [],
+            goals: [],
+            recurringRules: []
+        )
+        return HomeDashboardSnapshot(
+            result: result,
+            todayExpensesMinor: 0,
+            yesterdayExpensesMinor: 0,
+            forecastItems: [],
+            budgetAlerts: [],
+            recentTransactions: []
+        )
     }
 }
 

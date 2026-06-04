@@ -542,6 +542,7 @@ struct AccountPicker: View {
                 set: { id in selectedAccount = accounts.first { $0.id == id } }
             )
         ) {
+            Text("Default account").tag(UUID?.none)
             ForEach(accounts) { account in
                 Label(account.name, systemImage: account.type.icon).tag(
                     Optional(account.id)

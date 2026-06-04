@@ -7,6 +7,14 @@ enum LocalNotificationScheduler {
         budgetAlerts: [BudgetAlertItem],
         goals: [GoalItem],
         currencyCode: String,
+        preferences: FloatReminderPreferences = FloatReminderPreferences(
+            recurringEnabled: true,
+            budgetEnabled: true,
+            goalsEnabled: true,
+            recurringReminderMinutes: 9 * 60,
+            goalReminderMinutes: 9 * 60 + 30,
+            budgetAlertSensitivity: .closeAndOver
+        ),
         now: Date = Date(),
         calendar: Calendar = .current
     ) {
@@ -25,43 +33,52 @@ enum LocalNotificationScheduler {
             }
             center.removePendingNotificationRequests(withIdentifiers: managedIDs)
 
-            recurringRules
-                .filter { $0.active }
-                .prefix(8)
-                .forEach {
-                    scheduleRecurring(
-                        $0,
-                        center: center,
-                        now: now,
-                        calendar: calendar,
-                        currencyCode: currencyCode
-                    )
-                }
+            if preferences.recurringEnabled {
+                recurringRules
+                    .filter { $0.active }
+                    .prefix(8)
+                    .forEach {
+                        scheduleRecurring(
+                            $0,
+                            center: center,
+                            now: now,
+                            calendar: calendar,
+                            currencyCode: currencyCode,
+                            reminderMinutes: preferences.recurringReminderMinutes
+                        )
+                    }
+            }
 
-            budgetAlerts
-                .prefix(4)
-                .forEach {
-                    scheduleBudgetAlert(
-                        $0,
-                        center: center,
-                        now: now,
-                        currencyCode: currencyCode
-                    )
-                }
+            if preferences.budgetEnabled {
+                budgetAlerts
+                    .filter { shouldSchedule($0, sensitivity: preferences.budgetAlertSensitivity) }
+                    .prefix(4)
+                    .forEach {
+                        scheduleBudgetAlert(
+                            $0,
+                            center: center,
+                            now: now,
+                            currencyCode: currencyCode
+                        )
+                    }
+            }
 
-            goals
-                .filter { !$0.achieved && $0.targetDate != nil }
-                .sorted { ($0.targetDate ?? .distantFuture) < ($1.targetDate ?? .distantFuture) }
-                .prefix(6)
-                .forEach {
-                    scheduleGoal(
-                        $0,
-                        center: center,
-                        now: now,
-                        calendar: calendar,
-                        currencyCode: currencyCode
-                    )
-                }
+            if preferences.goalsEnabled {
+                goals
+                    .filter { !$0.achieved && $0.targetDate != nil }
+                    .sorted { ($0.targetDate ?? .distantFuture) < ($1.targetDate ?? .distantFuture) }
+                    .prefix(6)
+                    .forEach {
+                        scheduleGoal(
+                            $0,
+                            center: center,
+                            now: now,
+                            calendar: calendar,
+                            currencyCode: currencyCode,
+                            reminderMinutes: preferences.goalReminderMinutes
+                        )
+                    }
+            }
         }
     }
 
@@ -70,13 +87,12 @@ enum LocalNotificationScheduler {
         center: UNUserNotificationCenter,
         now: Date,
         calendar: Calendar,
-        currencyCode: String
+        currencyCode: String,
+        reminderMinutes: Int
     ) {
         let dueDate = calendar.startOfDay(for: rule.nextRunDate)
         guard dueDate >= calendar.startOfDay(for: now) else { return }
-        let reminderDate =
-            calendar.date(bySettingHour: 9, minute: 0, second: 0, of: dueDate)
-            ?? dueDate
+        let reminderDate = date(on: dueDate, minutesAfterStartOfDay: reminderMinutes, calendar: calendar)
         guard reminderDate > now else { return }
 
         let content = UNMutableNotificationContent()
@@ -117,14 +133,13 @@ enum LocalNotificationScheduler {
         center: UNUserNotificationCenter,
         now: Date,
         calendar: Calendar,
-        currencyCode: String
+        currencyCode: String,
+        reminderMinutes: Int
     ) {
         guard let targetDate = goal.targetDate else { return }
         let targetStart = calendar.startOfDay(for: targetDate)
         guard targetStart >= calendar.startOfDay(for: now) else { return }
-        let reminderDate =
-            calendar.date(bySettingHour: 9, minute: 30, second: 0, of: targetStart)
-            ?? targetStart
+        let reminderDate = date(on: targetStart, minutesAfterStartOfDay: reminderMinutes, calendar: calendar)
         guard reminderDate > now else { return }
 
         let content = UNMutableNotificationContent()
@@ -163,6 +178,35 @@ enum LocalNotificationScheduler {
         rule.note?.isEmpty == false
             ? rule.note ?? "Recurring item"
             : rule.category?.name ?? "Recurring item"
+    }
+
+    private static func shouldSchedule(
+        _ alert: BudgetAlertItem,
+        sensitivity: BudgetAlertSensitivity
+    ) -> Bool {
+        switch sensitivity {
+        case .off:
+            return false
+        case .urgentOnly:
+            return alert.severity == .over
+        case .closeAndOver:
+            return alert.severity == .close || alert.severity == .over
+        case .all:
+            return true
+        }
+    }
+
+    private static func date(
+        on day: Date,
+        minutesAfterStartOfDay minutes: Int,
+        calendar: Calendar
+    ) -> Date {
+        let clamped = min(max(minutes, 0), 23 * 60 + 59)
+        return calendar.date(
+            byAdding: .minute,
+            value: clamped,
+            to: calendar.startOfDay(for: day)
+        ) ?? day
     }
 
     private static func money(_ amount: Int64, _ currencyCode: String) -> String {

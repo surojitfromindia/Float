@@ -32,6 +32,28 @@ enum CashFlowForecastUseCase {
             transactions: transactions,
             transfers: transfers
         )
+        return calculate(
+            horizons: horizons,
+            currentBalanceMinor: balance,
+            budget: budget,
+            safeToSpend: safeToSpend,
+            goals: goals,
+            recurringRules: recurringRules,
+            now: now,
+            calendar: calendar
+        )
+    }
+
+    static func calculate(
+        horizons: [Int] = [7, 14, 30],
+        currentBalanceMinor: Int64,
+        budget: BudgetPeriodItem?,
+        safeToSpend: SafeToSpendResult,
+        goals: [GoalItem],
+        recurringRules: [RecurringRuleItem],
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> [CashFlowForecastItem] {
         return horizons.map { days in
             let horizonEnd =
                 calendar.date(byAdding: .day, value: max(1, days) - 1, to: now)
@@ -54,7 +76,7 @@ enum CashFlowForecastUseCase {
             let budgetAllowance = safeToSpend.dailyAllowanceMinor
                 * Int64(max(1, min(days, safeToSpend.daysRemaining)))
             let projectedBalance =
-                balance + recurring.income - recurring.expense - goalReserve
+                currentBalanceMinor + recurring.income - recurring.expense - goalReserve
             let plannedSafe =
                 budgetAllowance > 0
                     ? min(max(0, projectedBalance), budgetAllowance)

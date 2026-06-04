@@ -1,3 +1,4 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -9,6 +10,11 @@ private struct FloatWidgetSnapshot: Codable {
     let statusText: String
     let currencyCode: String
     let updatedAt: Date
+    let todayExpensesMinor: Int64?
+    let nextRecurringTitle: String?
+    let nextRecurringAmountMinor: Int64?
+    let topBudgetAlertTitle: String?
+    let topBudgetAlertProgress: Double?
 
     static let fallback = FloatWidgetSnapshot(
         safeToSpendMinor: 0,
@@ -17,7 +23,12 @@ private struct FloatWidgetSnapshot: Codable {
         periodProgress: 0,
         statusText: "Open Float to update",
         currencyCode: Locale.current.currency?.identifier ?? "USD",
-        updatedAt: Date()
+        updatedAt: Date(),
+        todayExpensesMinor: nil,
+        nextRecurringTitle: nil,
+        nextRecurringAmountMinor: nil,
+        topBudgetAlertTitle: nil,
+        topBudgetAlertProgress: nil
     )
 }
 
@@ -40,7 +51,12 @@ private struct SafeToSpendProvider: TimelineProvider {
                 periodProgress: 0.45,
                 statusText: "On track",
                 currencyCode: Locale.current.currency?.identifier ?? "USD",
-                updatedAt: Date()
+                updatedAt: Date(),
+                todayExpensesMinor: 18_700,
+                nextRecurringTitle: "Rent",
+                nextRecurringAmountMinor: 180_000,
+                topBudgetAlertTitle: "Dining is close",
+                topBudgetAlertProgress: 0.86
             )
         )
     }
@@ -89,6 +105,8 @@ struct FloatSafeToSpendWidget: Widget {
         .configurationDisplayName("Safe to spend")
         .description("See what is safe to spend from your Lock Screen.")
         .supportedFamilies([
+            .systemSmall,
+            .systemMedium,
             .accessoryRectangular,
             .accessoryCircular,
             .accessoryInline,
@@ -102,6 +120,10 @@ private struct SafeToSpendWidgetView: View {
 
     var body: some View {
         switch family {
+        case .systemSmall:
+            smallHomeView
+        case .systemMedium:
+            mediumHomeView
         case .accessoryCircular:
             circularView
         case .accessoryInline:
@@ -109,6 +131,77 @@ private struct SafeToSpendWidgetView: View {
         default:
             rectangularView
         }
+    }
+
+    private var smallHomeView: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Float")
+                    .font(.headline.weight(.bold))
+                Spacer()
+                progressRing
+                    .frame(width: 24, height: 24)
+            }
+            Spacer(minLength: 0)
+            Text(headlineText)
+                .font(.title2.monospacedDigit().weight(.bold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.66)
+            Text("safe - \(shortMoney(entry.snapshot.dailyAllowanceMinor))/day")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+            HStack(spacing: 8) {
+                widgetButton(systemImage: "minus.circle.fill", intent: AddWidgetExpenseIntent())
+                widgetButton(systemImage: "plus.circle.fill", intent: AddWidgetIncomeIntent())
+                widgetButton(systemImage: "arrow.left.arrow.right.circle.fill", intent: AddWidgetTransferIntent())
+            }
+        }
+        .padding()
+    }
+
+    private var mediumHomeView: some View {
+        HStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Safe to spend")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(headlineText)
+                    .font(.title.monospacedDigit().weight(.bold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Text(detailText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                HStack(spacing: 8) {
+                    widgetButton(systemImage: "minus.circle.fill", intent: AddWidgetExpenseIntent())
+                    widgetButton(systemImage: "plus.circle.fill", intent: AddWidgetIncomeIntent())
+                    widgetButton(systemImage: "arrow.left.arrow.right.circle.fill", intent: AddWidgetTransferIntent())
+                    widgetButton(systemImage: "checklist", intent: OpenWidgetReviewQueueIntent())
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            VStack(alignment: .leading, spacing: 8) {
+                widgetMetric(
+                    title: "Today",
+                    value: shortMoney(entry.snapshot.todayExpensesMinor ?? 0)
+                )
+                widgetMetric(
+                    title: "Next",
+                    value: nextRecurringText
+                )
+                widgetMetric(
+                    title: "Alert",
+                    value: budgetAlertText
+                )
+            }
+            .frame(maxWidth: 130, alignment: .leading)
+        }
+        .padding()
     }
 
     private var rectangularView: some View {
@@ -161,6 +254,31 @@ private struct SafeToSpendWidgetView: View {
         }
     }
 
+    private func widgetButton<I: AppIntent>(
+        systemImage: String,
+        intent: I
+    ) -> some View {
+        Button(intent: intent) {
+            Image(systemName: systemImage)
+                .font(.system(size: 14, weight: .semibold))
+                .frame(width: 28, height: 28)
+                .background(.primary.opacity(0.08), in: Circle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func widgetMetric(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+    }
+
     private var inlineText: String {
         if !hasData {
             return entry.snapshot.statusText
@@ -177,6 +295,26 @@ private struct SafeToSpendWidgetView: View {
             return "to update"
         }
         return "\(entry.snapshot.daysRemaining)d left - \(entry.snapshot.statusText)"
+    }
+
+    private var nextRecurringText: String {
+        guard let title = entry.snapshot.nextRecurringTitle, !title.isEmpty else {
+            return "None"
+        }
+        if let amount = entry.snapshot.nextRecurringAmountMinor {
+            return "\(title) \(shortMoney(amount))"
+        }
+        return title
+    }
+
+    private var budgetAlertText: String {
+        guard let title = entry.snapshot.topBudgetAlertTitle, !title.isEmpty else {
+            return "Clear"
+        }
+        if let progress = entry.snapshot.topBudgetAlertProgress {
+            return "\(Int((progress * 100).rounded()))% \(title)"
+        }
+        return title
     }
 
     private var hasData: Bool {

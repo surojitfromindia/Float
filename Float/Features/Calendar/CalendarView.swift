@@ -3,16 +3,14 @@ import SwiftData
 import SwiftUI
 
 struct CalendarView: View {
+    @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \TransactionItem.timestamp, order: .reverse) private
-        var transactions: [TransactionItem]
-    @Query(sort: \TransferItem.timestamp, order: .reverse) private
-        var transfers: [TransferItem]
     @Query private var goals: [GoalItem]
     @Query private var recurringRules: [RecurringRuleItem]
     @Query private var budgetPeriods: [BudgetPeriodItem]
 
     @State private var displayedMonth = Calendar.current.startOfMonth(for: Date())
+    @State private var monthSnapshot = CalendarMonthSnapshot.empty
     @State private var selectedDay: CalendarDaySelection?
     @State private var highlightedDay: Date?
     @State private var jumpMonth = Date()
@@ -26,30 +24,15 @@ struct CalendarView: View {
     }
 
     private var safeToSpend: SafeToSpendResult {
-        SafeToSpendUseCase.calculate(
-            budget: activeBudget,
-            transactions: transactions,
-            goals: goals,
-            recurringRules: recurringRules
-        )
+        monthSnapshot.safeToSpend
     }
 
     private var monthTransactions: [TransactionItem] {
-        guard let interval = calendar.dateInterval(of: .month, for: displayedMonth) else {
-            return []
-        }
-        return transactions.filter {
-            interval.start <= $0.timestamp && $0.timestamp < interval.end
-        }
+        monthSnapshot.monthTransactions
     }
 
     private var monthTransfers: [TransferItem] {
-        guard let interval = calendar.dateInterval(of: .month, for: displayedMonth) else {
-            return []
-        }
-        return transfers.filter {
-            interval.start <= $0.timestamp && $0.timestamp < interval.end
-        }
+        monthSnapshot.monthTransfers
     }
 
     private var monthSummary: CalendarPeriodSummary {
@@ -64,13 +47,13 @@ struct CalendarView: View {
     }
 
     private var transactionGroups: [Date: [TransactionItem]] {
-        Dictionary(grouping: transactions) {
+        Dictionary(grouping: monthSnapshot.gridTransactions) {
             calendar.startOfDay(for: $0.timestamp)
         }
     }
 
     private var transferGroups: [Date: [TransferItem]] {
-        Dictionary(grouping: transfers) {
+        Dictionary(grouping: monthSnapshot.gridTransfers) {
             calendar.startOfDay(for: $0.timestamp)
         }
     }
@@ -183,6 +166,14 @@ struct CalendarView: View {
                         }
                     }
                 }
+            }
+        }
+        .task(id: monthLoadKey) {
+            loadMonthSnapshot()
+        }
+        .onChange(of: selectedDay?.date) { _, date in
+            if date == nil {
+                loadMonthSnapshot()
             }
         }
     }
@@ -352,10 +343,174 @@ struct CalendarView: View {
                 for: rule,
                 from: interval.start,
                 through: calendar.date(byAdding: .day, value: -1, to: interval.end) ?? interval.end,
-                transactions: transactions,
+                transactions: monthSnapshot.gridTransactions,
                 calendar: calendar
             )
         }
+    }
+
+    private var monthLoadKey: CalendarMonthLoadKey {
+        CalendarMonthLoadKey(
+            displayedMonth: displayedMonth,
+            budgetID: activeBudget?.id,
+            budgetUpdatedAt: activeBudget?.updatedAt,
+            goalUpdatedAt: goals.map(\.updatedAt).max(),
+            recurringUpdatedAt: recurringRules.map(\.updatedAt).max()
+        )
+    }
+
+    private func loadMonthSnapshot() {
+        monthSnapshot = fetchMonthSnapshot()
+    }
+
+    private func fetchMonthSnapshot() -> CalendarMonthSnapshot {
+        guard
+            let monthInterval = calendar.dateInterval(of: .month, for: displayedMonth),
+            let gridInterval = visibleGridInterval(for: monthInterval)
+        else {
+            return .empty
+        }
+
+        do {
+            let gridEnd = calendar.date(
+                byAdding: .second,
+                value: -1,
+                to: gridInterval.end
+            ) ?? gridInterval.end
+            let monthEnd = calendar.date(
+                byAdding: .second,
+                value: -1,
+                to: monthInterval.end
+            ) ?? monthInterval.end
+            let gridTransactions = try fetchTransactions(from: gridInterval.start, through: gridEnd)
+            let gridTransfers = try fetchTransfers(from: gridInterval.start, through: gridEnd)
+            let monthTransactions = gridTransactions.filter {
+                monthInterval.start <= $0.timestamp && $0.timestamp < monthInterval.end
+            }
+            let monthTransfers = gridTransfers.filter {
+                monthInterval.start <= $0.timestamp && $0.timestamp < monthInterval.end
+            }
+            let safeTransactions = try fetchSafeToSpendTransactions(through: monthEnd)
+            let safeToSpend = SafeToSpendUseCase.calculate(
+                budget: activeBudget,
+                transactions: safeTransactions,
+                goals: goals,
+                recurringRules: recurringRules,
+                calendar: calendar
+            )
+            return CalendarMonthSnapshot(
+                gridTransactions: gridTransactions,
+                gridTransfers: gridTransfers,
+                monthTransactions: monthTransactions,
+                monthTransfers: monthTransfers,
+                safeToSpend: safeToSpend
+            )
+        } catch {
+            return .empty
+        }
+    }
+
+    private func visibleGridInterval(for monthInterval: DateInterval) -> DateInterval? {
+        let weekdayOffset = (
+            calendar.component(.weekday, from: monthInterval.start) - calendar.firstWeekday + 7
+        ) % 7
+        let gridStart = calendar.date(
+            byAdding: .day,
+            value: -weekdayOffset,
+            to: monthInterval.start
+        ) ?? monthInterval.start
+        guard let gridEnd = calendar.date(byAdding: .day, value: 42, to: gridStart) else {
+            return nil
+        }
+        return DateInterval(start: gridStart, end: gridEnd)
+    }
+
+    private func fetchTransactions(from start: Date, through end: Date) throws
+        -> [TransactionItem]
+    {
+        let descriptor = FetchDescriptor<TransactionItem>(
+            predicate: #Predicate<TransactionItem> { transaction in
+                transaction.timestamp >= start && transaction.timestamp <= end
+            },
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
+    private func fetchTransfers(from start: Date, through end: Date) throws
+        -> [TransferItem]
+    {
+        let descriptor = FetchDescriptor<TransferItem>(
+            predicate: #Predicate<TransferItem> { transfer in
+                transfer.timestamp >= start && transfer.timestamp <= end
+            },
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
+    private func fetchSafeToSpendTransactions(through end: Date) throws -> [TransactionItem] {
+        let period = BudgetPeriodCalculator.currentPeriod(
+            for: activeBudget,
+            now: Date(),
+            calendar: calendar
+        )
+        let start = period.start
+        let effectiveEnd = min(end, calendar.endOfDay(for: period.end))
+        let descriptor = FetchDescriptor<TransactionItem>(
+            predicate: #Predicate<TransactionItem> { transaction in
+                transaction.timestamp >= start && transaction.timestamp <= effectiveEnd
+            }
+        )
+        return try modelContext.fetch(descriptor)
+    }
+}
+
+private struct CalendarMonthLoadKey: Equatable {
+    let displayedMonth: Date
+    let budgetID: UUID?
+    let budgetUpdatedAt: Date?
+    let goalUpdatedAt: Date?
+    let recurringUpdatedAt: Date?
+}
+
+private struct CalendarDayLoadKey: Equatable {
+    let selectedDate: Date
+    let budgetID: UUID?
+    let budgetUpdatedAt: Date?
+    let goalUpdatedAt: Date?
+    let recurringUpdatedAt: Date?
+}
+
+private struct CalendarMonthSnapshot {
+    let gridTransactions: [TransactionItem]
+    let gridTransfers: [TransferItem]
+    let monthTransactions: [TransactionItem]
+    let monthTransfers: [TransferItem]
+    let safeToSpend: SafeToSpendResult
+
+    static var empty: CalendarMonthSnapshot {
+        CalendarMonthSnapshot(
+            gridTransactions: [],
+            gridTransfers: [],
+            monthTransactions: [],
+            monthTransfers: [],
+            safeToSpend: .empty
+        )
+    }
+}
+
+private struct CalendarDaySnapshot {
+    let transactions: [TransactionItem]
+    let transfers: [TransferItem]
+    let safeToSpend: SafeToSpendResult
+
+    static var empty: CalendarDaySnapshot {
+        CalendarDaySnapshot(
+            transactions: [],
+            transfers: [],
+            safeToSpend: .empty
+        )
     }
 }
 
@@ -363,10 +518,6 @@ private struct DailyDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \TransactionItem.timestamp, order: .forward) private
-        var transactions: [TransactionItem]
-    @Query(sort: \TransferItem.timestamp, order: .forward) private
-        var transfers: [TransferItem]
     @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
     @Query private var goals: [GoalItem]
@@ -384,6 +535,7 @@ private struct DailyDetailView: View {
     @State private var selectedDate: Date
     @State private var deletedSnapshot: CalendarDeletedTransactionSnapshot?
     @State private var showingUndo = false
+    @State private var daySnapshot = CalendarDaySnapshot.empty
 
     private let calendar = Calendar.current
 
@@ -397,29 +549,15 @@ private struct DailyDetailView: View {
     }
 
     private var safeToSpend: SafeToSpendResult {
-        SafeToSpendUseCase.calculate(
-            budget: activeBudget,
-            transactions: transactions,
-            goals: goals,
-            recurringRules: recurringRules,
-            now: selectedDate
-        )
+        daySnapshot.safeToSpend
     }
 
     private var dayTransactions: [TransactionItem] {
-        let start = calendar.startOfDay(for: selectedDate)
-        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
-        return transactions
-            .filter { start <= $0.timestamp && $0.timestamp < end }
-            .sorted { $0.timestamp > $1.timestamp }
+        daySnapshot.transactions
     }
 
     private var dayTransfers: [TransferItem] {
-        let start = calendar.startOfDay(for: selectedDate)
-        let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start
-        return transfers
-            .filter { start <= $0.timestamp && $0.timestamp < end }
-            .sorted { $0.timestamp > $1.timestamp }
+        daySnapshot.transfers
     }
 
     private var summary: CalendarPeriodSummary {
@@ -430,7 +568,7 @@ private struct DailyDetailView: View {
         CalendarRecurringProjection.dueDates(
             for: recurringRules,
             on: selectedDate,
-            transactions: transactions,
+            transactions: dayTransactions,
             calendar: calendar
         )
     }
@@ -545,6 +683,23 @@ private struct DailyDetailView: View {
             )
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
+        }
+        .task(id: dayLoadKey) {
+            loadDaySnapshot()
+        }
+        .onChange(of: isEntrySheetPresented) { _, isPresented in
+            if !isPresented {
+                editingTransaction = nil
+                initialTimestamp = nil
+                loadDaySnapshot()
+            }
+        }
+        .onChange(of: isTransferSheetPresented) { _, isPresented in
+            if !isPresented {
+                editingTransfer = nil
+                initialTransferTimestamp = nil
+                loadDaySnapshot()
+            }
         }
     }
 
@@ -966,12 +1121,14 @@ private struct DailyDetailView: View {
     private func delete(_ transaction: TransactionItem) {
         deletedSnapshot = CalendarDeletedTransactionSnapshot(transaction: transaction)
         try? TransactionRepository(modelContext: modelContext).delete(transaction)
+        loadDaySnapshot()
         withAnimation { showingUndo = true }
         Haptics.tick()
     }
 
     private func delete(_ transfer: TransferItem) {
         try? TransferRepository(modelContext: modelContext).delete(transfer)
+        loadDaySnapshot()
         Haptics.tick()
     }
 
@@ -985,6 +1142,7 @@ private struct DailyDetailView: View {
             )
         )
         try? modelContext.save()
+        loadDaySnapshot()
         withAnimation { showingUndo = false }
         self.deletedSnapshot = nil
         Haptics.confirm()
@@ -1016,6 +1174,7 @@ private struct DailyDetailView: View {
         )
         modelContext.insert(copied)
         try? modelContext.save()
+        loadDaySnapshot()
         Haptics.confirm()
     }
 
@@ -1043,6 +1202,7 @@ private struct DailyDetailView: View {
         )
         modelContext.insert(transaction)
         try? modelContext.save()
+        loadDaySnapshot()
         Haptics.confirm()
     }
 
@@ -1052,6 +1212,86 @@ private struct DailyDetailView: View {
                 ?? selectedDate
         )
         Haptics.tick()
+    }
+
+    private var dayLoadKey: CalendarDayLoadKey {
+        CalendarDayLoadKey(
+            selectedDate: selectedDate,
+            budgetID: activeBudget?.id,
+            budgetUpdatedAt: activeBudget?.updatedAt,
+            goalUpdatedAt: goals.map(\.updatedAt).max(),
+            recurringUpdatedAt: recurringRules.map(\.updatedAt).max()
+        )
+    }
+
+    private func loadDaySnapshot() {
+        daySnapshot = fetchDaySnapshot()
+    }
+
+    private func fetchDaySnapshot() -> CalendarDaySnapshot {
+        let start = calendar.startOfDay(for: selectedDate)
+        let end = calendar.endOfDay(for: selectedDate)
+
+        do {
+            let transactions = try fetchTransactions(from: start, through: end)
+            let transfers = try fetchTransfers(from: start, through: end)
+            let safeTransactions = try fetchSafeToSpendTransactions(through: end)
+            let safeToSpend = SafeToSpendUseCase.calculate(
+                budget: activeBudget,
+                transactions: safeTransactions,
+                goals: goals,
+                recurringRules: recurringRules,
+                now: selectedDate,
+                calendar: calendar
+            )
+            return CalendarDaySnapshot(
+                transactions: transactions,
+                transfers: transfers,
+                safeToSpend: safeToSpend
+            )
+        } catch {
+            return .empty
+        }
+    }
+
+    private func fetchTransactions(from start: Date, through end: Date) throws
+        -> [TransactionItem]
+    {
+        let descriptor = FetchDescriptor<TransactionItem>(
+            predicate: #Predicate<TransactionItem> { transaction in
+                transaction.timestamp >= start && transaction.timestamp <= end
+            },
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
+    private func fetchTransfers(from start: Date, through end: Date) throws
+        -> [TransferItem]
+    {
+        let descriptor = FetchDescriptor<TransferItem>(
+            predicate: #Predicate<TransferItem> { transfer in
+                transfer.timestamp >= start && transfer.timestamp <= end
+            },
+            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
+    private func fetchSafeToSpendTransactions(through end: Date) throws -> [TransactionItem] {
+        let period = BudgetPeriodCalculator.currentPeriod(
+            for: activeBudget,
+            now: selectedDate,
+            calendar: calendar
+        )
+        let start = period.start
+        let effectiveEnd = min(end, calendar.endOfDay(for: period.end))
+        let descriptor = FetchDescriptor<TransactionItem>(
+            predicate: #Predicate<TransactionItem> { transaction in
+                transaction.timestamp >= start && transaction.timestamp <= effectiveEnd
+            }
+        )
+        return try modelContext.fetch(descriptor)
     }
 }
 
@@ -1474,10 +1714,35 @@ private extension String {
     }
 }
 
+private extension SafeToSpendResult {
+    static var empty: SafeToSpendResult {
+        SafeToSpendResult(
+            periodStart: Date(),
+            periodEnd: Date(),
+            expectedIncomeMinor: 0,
+            recurringDueMinor: 0,
+            goalContributionMinor: 0,
+            variableSpentMinor: 0,
+            safeToSpendMinor: 0,
+            dailyAllowanceMinor: 0,
+            overAmountMinor: 0,
+            daysRemaining: 1,
+            periodProgress: 0,
+            spendingProgress: 0
+        )
+    }
+}
+
 private extension Calendar {
     func startOfMonth(for date: Date) -> Date {
         self.date(from: dateComponents([.year, .month], from: date))
             ?? startOfDay(for: date)
+    }
+
+    func endOfDay(for date: Date) -> Date {
+        let start = startOfDay(for: date)
+        return self.date(byAdding: DateComponents(day: 1, second: -1), to: start)
+            ?? start
     }
 
     func timestamp(on day: Date, matchingTimeFrom timeSource: Date) -> Date {

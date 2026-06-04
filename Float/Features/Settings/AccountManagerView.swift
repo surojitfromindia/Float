@@ -5,60 +5,51 @@ struct AccountManagerView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
-    @Query(sort: \TransactionItem.timestamp, order: .reverse) private
-        var transactions: [TransactionItem]
-    @Query(sort: \TransferItem.timestamp, order: .reverse) private
-        var transfers: [TransferItem]
     @State private var showingEditor = false
     @State private var editingAccount: AccountItem?
+    @State private var balanceStates: [UUID: AccountBalanceLoadState] = [:]
 
     var body: some View {
         List {
             ForEach(accounts) { account in
-                Button {
-                    editingAccount = account
-                    showingEditor = true
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: account.type.icon)
-                            .font(.headline)
-                            .foregroundStyle(appState.themePalette.accent)
-                            .frame(width: 36, height: 36)
-                            .background(
-                                appState.themePalette.accent.opacity(0.14),
-                                in: Circle()
-                            )
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(account.name)
+                HStack(spacing: 12) {
+                    Button {
+                        editingAccount = account
+                        showingEditor = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: account.type.icon)
                                 .font(.headline)
-                            Text(
-                                "\(account.type.title) • \(account.currencyCode)"
-                            )
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Text(
-                            MoneyFormatter.string(
-                                minorUnits: AccountBalanceUseCase.balance(
-                                    for: account,
-                                    transactions: transactions,
-                                    transfers: transfers
-                                ),
-                                currencyCode: account.currencyCode
-                            )
-                        )
-                        .font(.subheadline.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        if account.archived {
-                            Text("Archived")
-                                .font(.caption.weight(.medium))
+                                .foregroundStyle(appState.themePalette.accent)
+                                .frame(width: 36, height: 36)
+                                .background(
+                                    appState.themePalette.accent.opacity(0.14),
+                                    in: Circle()
+                                )
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(account.name)
+                                    .font(.headline)
+                                Text(
+                                    "\(account.type.title) • \(account.currencyCode)"
+                                )
+                                .font(.caption)
                                 .foregroundStyle(.secondary)
+                            }
                         }
                     }
+                    .buttonStyle(.plain)
+
+                    Spacer()
+
+                    balanceControl(for: account)
+
+                    if account.archived {
+                        Text("Archived")
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                .buttonStyle(.plain)
             }
             .onDelete {
                 let repository = AccountRepository(modelContext: modelContext)
@@ -87,7 +78,96 @@ struct AccountManagerView: View {
                 defaultCurrencyCode: appState.selectedCurrencyCode
             )
         }
+        .onChange(of: showingEditor) { _, isShowing in
+            if !isShowing {
+                balanceStates.removeAll()
+            }
+        }
     }
+
+    @ViewBuilder
+    private func balanceControl(for account: AccountItem) -> some View {
+        switch balanceStates[account.id] {
+        case .some(.loading):
+            ProgressView()
+                .controlSize(.small)
+        case .some(.loaded(let balanceMinor)):
+            HStack(spacing: 6) {
+                Text(
+                    MoneyFormatter.string(
+                        minorUnits: balanceMinor,
+                        currencyCode: account.currencyCode
+                    )
+                )
+                .font(.subheadline.monospacedDigit().weight(.semibold))
+                .foregroundStyle(.secondary)
+
+                Button {
+                    loadBalance(for: account)
+                } label: {
+                    Image(systemName: "arrow.clockwise")
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Refresh balance")
+            }
+        case .some(.failed):
+            Button("Retry") {
+                loadBalance(for: account)
+            }
+            .font(.caption.weight(.semibold))
+            .buttonStyle(.borderless)
+        case nil:
+            Button("Check balance") {
+                loadBalance(for: account)
+            }
+            .font(.caption.weight(.semibold))
+            .buttonStyle(.borderless)
+        }
+    }
+
+    private func loadBalance(for account: AccountItem) {
+        balanceStates[account.id] = .loading
+
+        do {
+            let transactions = try fetchTransactions(for: account)
+            let transfers = try fetchTransfers(for: account)
+            let balance = AccountBalanceUseCase.balance(
+                for: account,
+                transactions: transactions,
+                transfers: transfers
+            )
+            balanceStates[account.id] = .loaded(balance)
+        } catch {
+            balanceStates[account.id] = .failed
+        }
+    }
+
+    private func fetchTransactions(for account: AccountItem) throws -> [TransactionItem] {
+        let accountID = account.id
+        let descriptor = FetchDescriptor<TransactionItem>(
+            predicate: #Predicate<TransactionItem> { transaction in
+                transaction.account?.id == accountID
+            }
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
+    private func fetchTransfers(for account: AccountItem) throws -> [TransferItem] {
+        let accountID = account.id
+        let descriptor = FetchDescriptor<TransferItem>(
+            predicate: #Predicate<TransferItem> { transfer in
+                transfer.fromAccount?.id == accountID
+                    || transfer.toAccount?.id == accountID
+            }
+        )
+        return try modelContext.fetch(descriptor)
+    }
+}
+
+private enum AccountBalanceLoadState {
+    case loading
+    case loaded(Int64)
+    case failed
 }
 
 private struct AccountEditorView: View {

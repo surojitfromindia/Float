@@ -7,10 +7,6 @@ struct QuickAddKeypadSheet: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
-    @Query(sort: \TransactionItem.timestamp, order: .reverse) private
-        var transactions: [TransactionItem]
-    @Query(sort: \TransactionTemplateItem.createdAt, order: .reverse) private
-        var templates: [TransactionTemplateItem]
 
     let transactionToEdit: TransactionItem?
     var initialTimestamp: Date?
@@ -23,6 +19,10 @@ struct QuickAddKeypadSheet: View {
     @State private var timestamp = Date()
     @State private var validationMessage: String?
     @State private var showingCategoryPicker = false
+    @State private var recentTransactions: [TransactionItem] = []
+    @State private var recentTransactionsLoadKey = false
+    @State private var templates: [TransactionTemplateItem] = []
+    @State private var templatesLoadKey = false
 
     private var palette: FloatThemePalette {
         appState.themePalette
@@ -46,7 +46,7 @@ struct QuickAddKeypadSheet: View {
     }
     private var recentCategories: [CategoryItem] {
         uniqueCategories(
-            transactions.compactMap { transaction in
+            recentTransactions.compactMap { transaction in
                 guard transaction.isExpense == isExpense else { return nil }
                 return transaction.category
             }
@@ -56,7 +56,7 @@ struct QuickAddKeypadSheet: View {
     }
     private var recentTransactionTemplates: [TransactionItem] {
         var seen = Set<String>()
-        return transactions
+        return recentTransactions
             .filter { $0.isExpense == isExpense }
             .filter { transaction in
                 let key = [
@@ -171,9 +171,15 @@ struct QuickAddKeypadSheet: View {
             }
             .floatBackground()
             .onAppear(perform: configureDefaults)
+            .task {
+                await loadSuggestionData()
+            }
             .onChange(of: isExpense) { _, _ in
                 if selectedCategory?.isIncome == isExpense {
                     selectedCategory = nil
+                }
+                Task {
+                    await loadSuggestionData()
                 }
             }
             .onChange(of: note) { _, _ in
@@ -319,19 +325,21 @@ struct QuickAddKeypadSheet: View {
         if !categories.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: title)
-                FlowLayout(spacing: 8) {
-                    ForEach(categories) { category in
-                        Button {
-                            selectedCategory = category
-                            validationMessage = nil
-                            Haptics.tick()
-                        } label: {
-                            CategoryChip(
-                                category: category,
-                                isSelected: selectedCategory?.id == category.id
-                            )
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(categories) { category in
+                            Button {
+                                selectedCategory = category
+                                validationMessage = nil
+                                Haptics.tick()
+                            } label: {
+                                CategoryChip(
+                                    category: category,
+                                    isSelected: selectedCategory?.id == category.id
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -411,6 +419,54 @@ struct QuickAddKeypadSheet: View {
             timestamp = initialTimestamp
         }
         applySmartCategorySuggestion()
+    }
+
+    private func loadSuggestionData() async {
+        await Task.yield()
+        loadTemplates()
+        loadRecentTransactions()
+    }
+
+    private func loadTemplates() {
+        let loadKey = isExpense
+        guard templates.isEmpty || templatesLoadKey != loadKey else {
+            return
+        }
+
+        templatesLoadKey = loadKey
+        do {
+            var descriptor = FetchDescriptor<TransactionTemplateItem>(
+                predicate: #Predicate<TransactionTemplateItem> { template in
+                    template.isExpense == loadKey
+                },
+                sortBy: [SortDescriptor(\TransactionTemplateItem.createdAt, order: .reverse)]
+            )
+            descriptor.fetchLimit = 8
+            templates = try modelContext.fetch(descriptor)
+        } catch {
+            templates = []
+        }
+    }
+
+    private func loadRecentTransactions() {
+        let loadKey = isExpense
+        guard recentTransactions.isEmpty || recentTransactionsLoadKey != loadKey else {
+            return
+        }
+
+        recentTransactionsLoadKey = loadKey
+        do {
+            var descriptor = FetchDescriptor<TransactionItem>(
+                predicate: #Predicate<TransactionItem> { transaction in
+                    transaction.isExpense == loadKey
+                },
+                sortBy: [SortDescriptor(\TransactionItem.timestamp, order: .reverse)]
+            )
+            descriptor.fetchLimit = 80
+            recentTransactions = try modelContext.fetch(descriptor)
+        } catch {
+            recentTransactions = []
+        }
     }
 
     private func save() {

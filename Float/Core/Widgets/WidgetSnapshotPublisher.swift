@@ -10,6 +10,11 @@ private struct FloatWidgetSnapshot: Codable {
     let statusText: String
     let currencyCode: String
     let updatedAt: Date
+    let todayExpensesMinor: Int64
+    let nextRecurringTitle: String?
+    let nextRecurringAmountMinor: Int64?
+    let topBudgetAlertTitle: String?
+    let topBudgetAlertProgress: Double?
 }
 
 enum WidgetSnapshotPublisher {
@@ -31,13 +36,28 @@ enum WidgetSnapshotPublisher {
         let goals = (try? modelContext.fetch(FetchDescriptor<GoalItem>())) ?? []
         let recurringRules =
             (try? modelContext.fetch(FetchDescriptor<RecurringRuleItem>())) ?? []
+        let categoryBudgets =
+            (try? modelContext.fetch(FetchDescriptor<CategoryBudgetItem>())) ?? []
         let activeBudget = budgets.first { $0.isActive }
+        let period = BudgetPeriodCalculator.currentPeriod(for: activeBudget)
         let result = SafeToSpendUseCase.calculate(
-            budget: activeBudget,
-            transactions: transactions,
+            period: period,
+            expectedIncomeMinor: activeBudget?.expectedIncomeMinor ?? 0,
+            transactions: transactions.filter {
+                period.contains($0.timestamp, calendar: .current)
+            },
             goals: goals,
             recurringRules: recurringRules
         )
+        let alerts = BudgetAlertsUseCase.calculate(
+            categoryBudgets: categoryBudgets,
+            transactions: transactions,
+            period: period
+        )
+        let nextRecurring = recurringRules
+            .filter { $0.active && $0.isExpense }
+            .sorted { $0.nextRunDate < $1.nextRunDate }
+            .first
         let snapshot = FloatWidgetSnapshot(
             safeToSpendMinor: result.safeToSpendMinor,
             dailyAllowanceMinor: result.dailyAllowanceMinor,
@@ -45,7 +65,12 @@ enum WidgetSnapshotPublisher {
             periodProgress: result.periodProgress,
             statusText: statusText(for: result),
             currencyCode: currencyCode,
-            updatedAt: Date()
+            updatedAt: Date(),
+            todayExpensesMinor: todayExpensesMinor(transactions),
+            nextRecurringTitle: nextRecurringTitle(nextRecurring),
+            nextRecurringAmountMinor: nextRecurring?.amountMinor,
+            topBudgetAlertTitle: alerts.first?.title,
+            topBudgetAlertProgress: alerts.first?.progress
         )
 
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
@@ -61,5 +86,20 @@ enum WidgetSnapshotPublisher {
             return "Spending fast"
         }
         return "On track"
+    }
+
+    private static func todayExpensesMinor(_ transactions: [TransactionItem]) -> Int64 {
+        let calendar = Calendar.current
+        let today = Date()
+        return transactions
+            .filter { $0.isExpense && calendar.isDate($0.timestamp, inSameDayAs: today) }
+            .reduce(Int64(0)) { $0 + $1.amountMinor }
+    }
+
+    private static func nextRecurringTitle(_ rule: RecurringRuleItem?) -> String? {
+        guard let rule else { return nil }
+        return rule.note?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            ? rule.note
+            : rule.category?.name
     }
 }

@@ -29,6 +29,8 @@ struct SettingsView: View {
     @State private var backupDocument = BackupDocument()
     @State private var message = ""
     @State private var showingResetConfirmation = false
+    @State private var showingSeedConfirmation = false
+    @State private var isSeedingData = false
 
     var body: some View {
         ZStack {
@@ -46,6 +48,19 @@ struct SettingsView: View {
             Text(
                 "This permanently deletes your accounts, categories, budgets, goals, recurring rules, and transactions. This action cannot be undone."
             )
+        }
+        .alert("Seed sample data?", isPresented: $showingSeedConfirmation) {
+            Button("Cancel", role: .cancel) {}
+            Button("Seed data") {
+                seedSampleData()
+            }
+        } message: {
+            Text(
+                "This adds two years of varied sample transactions and transfers to your current data."
+            )
+        }
+        .navigationDestination(item: $appState.pendingSettingsDestination) { destination in
+            settingsDestination(destination)
         }
     }
 
@@ -78,6 +93,40 @@ struct SettingsView: View {
                 Toggle("Privacy Lock", isOn: $appState.isAppLockEnabled)
                 ThemePreviewCard(palette: appState.themePalette)
             }
+            Section("Reminders") {
+                Toggle("Recurring due reminders", isOn: $appState.recurringRemindersEnabled)
+                if appState.recurringRemindersEnabled {
+                    DatePicker(
+                        "Recurring time",
+                        selection: reminderTimeBinding(
+                            get: { appState.recurringReminderMinutes },
+                            set: { appState.recurringReminderMinutes = $0 }
+                        ),
+                        displayedComponents: .hourAndMinute
+                    )
+                }
+
+                Toggle("Goal target reminders", isOn: $appState.goalRemindersEnabled)
+                if appState.goalRemindersEnabled {
+                    DatePicker(
+                        "Goal time",
+                        selection: reminderTimeBinding(
+                            get: { appState.goalReminderMinutes },
+                            set: { appState.goalReminderMinutes = $0 }
+                        ),
+                        displayedComponents: .hourAndMinute
+                    )
+                }
+
+                Toggle("Budget alerts", isOn: $appState.budgetAlertsEnabled)
+                if appState.budgetAlertsEnabled {
+                    Picker("Budget sensitivity", selection: $appState.budgetAlertSensitivityRaw) {
+                        ForEach(BudgetAlertSensitivity.allCases) { sensitivity in
+                            Text(sensitivity.title).tag(sensitivity.rawValue)
+                        }
+                    }
+                }
+            }
             Section("Manage") {
                 NavigationLink("Budget", destination: BudgetSettingsView())
                 NavigationLink("Goals", destination: GoalsView())
@@ -85,6 +134,7 @@ struct SettingsView: View {
                 NavigationLink("Templates", destination: TransactionTemplateManagerView())
                 NavigationLink("Categories", destination: CategoryManagerView())
                 NavigationLink("Accounts", destination: AccountManagerView())
+                NavigationLink("Review Queue", destination: ReviewQueueView())
             }
             Section("Portable data") {
                 Button("Create backup", action: createBackup)
@@ -94,6 +144,23 @@ struct SettingsView: View {
                 if !message.isEmpty {
                     Text(message).font(.caption).foregroundStyle(.secondary)
                 }
+            }
+            Section("Sample data") {
+                Button {
+                    showingSeedConfirmation = true
+                } label: {
+                    Label("Seed data", systemImage: "tray.and.arrow.down.fill")
+                }
+                .buttonStyle(.borderless)
+                .disabled(isSeedingData)
+
+                Text(
+                    isSeedingData
+                        ? "Seeding two years of data."
+                        : "Adds realistic expenses, income, and transfers for pagination testing."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
             Section("Privacy") {
                 Text(
@@ -155,6 +222,48 @@ struct SettingsView: View {
         CurrencyOption(code: "MXN", symbol: "MX$"),
     ]
 
+    @ViewBuilder
+    private func settingsDestination(_ destination: FloatSettingsDestination) -> some View {
+        switch destination {
+        case .budget:
+            BudgetSettingsView()
+        case .goals:
+            GoalsView()
+        case .recurring:
+            RecurringView()
+        case .templates:
+            TransactionTemplateManagerView()
+        case .categories:
+            CategoryManagerView()
+        case .accounts:
+            AccountManagerView()
+        case .reviewQueue:
+            ReviewQueueView()
+        }
+    }
+
+    private func reminderTimeBinding(
+        get: @escaping () -> Int,
+        set: @escaping (Int) -> Void
+    ) -> Binding<Date> {
+        Binding(
+            get: { date(fromMinutes: get()) },
+            set: { set(minutes(from: $0)) }
+        )
+    }
+
+    private func date(fromMinutes minutes: Int) -> Date {
+        let clamped = min(max(minutes, 0), 23 * 60 + 59)
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date())
+        return calendar.date(byAdding: .minute, value: clamped, to: start) ?? Date()
+    }
+
+    private func minutes(from date: Date) -> Int {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return (components.hour ?? 9) * 60 + (components.minute ?? 0)
+    }
+
     private func presentBackupImporter() {
         DispatchQueue.main.async {
             importingBackup = true
@@ -195,6 +304,23 @@ struct SettingsView: View {
             )
             message = "Backup restored."
         } catch { message = error.localizedDescription }
+    }
+
+    private func seedSampleData() {
+        guard !isSeedingData else { return }
+        isSeedingData = true
+        message = "Seeding sample data."
+        do {
+            let summary = try SeedDataService.seedLargeTransactionHistory(
+                modelContext: modelContext,
+                currencyCode: appState.selectedCurrencyCode
+            )
+            message =
+                "Seeded \(summary.transactionCount) transactions and \(summary.transferCount) transfers."
+        } catch {
+            message = error.localizedDescription
+        }
+        isSeedingData = false
     }
 
     private func resetAllData(reseedDefaults: Bool = true) {

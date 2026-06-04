@@ -95,9 +95,6 @@
     "%lld" : {
 
     },
-    "%lld shown" : {
-
-    },
     "%lld spending days" : {
 
     },
@@ -288,7 +285,13 @@
         }
       }
     },
+    "Add Expense" : {
+
+    },
     "Add expense categories before setting category budgets." : {
+
+    },
+    "Add Income" : {
 
     },
     "Add transaction" : {
@@ -312,6 +315,12 @@
           }
         }
       }
+    },
+    "Add Transfer" : {
+
+    },
+    "Adds realistic expenses, income, and transfers for pagination testing." : {
+
     },
     "All accounts" : {
       "localizations" : {
@@ -509,6 +518,9 @@
         }
       }
     },
+    "Budget alerts" : {
+
+    },
     "Budget amount" : {
 
     },
@@ -536,6 +548,9 @@
       }
     },
     "Budget pace" : {
+
+    },
+    "Budget sensitivity" : {
 
     },
     "Budgeted categories" : {
@@ -673,6 +688,9 @@
           }
         }
       }
+    },
+    "Check balance" : {
+
     },
     "Clear" : {
 
@@ -920,6 +938,9 @@
         }
       }
     },
+    "Default account" : {
+
+    },
     "Delete" : {
       "localizations" : {
         "bn" : {
@@ -973,6 +994,9 @@
       }
     },
     "Delete transfer" : {
+
+    },
+    "Destination" : {
 
     },
     "Details" : {
@@ -1254,6 +1278,9 @@
     "Filters active" : {
 
     },
+    "Find missing details, duplicates, and large transactions." : {
+
+    },
     "Float" : {
       "localizations" : {
         "bn" : {
@@ -1273,6 +1300,9 @@
           }
         }
       }
+    },
+    "Float Destination" : {
+
     },
     "Float is locked" : {
 
@@ -1318,6 +1348,15 @@
           }
         }
       }
+    },
+    "Get Safe to Spend" : {
+
+    },
+    "Goal target reminders" : {
+
+    },
+    "Goal time" : {
+
     },
     "Goals" : {
       "localizations" : {
@@ -1544,6 +1583,15 @@
           }
         }
       }
+    },
+    "Load older data" : {
+
+    },
+    "Loading older data" : {
+
+    },
+    "Loading report" : {
+
     },
     "Manage" : {
       "localizations" : {
@@ -1775,7 +1823,25 @@
     "On track this period" : {
 
     },
+    "Open a specific area of Float." : {
+
+    },
+    "Open Float" : {
+
+    },
+    "Open Float ready to add an expense." : {
+
+    },
+    "Open Float ready to add income." : {
+
+    },
+    "Open Float ready to move money between accounts." : {
+
+    },
     "Open today" : {
+
+    },
+    "Opening %@ in Float." : {
 
     },
     "Opening balance minor units" : {
@@ -1787,6 +1853,15 @@
           }
         }
       }
+    },
+    "Opening Float to add a transfer." : {
+
+    },
+    "Opening Float to add an expense." : {
+
+    },
+    "Opening Float to add income." : {
+
     },
     "Over daily allowance" : {
 
@@ -1919,6 +1994,9 @@
         }
       }
     },
+    "Read the latest safe-to-spend amount from Float." : {
+
+    },
     "Recurring" : {
       "localizations" : {
         "bn" : {
@@ -1941,6 +2019,18 @@
         }
       }
     },
+    "Recurring due reminders" : {
+
+    },
+    "Recurring time" : {
+
+    },
+    "Refresh balance" : {
+
+    },
+    "Reload transactions" : {
+
+    },
     "remaining" : {
       "localizations" : {
         "bn" : {
@@ -1950,6 +2040,12 @@
           }
         }
       }
+    },
+    "Reminders" : {
+
+    },
+    "Report could not load" : {
+
     },
     "Reports" : {
       "localizations" : {
@@ -2027,6 +2123,15 @@
         }
       }
     },
+    "Retry" : {
+
+    },
+    "Review queue" : {
+
+    },
+    "Review Queue" : {
+
+    },
     "safe" : {
 
     },
@@ -2052,6 +2157,12 @@
           }
         }
       }
+    },
+    "Safe to Spend" : {
+
+    },
+    "Sample data" : {
+
     },
     "Save" : {
       "localizations" : {
@@ -2122,6 +2233,15 @@
           }
         }
       }
+    },
+    "Seed data" : {
+
+    },
+    "Seed sample data?" : {
+
+    },
+    "Seeding two years of data." : {
+
     },
     "Select" : {
 
@@ -2355,6 +2475,9 @@
         }
       }
     },
+    "Template" : {
+
+    },
     "Template name" : {
 
     },
@@ -2392,6 +2515,9 @@
           }
         }
       }
+    },
+    "This adds two years of varied sample transactions and transfers to your current data." : {
+
     },
     "This day is above the current daily allowance." : {
 

@@ -10,6 +10,7 @@ struct AppRootView: View {
     @State private var isUnlocked = false
     @State private var isAuthenticating = false
     @State private var lockMessage: String?
+    @State private var pendingSystemAction: PendingFloatAction?
 
     var body: some View {
         ZStack {
@@ -47,6 +48,8 @@ struct AppRootView: View {
             }
             if appState.isAppLockEnabled {
                 authenticate()
+            } else {
+                consumePendingSystemAction()
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
@@ -55,6 +58,7 @@ struct AppRootView: View {
                     modelContext: modelContext
                 )
                 publishWidgetSnapshot()
+                consumePendingSystemAction()
                 if appState.isAppLockEnabled && !isShowingSplash {
                     authenticate()
                 }
@@ -96,6 +100,18 @@ struct AppRootView: View {
         )
     }
 
+    private func consumePendingSystemAction() {
+        if pendingSystemAction == nil {
+            pendingSystemAction = PendingFloatAction.consume()
+        }
+        guard let action = pendingSystemAction else { return }
+        if appState.isAppLockEnabled && !isUnlocked {
+            return
+        }
+        pendingSystemAction = nil
+        appState.handlePendingAction(action)
+    }
+
     private func authenticate() {
         guard appState.isAppLockEnabled, !isUnlocked, !isAuthenticating else { return }
         isAuthenticating = true
@@ -119,6 +135,7 @@ struct AppRootView: View {
                 if success {
                     isUnlocked = true
                     lockMessage = nil
+                    consumePendingSystemAction()
                 } else {
                     isUnlocked = false
                     lockMessage = error?.localizedDescription
