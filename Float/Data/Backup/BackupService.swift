@@ -8,6 +8,7 @@ enum BackupService {
         categories: [CategoryItem],
         transactions: [TransactionItem],
         transactionTemplates: [TransactionTemplateItem],
+        transactionTemplateGroups: [TransactionTemplateGroupItem],
         transfers: [TransferItem],
         goals: [GoalItem],
         recurringRules: [RecurringRuleItem],
@@ -20,6 +21,7 @@ enum BackupService {
             categories: categories.map(CategoryDTO.init),
             transactions: transactions.map(TransactionDTO.init),
             transactionTemplates: transactionTemplates.map(TransactionTemplateDTO.init),
+            transactionTemplateGroups: transactionTemplateGroups.map(TransactionTemplateGroupDTO.init),
             transfers: transfers.map(TransferDTO.init),
             goals: goals.map(GoalDTO.init),
             recurringRules: recurringRules.map(RecurringRuleDTO.init),
@@ -72,14 +74,29 @@ enum BackupService {
             )
         }
 
+        var templateMap: [UUID: TransactionTemplateItem] = [:]
         for item in dto.transactionTemplates {
-            modelContext.insert(
-                TransactionTemplateItem(
-                    dto: item,
-                    category: item.categoryID.flatMap { categoryMap[$0] },
-                    account: item.accountID.flatMap { accountMap[$0] }
-                )
+            let template = TransactionTemplateItem(
+                dto: item,
+                category: item.categoryID.flatMap { categoryMap[$0] },
+                account: item.accountID.flatMap { accountMap[$0] }
             )
+            templateMap[item.id] = template
+            modelContext.insert(template)
+        }
+
+        for item in dto.transactionTemplateGroups {
+            let group = TransactionTemplateGroupItem(dto: item)
+            modelContext.insert(group)
+            for entryDTO in item.entries.sorted(by: { $0.sortOrder < $1.sortOrder }) {
+                let entry = TransactionTemplateGroupEntryItem(
+                    dto: entryDTO,
+                    group: group,
+                    template: entryDTO.templateID.flatMap { templateMap[$0] }
+                )
+                modelContext.insert(entry)
+                group.entries.append(entry)
+            }
         }
 
         for item in dto.transfers {
@@ -126,6 +143,8 @@ enum BackupService {
 
     private static func deleteExistingData(in modelContext: ModelContext) throws {
         try modelContext.delete(model: TransactionItem.self)
+        try modelContext.delete(model: TransactionTemplateGroupEntryItem.self)
+        try modelContext.delete(model: TransactionTemplateGroupItem.self)
         try modelContext.delete(model: TransactionTemplateItem.self)
         try modelContext.delete(model: TransferItem.self)
         try modelContext.delete(model: RecurringRuleItem.self)
@@ -196,6 +215,31 @@ private extension TransactionTemplateDTO {
             categoryID: item.category?.id,
             accountID: item.account?.id,
             note: item.note,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+@MainActor
+private extension TransactionTemplateGroupDTO {
+    init(_ item: TransactionTemplateGroupItem) {
+        self.init(
+            id: item.id,
+            name: item.name,
+            entries: item.sortedEntries.map(TransactionTemplateGroupEntryDTO.init),
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension TransactionTemplateGroupEntryDTO {
+    init(_ item: TransactionTemplateGroupEntryItem) {
+        self.init(
+            id: item.id,
+            templateID: item.template?.id,
+            sortOrder: item.sortOrder,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt
         )
@@ -421,6 +465,34 @@ private extension TransactionTemplateItem {
             category: category,
             account: account,
             note: dto.note,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension TransactionTemplateGroupItem {
+    convenience init(dto: TransactionTemplateGroupDTO) {
+        self.init(
+            id: dto.id,
+            name: dto.name,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension TransactionTemplateGroupEntryItem {
+    convenience init(
+        dto: TransactionTemplateGroupEntryDTO,
+        group: TransactionTemplateGroupItem?,
+        template: TransactionTemplateItem?
+    ) {
+        self.init(
+            id: dto.id,
+            sortOrder: dto.sortOrder,
+            group: group,
+            template: template,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )

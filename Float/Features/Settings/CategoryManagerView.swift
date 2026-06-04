@@ -4,15 +4,15 @@ import SwiftUI
 struct CategoryManagerView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
-    @State private var showingEditor = false
-    @State private var editingCategory: CategoryItem?
+    @State private var editorPresentation: CategoryEditorPresentation?
 
     var body: some View {
         List {
             ForEach(categories) { category in
                 Button {
-                    editingCategory = category
-                    showingEditor = true
+                    editorPresentation = CategoryEditorPresentation(
+                        category: category
+                    )
                 } label: {
                     HStack(spacing: 12) {
                         ZStack {
@@ -55,21 +55,27 @@ struct CategoryManagerView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    editingCategory = nil
-                    showingEditor = true
+                    editorPresentation = CategoryEditorPresentation(
+                        category: nil
+                    )
                 } label: {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel("Add category")
             }
         }
-        .sheet(isPresented: $showingEditor) {
+        .sheet(item: $editorPresentation) { presentation in
             CategoryEditorView(
-                category: editingCategory,
+                category: presentation.category,
                 nextSortOrder: categories.count
             )
         }
     }
+}
+
+private struct CategoryEditorPresentation: Identifiable {
+    let id = UUID()
+    let category: CategoryItem?
 }
 
 private struct CategoryEditorView: View {

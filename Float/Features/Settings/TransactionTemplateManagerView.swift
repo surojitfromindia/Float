@@ -6,8 +6,7 @@ struct TransactionTemplateManagerView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \TransactionTemplateItem.createdAt, order: .reverse) private
         var templates: [TransactionTemplateItem]
-    @State private var editingTemplate: TransactionTemplateItem?
-    @State private var showingEditor = false
+    @State private var editorPresentation: TransactionTemplateEditorPresentation?
 
     var body: some View {
         ScrollView {
@@ -27,8 +26,9 @@ struct TransactionTemplateManagerView: View {
                         template: template,
                         currencyCode: appState.selectedCurrencyCode,
                         onEdit: {
-                            editingTemplate = template
-                            showingEditor = true
+                            editorPresentation = TransactionTemplateEditorPresentation(
+                                template: template
+                            )
                         },
                         onDelete: {
                             delete(template)
@@ -43,14 +43,15 @@ struct TransactionTemplateManagerView: View {
         .floatBackground()
         .toolbar {
             Button {
-                editingTemplate = nil
-                showingEditor = true
+                editorPresentation = TransactionTemplateEditorPresentation(
+                    template: nil
+                )
             } label: {
                 Image(systemName: "plus")
             }
         }
-        .sheet(isPresented: $showingEditor) {
-            TransactionTemplateEditorView(template: editingTemplate)
+        .sheet(item: $editorPresentation) { presentation in
+            TransactionTemplateEditorView(template: presentation.template)
         }
     }
 
@@ -58,6 +59,11 @@ struct TransactionTemplateManagerView: View {
         try? TransactionTemplateRepository(modelContext: modelContext)
             .delete(template)
     }
+}
+
+private struct TransactionTemplateEditorPresentation: Identifiable {
+    let id = UUID()
+    let template: TransactionTemplateItem?
 }
 
 private struct TemplateCard: View {

@@ -11,6 +11,7 @@ enum FloatShortcutDestination: String, AppEnum {
     case goals
     case recurring
     case templates
+    case templateGroups
     case categories
     case accounts
     case reviewQueue
@@ -29,6 +30,7 @@ enum FloatShortcutDestination: String, AppEnum {
         .goals: "Goals",
         .recurring: "Recurring",
         .templates: "Templates",
+        .templateGroups: "Template Groups",
         .categories: "Categories",
         .accounts: "Accounts",
         .reviewQueue: "Review Queue",

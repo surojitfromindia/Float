@@ -5,8 +5,7 @@ struct AccountManagerView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
-    @State private var showingEditor = false
-    @State private var editingAccount: AccountItem?
+    @State private var editorPresentation: AccountEditorPresentation?
     @State private var balanceStates: [UUID: AccountBalanceLoadState] = [:]
 
     var body: some View {
@@ -14,8 +13,9 @@ struct AccountManagerView: View {
             ForEach(accounts) { account in
                 HStack(spacing: 12) {
                     Button {
-                        editingAccount = account
-                        showingEditor = true
+                        editorPresentation = AccountEditorPresentation(
+                            account: account
+                        )
                     } label: {
                         HStack(spacing: 12) {
                             Image(systemName: account.type.icon)
@@ -64,22 +64,23 @@ struct AccountManagerView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    editingAccount = nil
-                    showingEditor = true
+                    editorPresentation = AccountEditorPresentation(
+                        account: nil
+                    )
                 } label: {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel("Add account")
             }
         }
-        .sheet(isPresented: $showingEditor) {
+        .sheet(item: $editorPresentation) { presentation in
             AccountEditorView(
-                account: editingAccount,
+                account: presentation.account,
                 defaultCurrencyCode: appState.selectedCurrencyCode
             )
         }
-        .onChange(of: showingEditor) { _, isShowing in
-            if !isShowing {
+        .onChange(of: editorPresentation?.id) { _, presentationID in
+            if presentationID == nil {
                 balanceStates.removeAll()
             }
         }
@@ -162,6 +163,11 @@ struct AccountManagerView: View {
         )
         return try modelContext.fetch(descriptor)
     }
+}
+
+private struct AccountEditorPresentation: Identifiable {
+    let id = UUID()
+    let account: AccountItem?
 }
 
 private enum AccountBalanceLoadState {

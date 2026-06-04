@@ -25,6 +25,7 @@ struct FloatBackupDTO: Codable {
     var categories: [CategoryDTO]
     var transactions: [TransactionDTO]
     var transactionTemplates: [TransactionTemplateDTO]
+    var transactionTemplateGroups: [TransactionTemplateGroupDTO]
     var transfers: [TransferDTO]
     var goals: [GoalDTO]
     var recurringRules: [RecurringRuleDTO]
@@ -37,6 +38,7 @@ struct FloatBackupDTO: Codable {
         case categories
         case transactions
         case transactionTemplates
+        case transactionTemplateGroups
         case transfers
         case goals
         case recurringRules
@@ -50,6 +52,7 @@ struct FloatBackupDTO: Codable {
         categories: [CategoryDTO],
         transactions: [TransactionDTO],
         transactionTemplates: [TransactionTemplateDTO] = [],
+        transactionTemplateGroups: [TransactionTemplateGroupDTO] = [],
         transfers: [TransferDTO] = [],
         goals: [GoalDTO],
         recurringRules: [RecurringRuleDTO],
@@ -61,6 +64,7 @@ struct FloatBackupDTO: Codable {
         self.categories = categories
         self.transactions = transactions
         self.transactionTemplates = transactionTemplates
+        self.transactionTemplateGroups = transactionTemplateGroups
         self.transfers = transfers
         self.goals = goals
         self.recurringRules = recurringRules
@@ -75,6 +79,7 @@ struct FloatBackupDTO: Codable {
         categories = try container.decode([CategoryDTO].self, forKey: .categories)
         transactions = try container.decode([TransactionDTO].self, forKey: .transactions)
         transactionTemplates = try container.decodeIfPresent([TransactionTemplateDTO].self, forKey: .transactionTemplates) ?? []
+        transactionTemplateGroups = try container.decodeIfPresent([TransactionTemplateGroupDTO].self, forKey: .transactionTemplateGroups) ?? []
         transfers = try container.decodeIfPresent([TransferDTO].self, forKey: .transfers) ?? []
         goals = try container.decode([GoalDTO].self, forKey: .goals)
         recurringRules = try container.decode([RecurringRuleDTO].self, forKey: .recurringRules)
@@ -126,6 +131,20 @@ struct TransactionTemplateDTO: Codable {
     var categoryID: UUID?
     var accountID: UUID?
     var note: String?
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct TransactionTemplateGroupDTO: Codable {
+    var id: UUID
+    var name: String
+    var entries: [TransactionTemplateGroupEntryDTO]
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct TransactionTemplateGroupEntryDTO: Codable {
+    var id: UUID
+    var templateID: UUID?
+    var sortOrder: Int
     var createdAt: Date
     var updatedAt: Date
 }

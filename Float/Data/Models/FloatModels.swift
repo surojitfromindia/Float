@@ -180,6 +180,56 @@ final class TransactionTemplateItem {
 }
 
 @Model
+final class TransactionTemplateGroupItem {
+    var id: UUID = UUID()
+    var name: String = ""
+    @Relationship(deleteRule: .cascade, inverse: \TransactionTemplateGroupEntryItem.group)
+    var entries: [TransactionTemplateGroupEntryItem] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        entries: [TransactionTemplateGroupEntryItem] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.name = name
+        self.entries = entries
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
+final class TransactionTemplateGroupEntryItem {
+    var id: UUID = UUID()
+    var sortOrder: Int = 0
+    var group: TransactionTemplateGroupItem?
+    var template: TransactionTemplateItem?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        sortOrder: Int,
+        group: TransactionTemplateGroupItem? = nil,
+        template: TransactionTemplateItem? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.sortOrder = sortOrder
+        self.group = group
+        self.template = template
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
 final class TransferItem {
     var id: UUID = UUID()
     var amountMinor: Int64 = 0
@@ -214,6 +264,25 @@ final class TransferItem {
 extension TransactionTemplateItem {
     var displayTitle: String {
         title.nilIfBlank ?? note?.nilIfBlank ?? category?.name ?? "Template"
+    }
+}
+
+extension TransactionTemplateGroupItem {
+    var displayName: String {
+        name.nilIfBlank ?? "Group"
+    }
+
+    var sortedEntries: [TransactionTemplateGroupEntryItem] {
+        entries.sorted { lhs, rhs in
+            if lhs.sortOrder == rhs.sortOrder {
+                return lhs.createdAt < rhs.createdAt
+            }
+            return lhs.sortOrder < rhs.sortOrder
+        }
+    }
+
+    var validTemplates: [TransactionTemplateItem] {
+        sortedEntries.compactMap(\.template)
     }
 }
 

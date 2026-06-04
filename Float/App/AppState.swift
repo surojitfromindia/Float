@@ -43,6 +43,7 @@ enum FloatSettingsDestination: String, Hashable, Identifiable {
     case goals
     case recurring
     case templates
+    case templateGroups
     case categories
     case accounts
     case reviewQueue
@@ -189,6 +190,9 @@ final class AppState: ObservableObject {
         case .templates:
             selectedTab = .settings
             pendingSettingsDestination = .templates
+        case .templateGroups:
+            selectedTab = .settings
+            pendingSettingsDestination = .templateGroups
         case .categories:
             selectedTab = .settings
             pendingSettingsDestination = .categories

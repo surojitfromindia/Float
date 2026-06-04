@@ -16,6 +16,8 @@ struct SettingsView: View {
         var transactions: [TransactionItem]
     @Query(sort: \TransactionTemplateItem.createdAt, order: .reverse) private
         var transactionTemplates: [TransactionTemplateItem]
+    @Query(sort: \TransactionTemplateGroupItem.createdAt, order: .reverse) private
+        var transactionTemplateGroups: [TransactionTemplateGroupItem]
     @Query(sort: \TransferItem.timestamp, order: .reverse) private
         var transfers: [TransferItem]
     @Query private var accounts: [AccountItem]
@@ -132,6 +134,7 @@ struct SettingsView: View {
                 NavigationLink("Goals", destination: GoalsView())
                 NavigationLink("Recurring", destination: RecurringView())
                 NavigationLink("Templates", destination: TransactionTemplateManagerView())
+                NavigationLink("Template Groups", destination: TransactionTemplateGroupManagerView())
                 NavigationLink("Categories", destination: CategoryManagerView())
                 NavigationLink("Accounts", destination: AccountManagerView())
                 NavigationLink("Review Queue", destination: ReviewQueueView())
@@ -233,6 +236,8 @@ struct SettingsView: View {
             RecurringView()
         case .templates:
             TransactionTemplateManagerView()
+        case .templateGroups:
+            TransactionTemplateGroupManagerView()
         case .categories:
             CategoryManagerView()
         case .accounts:
@@ -278,6 +283,7 @@ struct SettingsView: View {
                 categories: categories,
                 transactions: transactions,
                 transactionTemplates: transactionTemplates,
+                transactionTemplateGroups: transactionTemplateGroups,
                 transfers: transfers,
                 goals: goals,
                 recurringRules: recurringRules,
@@ -325,6 +331,7 @@ struct SettingsView: View {
 
     private func resetAllData(reseedDefaults: Bool = true) {
         for item in transactions { modelContext.delete(item) }
+        for item in transactionTemplateGroups { modelContext.delete(item) }
         for item in transactionTemplates { modelContext.delete(item) }
         for item in transfers { modelContext.delete(item) }
         for item in recurringRules { modelContext.delete(item) }

@@ -532,6 +532,7 @@ private struct DailyDetailView: View {
     @State private var initialTransferTimestamp: Date?
     @State private var isEntrySheetPresented = false
     @State private var isTransferSheetPresented = false
+    @State private var isBulkEntrySheetPresented = false
     @State private var selectedDate: Date
     @State private var deletedSnapshot: CalendarDeletedTransactionSnapshot?
     @State private var showingUndo = false
@@ -658,6 +659,13 @@ private struct DailyDetailView: View {
                     Image(systemName: "chevron.right")
                 }
                 .accessibilityLabel("Next day")
+
+                Button {
+                    isBulkEntrySheetPresented = true
+                } label: {
+                    Image(systemName: "square.stack.3d.up.fill")
+                }
+                .accessibilityLabel("Bulk add transactions")
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -684,6 +692,11 @@ private struct DailyDetailView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $isBulkEntrySheetPresented) {
+            BulkTransactionEntrySheet()
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
         .task(id: dayLoadKey) {
             loadDaySnapshot()
         }
@@ -698,6 +711,11 @@ private struct DailyDetailView: View {
             if !isPresented {
                 editingTransfer = nil
                 initialTransferTimestamp = nil
+                loadDaySnapshot()
+            }
+        }
+        .onChange(of: isBulkEntrySheetPresented) { _, isPresented in
+            if !isPresented {
                 loadDaySnapshot()
             }
         }

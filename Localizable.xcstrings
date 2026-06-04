@@ -98,6 +98,9 @@
     "%lld spending days" : {
 
     },
+    "%lld templates" : {
+
+    },
     "%lld transactions, %lld transfers" : {
       "localizations" : {
         "en" : {
@@ -294,6 +297,12 @@
     "Add Income" : {
 
     },
+    "Add template group" : {
+
+    },
+    "Add templates to this group." : {
+
+    },
     "Add transaction" : {
       "localizations" : {
         "bn" : {
@@ -471,6 +480,9 @@
         }
       }
     },
+    "Available" : {
+
+    },
     "Avg %@ / day" : {
 
     },
@@ -554,6 +566,15 @@
 
     },
     "Budgeted categories" : {
+
+    },
+    "Bulk Add" : {
+
+    },
+    "Bulk add transactions" : {
+
+    },
+    "Bulk mode" : {
 
     },
     "Cadence" : {
@@ -798,6 +819,9 @@
       }
     },
     "Copy" : {
+
+    },
+    "Create" : {
 
     },
     "Create backup" : {
@@ -1063,6 +1087,9 @@
           }
         }
       }
+    },
+    "Edit Group" : {
+
     },
     "Edit Rule" : {
       "localizations" : {
@@ -1380,6 +1407,12 @@
         }
       }
     },
+    "Group name" : {
+
+    },
+    "Groups" : {
+
+    },
     "Hex color" : {
       "localizations" : {
         "bn" : {
@@ -1476,6 +1509,9 @@
           }
         }
       }
+    },
+    "Included" : {
+
     },
     "Income" : {
       "localizations" : {
@@ -1756,6 +1792,9 @@
         }
       }
     },
+    "New Group" : {
+
+    },
     "New Rule" : {
       "localizations" : {
         "bn" : {
@@ -1787,6 +1826,9 @@
           }
         }
       }
+    },
+    "No templates available." : {
+
     },
     "None" : {
       "localizations" : {
@@ -1982,6 +2024,9 @@
       }
     },
     "Privacy Lock" : {
+
+    },
+    "Qty %lld" : {
 
     },
     "Range" : {
@@ -2397,6 +2442,9 @@
         }
       }
     },
+    "Swap" : {
+
+    },
     "System" : {
       "localizations" : {
         "bn" : {
@@ -2476,6 +2524,9 @@
       }
     },
     "Template" : {
+
+    },
+    "Template Groups" : {
 
     },
     "Template name" : {

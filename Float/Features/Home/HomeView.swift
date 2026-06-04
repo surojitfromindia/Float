@@ -14,6 +14,7 @@ struct HomeView: View {
     @State private var contributionGoal: GoalItem?
     @State private var dashboardSnapshot = HomeDashboardSnapshot.placeholder
     @State private var isEntrySheetPresented = false
+    @State private var isBulkEntrySheetPresented = false
     @State private var newTransactionIsExpense: Bool?
 
     // Prefer the active budget period for all home-screen math; fall back to the first
@@ -135,7 +136,14 @@ struct HomeView: View {
         }
         .navigationTitle("Float")
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    isBulkEntrySheetPresented = true
+                } label: {
+                    Image(systemName: "square.stack.3d.up.fill")
+                }
+                .accessibilityLabel("Bulk add transactions")
+
                 Button {
                     presentNewTransaction()
                 } label: {
@@ -161,6 +169,11 @@ struct HomeView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
+        .sheet(isPresented: $isBulkEntrySheetPresented) {
+            BulkTransactionEntrySheet()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
         .onAppear {
             MaterializeRecurringTransactionsUseCase.run(
                 modelContext: modelContext
@@ -174,6 +187,10 @@ struct HomeView: View {
             Task { await loadDashboardSnapshot() }
         }
         .onChange(of: isEntrySheetPresented) { _, isPresented in
+            guard !isPresented else { return }
+            Task { await loadDashboardSnapshot() }
+        }
+        .onChange(of: isBulkEntrySheetPresented) { _, isPresented in
             guard !isPresented else { return }
             Task { await loadDashboardSnapshot() }
         }

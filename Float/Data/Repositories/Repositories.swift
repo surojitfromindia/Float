@@ -26,6 +26,30 @@ struct TransactionRepository {
         return transaction
     }
 
+    func createMany(from templates: [TransactionTemplateItem], timestamp: Date) throws
+        -> Int
+    {
+        let validTemplates = templates.filter {
+            $0.amountMinor > 0 && $0.category != nil && $0.account != nil
+        }
+        guard !validTemplates.isEmpty else { return 0 }
+
+        for template in validTemplates {
+            modelContext.insert(
+                TransactionItem(
+                    amountMinor: template.amountMinor,
+                    isExpense: template.isExpense,
+                    timestamp: timestamp,
+                    category: template.category,
+                    account: template.account,
+                    note: template.note
+                )
+            )
+        }
+        try save()
+        return validTemplates.count
+    }
+
     func update(
         _ transaction: TransactionItem,
         amountMinor: Int64,
@@ -115,6 +139,66 @@ struct TransactionTemplateRepository {
     func delete(_ template: TransactionTemplateItem) throws {
         modelContext.delete(template)
         try save()
+    }
+
+    private func save() throws {
+        do {
+            try modelContext.save()
+        } catch {
+            throw DataIntegrityError.saveFailed
+        }
+    }
+}
+
+@MainActor
+struct TransactionTemplateGroupRepository {
+    let modelContext: ModelContext
+
+    func create(name: String, templates: [TransactionTemplateItem]) throws
+        -> TransactionTemplateGroupItem
+    {
+        let group = TransactionTemplateGroupItem(
+            name: name.trimmedNilIfBlank ?? "Group"
+        )
+        modelContext.insert(group)
+        apply(templates: templates, to: group)
+        try save()
+        return group
+    }
+
+    func update(
+        _ group: TransactionTemplateGroupItem,
+        name: String,
+        templates: [TransactionTemplateItem]
+    ) throws {
+        group.name = name.trimmedNilIfBlank ?? "Group"
+        group.updatedAt = Date()
+        for entry in group.entries {
+            modelContext.delete(entry)
+        }
+        group.entries = []
+        apply(templates: templates, to: group)
+        try save()
+    }
+
+    func delete(_ group: TransactionTemplateGroupItem) throws {
+        modelContext.delete(group)
+        try save()
+    }
+
+    private func apply(
+        templates: [TransactionTemplateItem],
+        to group: TransactionTemplateGroupItem
+    ) {
+        for (index, template) in templates.enumerated() {
+            let entry = TransactionTemplateGroupEntryItem(
+                sortOrder: index,
+                group: group,
+                template: template
+            )
+            modelContext.insert(entry)
+            group.entries.append(entry)
+        }
     }
 
     private func save() throws {

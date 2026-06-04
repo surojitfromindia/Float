@@ -32,6 +32,7 @@ struct TransactionsView: View {
     @State private var editingTransfer: TransferItem?
     @State private var isEntrySheetPresented = false
     @State private var isTransferSheetPresented = false
+    @State private var isBulkEntrySheetPresented = false
 
     private var filtered: [LedgerListItem] {
         switch selectedSort {
@@ -101,7 +102,14 @@ struct TransactionsView: View {
             }
         }
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    isBulkEntrySheetPresented = true
+                } label: {
+                    Image(systemName: "square.stack.3d.up.fill")
+                }
+                .accessibilityLabel("Bulk add transactions")
+
                 Button {
                     presentNewTransaction()
                 } label: {
@@ -116,6 +124,11 @@ struct TransactionsView: View {
         }
         .sheet(isPresented: $isTransferSheetPresented) {
             TransferEditorSheet(transferToEdit: editingTransfer)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $isBulkEntrySheetPresented) {
+            BulkTransactionEntrySheet()
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
@@ -164,6 +177,11 @@ struct TransactionsView: View {
         .onChange(of: isTransferSheetPresented) { _, isPresented in
             if !isPresented {
                 editingTransfer = nil
+                resetAndLoadFirstPage()
+            }
+        }
+        .onChange(of: isBulkEntrySheetPresented) { _, isPresented in
+            if !isPresented {
                 resetAndLoadFirstPage()
             }
         }

@@ -12,7 +12,9 @@ struct ContentView: View {
         .modelContainer(
             for: [
                 AccountItem.self, CategoryItem.self, TransactionItem.self,
-                RecurringRuleItem.self, GoalItem.self, BudgetPeriodItem.self,
+                TransactionTemplateItem.self, TransactionTemplateGroupItem.self,
+                TransactionTemplateGroupEntryItem.self, RecurringRuleItem.self,
+                GoalItem.self, BudgetPeriodItem.self,
             ],
             inMemory: true
         )

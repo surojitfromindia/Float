@@ -17,6 +17,7 @@ enum FloatDestination: String, CaseIterable, Codable, Identifiable {
     case goals
     case recurring
     case templates
+    case templateGroups
     case categories
     case accounts
     case reviewQueue
