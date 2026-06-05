@@ -1,6 +1,26 @@
 import SwiftData
 import SwiftUI
 
+private enum QuickTransactionKind: String, CaseIterable, Identifiable {
+    case expense
+    case income
+    case pending
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .expense: "Expense"
+        case .income: "Income"
+        case .pending: "Pending"
+        }
+    }
+
+    var isExpense: Bool {
+        self != .income
+    }
+}
+
 struct QuickAddKeypadSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
@@ -12,11 +32,12 @@ struct QuickAddKeypadSheet: View {
     var initialTimestamp: Date?
     var initialIsExpense: Bool?
     @State private var keypadText = ""
-    @State private var isExpense = true
+    @State private var transactionKind = QuickTransactionKind.expense
     @State private var selectedCategory: CategoryItem?
     @State private var selectedAccount: AccountItem?
     @State private var note = ""
     @State private var timestamp = Date()
+    @State private var expectedDueDate = Date()
     @State private var validationMessage: String?
     @State private var showingCategoryPicker = false
     @State private var showingSplitEntry = false
@@ -42,13 +63,20 @@ struct QuickAddKeypadSheet: View {
     private var amountMinor: Int64 {
         MoneyParser.parseMinorUnits(from: keypadText)
     }
+    private var isPending: Bool {
+        transactionKind == .pending
+    }
+    private var isExpense: Bool {
+        transactionKind.isExpense
+    }
     private var visibleCategories: [CategoryItem] {
-        categories.filter { !$0.archived && $0.isIncome != isExpense }
+        guard !isPending else { return [] }
+        return categories.filter { !$0.archived && $0.isIncome != isExpense }
     }
     private var recentCategories: [CategoryItem] {
         uniqueCategories(
             recentTransactions.compactMap { transaction in
-                guard transaction.isExpense == isExpense else { return nil }
+                guard transaction.isPosted && transaction.isExpense == isExpense else { return nil }
                 return transaction.category
             }
         )
@@ -58,7 +86,7 @@ struct QuickAddKeypadSheet: View {
     private var recentTransactionTemplates: [TransactionItem] {
         var seen = Set<String>()
         return recentTransactions
-            .filter { $0.isExpense == isExpense }
+            .filter { $0.isPosted && $0.isExpense == isExpense }
             .filter { transaction in
                 let key = [
                     transaction.amountMinor.description,
@@ -84,9 +112,10 @@ struct QuickAddKeypadSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 18) {
-                    Picker("Type", selection: $isExpense) {
-                        Text("Expense").tag(true)
-                        Text("Income").tag(false)
+                    Picker("Type", selection: $transactionKind) {
+                        ForEach(QuickTransactionKind.allCases) { kind in
+                            Text(kind.title).tag(kind)
+                        }
                     }
                     .pickerStyle(.segmented)
 
@@ -101,35 +130,47 @@ struct QuickAddKeypadSheet: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
 
-                    if transactionToEdit != nil {
+                    if transactionToEdit != nil && !isPending {
                         splitAmountButton
                     }
 
                     keypad
 
-                    if transactionToEdit == nil {
+                    if transactionToEdit == nil && !isPending {
                         splitAmountButton
                     }
 
-                    templateSection
+                    if !isPending {
+                        templateSection
 
-                    categorySection
+                        categorySection
+                    }
 
                     GlassCard {
                         VStack(spacing: 14) {
-                            AccountPicker(
-                                selectedAccount: $selectedAccount,
-                                accounts: accounts.filter { !$0.archived }
-                            )
-                            Divider()
+                            if !isPending {
+                                AccountPicker(
+                                    selectedAccount: $selectedAccount,
+                                    accounts: accounts.filter { !$0.archived }
+                                )
+                                Divider()
+                            }
                             TextField("Note", text: $note, axis: .vertical)
                                 .textFieldStyle(.plain)
                                 .lineLimit(1...3)
-                            DatePicker(
-                                "Date",
-                                selection: $timestamp,
-                                displayedComponents: [.date, .hourAndMinute]
-                            )
+                            if isPending {
+                                DatePicker(
+                                    "Expected due date",
+                                    selection: $expectedDueDate,
+                                    displayedComponents: [.date]
+                                )
+                            } else {
+                                DatePicker(
+                                    "Date",
+                                    selection: $timestamp,
+                                    displayedComponents: [.date, .hourAndMinute]
+                                )
+                            }
                         }
                     }
 
@@ -183,9 +224,12 @@ struct QuickAddKeypadSheet: View {
             .task {
                 await loadSuggestionData()
             }
-            .onChange(of: isExpense) { _, _ in
+            .onChange(of: transactionKind) { oldValue, newValue in
                 if selectedCategory?.isIncome == isExpense {
                     selectedCategory = nil
+                }
+                if oldValue == .pending && newValue != .pending {
+                    timestamp = Date()
                 }
                 Task {
                     await loadSuggestionData()
@@ -445,14 +489,25 @@ struct QuickAddKeypadSheet: View {
         guard keypadText.isEmpty else { return }
         if let transactionToEdit {
             keypadText = String(transactionToEdit.amountMinor)
-            isExpense = transactionToEdit.isExpense
+            if transactionToEdit.isPending {
+                if let initialIsExpense {
+                    transactionKind = initialIsExpense ? .expense : .income
+                    timestamp = Date()
+                } else {
+                    transactionKind = .pending
+                    timestamp = transactionToEdit.timestamp
+                }
+            } else {
+                transactionKind = transactionToEdit.isExpense ? .expense : .income
+                timestamp = transactionToEdit.timestamp
+            }
             selectedCategory = transactionToEdit.category
             selectedAccount = transactionToEdit.account
             note = transactionToEdit.note ?? ""
-            timestamp = transactionToEdit.timestamp
+            expectedDueDate = transactionToEdit.expectedDueDate ?? transactionToEdit.timestamp
             return
         }
-        isExpense = initialIsExpense ?? true
+        transactionKind = initialIsExpense == false ? .income : .expense
         selectedCategory =
             categories.first {
                 !$0.archived
@@ -465,6 +520,7 @@ struct QuickAddKeypadSheet: View {
             }
         if let initialTimestamp {
             timestamp = initialTimestamp
+            expectedDueDate = initialTimestamp
         }
         applySmartCategorySuggestion()
     }
@@ -476,6 +532,10 @@ struct QuickAddKeypadSheet: View {
     }
 
     private func loadTemplates() {
+        guard !isPending else {
+            templates = []
+            return
+        }
         let loadKey = isExpense
         guard templates.isEmpty || templatesLoadKey != loadKey else {
             return
@@ -497,6 +557,10 @@ struct QuickAddKeypadSheet: View {
     }
 
     private func loadRecentTransactions() {
+        guard !isPending else {
+            recentTransactions = []
+            return
+        }
         let loadKey = isExpense
         guard recentTransactions.isEmpty || recentTransactionsLoadKey != loadKey else {
             return
@@ -532,6 +596,39 @@ struct QuickAddKeypadSheet: View {
         }
 
         let cleanNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        let repository = TransactionRepository(modelContext: modelContext)
+
+        if isPending {
+            do {
+                if let transactionToEdit {
+                    try repository.updatePending(
+                        transactionToEdit,
+                        amountMinor: amountMinor,
+                        expectedDueDate: expectedDueDate,
+                        note: cleanNote
+                    )
+                } else {
+                    _ = try repository.createPending(
+                        amountMinor: amountMinor,
+                        expectedDueDate: expectedDueDate,
+                        note: cleanNote
+                    )
+                }
+                Haptics.confirm()
+                if keepOpen {
+                    keypadText = ""
+                    note = ""
+                    validationMessage = nil
+                    expectedDueDate = Date()
+                } else {
+                    dismiss()
+                }
+            } catch {
+                validationMessage = error.localizedDescription
+            }
+            return
+        }
+
         let category = selectedCategory ?? DefaultCategoryResolver.resolve(
             isExpense: isExpense,
             preferredID: appState.lastUsedCategoryID,
@@ -544,8 +641,6 @@ struct QuickAddKeypadSheet: View {
             modelContext: modelContext,
             currencyCode: appState.selectedCurrencyCode
         )
-        let repository = TransactionRepository(modelContext: modelContext)
-
         do {
             if let transactionToEdit {
                 try repository.update(
@@ -585,7 +680,7 @@ struct QuickAddKeypadSheet: View {
 
     private func applyTemplate(_ transaction: TransactionItem) {
         keypadText = String(transaction.amountMinor)
-        isExpense = transaction.isExpense
+        transactionKind = transaction.isExpense ? .expense : .income
         selectedCategory = transaction.category
         selectedAccount = transaction.account
         note = transaction.note ?? ""
@@ -595,7 +690,7 @@ struct QuickAddKeypadSheet: View {
 
     private func applyTemplate(_ template: TransactionTemplateItem) {
         keypadText = String(template.amountMinor)
-        isExpense = template.isExpense
+        transactionKind = template.isExpense ? .expense : .income
         selectedCategory = template.category
         selectedAccount = template.account
         note = template.note ?? ""

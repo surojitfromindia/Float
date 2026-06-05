@@ -36,6 +36,13 @@ enum BudgetCadence: String, Codable, CaseIterable, Identifiable {
     var title: String { rawValue.capitalized }
 }
 
+enum TransactionStatus: String, Codable, CaseIterable, Identifiable {
+    case posted
+    case pending
+
+    var id: String { rawValue }
+}
+
 @Model
 final class AccountItem {
     var id: UUID = UUID()
@@ -111,7 +118,9 @@ final class TransactionItem {
     var id: UUID = UUID()
     var amountMinor: Int64 = 0
     var isExpense: Bool = true
+    var statusRaw: String = TransactionStatus.posted.rawValue
     var timestamp: Date = Date()
+    var expectedDueDate: Date?
     var category: CategoryItem?
     var account: AccountItem?
     var note: String?
@@ -123,7 +132,9 @@ final class TransactionItem {
         id: UUID = UUID(),
         amountMinor: Int64,
         isExpense: Bool = true,
+        status: TransactionStatus = .posted,
         timestamp: Date = Date(),
+        expectedDueDate: Date? = nil,
         category: CategoryItem? = nil,
         account: AccountItem? = nil,
         note: String? = nil,
@@ -134,7 +145,9 @@ final class TransactionItem {
         self.id = id
         self.amountMinor = normalizedMinorUnits(amountMinor)
         self.isExpense = isExpense
+        self.statusRaw = status.rawValue
         self.timestamp = timestamp
+        self.expectedDueDate = expectedDueDate
         self.category = category
         self.account = account
         self.note = note
@@ -433,33 +446,66 @@ final class CategoryBudgetItem {
 }
 
 extension TransactionItem {
+    var status: TransactionStatus {
+        get { TransactionStatus(rawValue: statusRaw) ?? .posted }
+        set { statusRaw = newValue.rawValue }
+    }
+
+    var isPending: Bool {
+        status == .pending
+    }
+
+    var isPosted: Bool {
+        status == .posted
+    }
+
+    var isPostedExpense: Bool {
+        isPosted && isExpense
+    }
+
+    var isPostedIncome: Bool {
+        isPosted && !isExpense
+    }
+
+    var displayDate: Date {
+        isPending ? expectedDueDate ?? timestamp : timestamp
+    }
+
     var categoryName: String {
-        category?.name.nilIfBlank ?? "Unknown Category"
+        if isPending { return "Pending" }
+        return category?.name.nilIfBlank ?? "Unknown Category"
     }
 
     var accountName: String {
-        account?.name.nilIfBlank ?? "Unknown Account"
+        if isPending { return "Not posted" }
+        return account?.name.nilIfBlank ?? "Unknown Account"
     }
 
     var categoryIconKey: String {
-        category?.iconKey.nilIfBlank ?? "questionmark.circle.fill"
+        if isPending { return "clock.badge.exclamationmark.fill" }
+        return category?.iconKey.nilIfBlank ?? "questionmark.circle.fill"
     }
 
     var categoryColorHex: String {
-        category?.colorHex.nilIfBlank ?? "#5A6B6B"
+        if isPending { return "#6B7280" }
+        return category?.colorHex.nilIfBlank ?? "#5A6B6B"
     }
 
     func apply(
         amountMinor: Int64,
         isExpense: Bool,
+        status: TransactionStatus = .posted,
         timestamp: Date,
+        expectedDueDate: Date? = nil,
         category: CategoryItem?,
         account: AccountItem?,
         note: String?
     ) {
         self.amountMinor = normalizedMinorUnits(amountMinor)
         self.isExpense = isExpense
+        self.statusRaw = status.rawValue
         self.timestamp = timestamp
+        self.expectedDueDate = expectedDueDate
         self.category = category
         self.account = account
         self.note = note?.nilIfBlank

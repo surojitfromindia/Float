@@ -1270,11 +1270,11 @@ private struct InsightReport {
     }
 
     var incomeTotalMinor: Int64 {
-        transactions.filter { !$0.isExpense }.reduce(0) { $0 + $1.amountMinor }
+        transactions.filter(\.isPostedIncome).reduce(0) { $0 + $1.amountMinor }
     }
 
     var expenseTotalMinor: Int64 {
-        transactions.filter(\.isExpense).reduce(0) { $0 + $1.amountMinor }
+        transactions.filter(\.isPostedExpense).reduce(0) { $0 + $1.amountMinor }
     }
 
     var netCashFlowMinor: Int64 {
@@ -1282,7 +1282,7 @@ private struct InsightReport {
     }
 
     var previousExpenseTotalMinor: Int64 {
-        previousTransactions.filter(\.isExpense).reduce(0) { $0 + $1.amountMinor }
+        previousTransactions.filter(\.isPostedExpense).reduce(0) { $0 + $1.amountMinor }
     }
 
     var dailyAverageExpenseMinor: Int64 {
@@ -1361,7 +1361,7 @@ private struct InsightReport {
                 let category = budget.category
                 let spent = transactions
                     .filter { transaction in
-                        transaction.isExpense && transaction.category?.id == category?.id
+                        transaction.isPostedExpense && transaction.category?.id == category?.id
                     }
                     .reduce(Int64(0)) { $0 + $1.amountMinor }
                 let remaining = max(0, budget.amountMinor - spent)
@@ -1399,7 +1399,7 @@ private struct InsightReport {
 
     var categoryInsights: [CategoryInsight] {
         let grouped = Dictionary(
-            grouping: transactions.filter(\.isExpense),
+            grouping: transactions.filter(\.isPostedExpense),
             by: { $0.categoryName }
         )
         let rows = grouped.map { name, items in
@@ -1428,10 +1428,10 @@ private struct InsightReport {
         }
 
         return grouped.map { date, items in
-            let income = items.filter { !$0.isExpense }.reduce(Int64(0)) {
+            let income = items.filter(\.isPostedIncome).reduce(Int64(0)) {
                 $0 + $1.amountMinor
             }
-            let expense = items.filter(\.isExpense).reduce(Int64(0)) {
+            let expense = items.filter(\.isPostedExpense).reduce(Int64(0)) {
                 $0 + $1.amountMinor
             }
             return CashFlowTrendPoint(
@@ -1446,7 +1446,7 @@ private struct InsightReport {
 
     var dailyExpenseInsights: [CalendarExpenseInsight] {
         let calendar = Calendar.current
-        let grouped = Dictionary(grouping: transactions.filter(\.isExpense)) {
+        let grouped = Dictionary(grouping: transactions.filter(\.isPostedExpense)) {
             calendar.startOfDay(for: $0.timestamp)
         }
         return grouped.map { day, items in
@@ -1503,7 +1503,7 @@ private struct InsightReport {
             to: startOfActivityWeek(containing: rangeEnd, calendar: calendar)
         ) ?? rangeEnd
 
-        let grouped = Dictionary(grouping: sourceTransactions.filter(\.isExpense)) {
+        let grouped = Dictionary(grouping: sourceTransactions.filter(\.isPostedExpense)) {
             calendar.startOfDay(for: $0.timestamp)
         }
         let expenseByDay = grouped.mapValues { items in
@@ -1637,7 +1637,7 @@ private struct InsightReport {
     var topTransactions: [TransactionItem] {
         Array(
             transactions
-                .filter(\.isExpense)
+                .filter(\.isPostedExpense)
                 .sorted { $0.amountMinor > $1.amountMinor }
                 .prefix(5)
         )
@@ -1652,7 +1652,7 @@ private struct InsightReport {
         ) ?? end
         return transactions
             .filter {
-                $0.isExpense
+                $0.isPostedExpense
                     && startOfRange <= $0.timestamp
                     && $0.timestamp < endExclusive
             }
@@ -1682,7 +1682,7 @@ private struct InsightReport {
 
     func drillDown(for category: CategoryInsight) -> CategoryDrillDown {
         let filtered = transactions
-            .filter { $0.isExpense && $0.categoryName == category.name }
+            .filter { $0.isPostedExpense && $0.categoryName == category.name }
             .sorted { $0.timestamp > $1.timestamp }
         return CategoryDrillDown(
             name: category.name,

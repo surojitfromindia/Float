@@ -29,6 +29,7 @@ struct TransactionsView: View {
     @State private var showingUndo = false
     @State private var showingFilters = false
     @State private var editingTransaction: TransactionItem?
+    @State private var editingTransactionInitialIsExpense: Bool?
     @State private var splittingTransaction: TransactionItem?
     @State private var editingTransfer: TransferItem?
     @State private var isEntrySheetPresented = false
@@ -119,7 +120,10 @@ struct TransactionsView: View {
             }
         }
         .sheet(isPresented: $isEntrySheetPresented) {
-            QuickAddKeypadSheet(transactionToEdit: editingTransaction)
+            QuickAddKeypadSheet(
+                transactionToEdit: editingTransaction,
+                initialIsExpense: editingTransactionInitialIsExpense
+            )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
@@ -180,6 +184,7 @@ struct TransactionsView: View {
         .onChange(of: isEntrySheetPresented) { _, isPresented in
             if !isPresented {
                 editingTransaction = nil
+                editingTransactionInitialIsExpense = nil
                 resetAndLoadFirstPage()
             }
         }
@@ -268,10 +273,23 @@ struct TransactionsView: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
-                            Button {
-                                splittingTransaction = transaction
-                            } label: {
-                                Label("Split transaction", systemImage: "divide.circle")
+                            if transaction.isPending {
+                                Button {
+                                    presentEditTransaction(transaction, initialIsExpense: true)
+                                } label: {
+                                    Label("Convert to expense", systemImage: "minus.circle")
+                                }
+                                Button {
+                                    presentEditTransaction(transaction, initialIsExpense: false)
+                                } label: {
+                                    Label("Convert to income", systemImage: "plus.circle")
+                                }
+                            } else {
+                                Button {
+                                    splittingTransaction = transaction
+                                } label: {
+                                    Label("Split transaction", systemImage: "divide.circle")
+                                }
                             }
 
                             Button(role: .destructive) {
@@ -390,8 +408,8 @@ struct TransactionsView: View {
 
     private func dayTotal(_ items: [LedgerListItem]) -> String {
         let transactions = items.compactMap(\.transaction)
-        let income = transactions.filter { !$0.isExpense }.reduce(Int64(0)) { $0 + $1.amountMinor }
-        let expenses = transactions.filter(\.isExpense).reduce(Int64(0)) { $0 + $1.amountMinor }
+        let income = transactions.filter(\.isPostedIncome).reduce(Int64(0)) { $0 + $1.amountMinor }
+        let expenses = transactions.filter(\.isPostedExpense).reduce(Int64(0)) { $0 + $1.amountMinor }
         let net = income - expenses
         let amount = MoneyFormatter.string(
             minorUnits: abs(net),
@@ -480,11 +498,16 @@ struct TransactionsView: View {
 
     private func presentNewTransaction() {
         editingTransaction = nil
+        editingTransactionInitialIsExpense = nil
         isEntrySheetPresented = true
     }
 
-    private func presentEditTransaction(_ transaction: TransactionItem) {
+    private func presentEditTransaction(
+        _ transaction: TransactionItem,
+        initialIsExpense: Bool? = nil
+    ) {
         editingTransaction = transaction
+        editingTransactionInitialIsExpense = initialIsExpense
         isEntrySheetPresented = true
     }
 
@@ -615,38 +638,43 @@ struct TransactionsView: View {
         let maxAmount = maximumAmountMinor
         let includeExpenses = selectedType == .all || selectedType == .expenses
         let includeIncome = selectedType == .all || selectedType == .income
-        guard includeExpenses || includeIncome else { return [] }
+        let includePending = selectedType == .all || selectedType == .pending
+        guard includeExpenses || includeIncome || includePending else { return [] }
 
         let descriptor = FetchDescriptor<TransactionItem>(
-            predicate: #Predicate<TransactionItem> { transaction in
-                transaction.timestamp >= start
-                    && transaction.timestamp <= end
-                    && (minAmount == nil || transaction.amountMinor >= minAmount!)
-                    && (maxAmount == nil || transaction.amountMinor <= maxAmount!)
-                    && (
-                        (includeExpenses && transaction.isExpense)
-                            || (includeIncome && !transaction.isExpense)
-                    )
-            },
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
-        return try modelContext.fetch(descriptor)
+        return try modelContext.fetch(descriptor).filter { transaction in
+            let displayDate = transaction.displayDate
+            let matchesDate = displayDate >= start && displayDate <= end
+            let matchesAmount = (minAmount == nil || transaction.amountMinor >= minAmount!)
+                && (maxAmount == nil || transaction.amountMinor <= maxAmount!)
+            let matchesType =
+                (includeExpenses && transaction.isPostedExpense)
+                || (includeIncome && transaction.isPostedIncome)
+                || (includePending && transaction.isPending)
+            return matchesDate && matchesAmount && matchesType
+        }
     }
 
     private func oldestTransactionDate() throws -> Date? {
         let includeExpenses = selectedType == .all || selectedType == .expenses
         let includeIncome = selectedType == .all || selectedType == .income
-        guard includeExpenses || includeIncome else { return nil }
+        let includePending = selectedType == .all || selectedType == .pending
+        guard includeExpenses || includeIncome || includePending else { return nil }
 
         var descriptor = FetchDescriptor<TransactionItem>(
-            predicate: #Predicate<TransactionItem> { transaction in
-                (includeExpenses && transaction.isExpense)
-                    || (includeIncome && !transaction.isExpense)
-            },
             sortBy: [SortDescriptor(\.timestamp, order: .forward)]
         )
-        descriptor.fetchLimit = 1
-        return try modelContext.fetch(descriptor).first?.timestamp
+        descriptor.fetchLimit = 500
+        return try modelContext.fetch(descriptor)
+            .filter {
+                (includeExpenses && $0.isPostedExpense)
+                    || (includeIncome && $0.isPostedIncome)
+                    || (includePending && $0.isPending)
+            }
+            .map(\.displayDate)
+            .min()
     }
 
     private func fetchTransfers(from start: Date, through end: Date) throws
@@ -685,7 +713,9 @@ struct TransactionsView: View {
         let matchesAccount =
             selectedAccountID == nil
             || transaction.account?.id == selectedAccountID
-        return matchesCategory && matchesAccount && matchesSearch(transaction)
+        let matchesPendingFilters = !transaction.isPending
+            || (selectedCategoryID == nil && selectedAccountID == nil)
+        return matchesCategory && matchesAccount && matchesPendingFilters && matchesSearch(transaction)
     }
 
     private func matchesTransfer(_ transfer: TransferItem) -> Bool {
@@ -826,6 +856,7 @@ private enum TransactionTypeFilter: String, CaseIterable, Identifiable {
     case all
     case expenses
     case income
+    case pending
     case transfers
 
     var id: String { rawValue }
@@ -835,6 +866,7 @@ private enum TransactionTypeFilter: String, CaseIterable, Identifiable {
         case .all: "All"
         case .expenses: "Expenses"
         case .income: "Income"
+        case .pending: "Pending"
         case .transfers: "Transfers"
         }
     }
@@ -853,7 +885,7 @@ private enum LedgerListItem: Identifiable {
 
     var timestamp: Date {
         switch self {
-        case .transaction(let transaction): transaction.timestamp
+        case .transaction(let transaction): transaction.displayDate
         case .transfer(let transfer): transfer.timestamp
         }
     }
@@ -1156,7 +1188,9 @@ private struct DeletedTransactionSnapshot {
     let id: UUID
     let amountMinor: Int64
     let isExpense: Bool
+    let statusRaw: String
     let timestamp: Date
+    let expectedDueDate: Date?
     let categoryID: UUID?
     let accountID: UUID?
     let note: String?
@@ -1167,7 +1201,9 @@ private struct DeletedTransactionSnapshot {
         id = transaction.id
         amountMinor = transaction.amountMinor
         isExpense = transaction.isExpense
+        statusRaw = transaction.statusRaw
         timestamp = transaction.timestamp
+        expectedDueDate = transaction.expectedDueDate
         categoryID = transaction.category?.id
         accountID = transaction.account?.id
         note = transaction.note
@@ -1183,7 +1219,9 @@ private struct DeletedTransactionSnapshot {
             id: id,
             amountMinor: amountMinor,
             isExpense: isExpense,
+            status: TransactionStatus(rawValue: statusRaw) ?? .posted,
             timestamp: timestamp,
+            expectedDueDate: expectedDueDate,
             category: categoryID.flatMap { id in
                 categories.first { $0.id == id }
             },

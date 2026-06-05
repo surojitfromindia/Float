@@ -575,7 +575,7 @@ private struct DailyDetailView: View {
     }
 
     private var categoryBreakdown: [CalendarAmountBreakdown] {
-        let grouped = Dictionary(grouping: dayTransactions.filter(\.isExpense)) {
+        let grouped = Dictionary(grouping: dayTransactions.filter(\.isPostedExpense)) {
             $0.categoryName
         }
         return grouped.map { name, items in
@@ -590,7 +590,7 @@ private struct DailyDetailView: View {
     }
 
     private var accountBreakdown: [CalendarAmountBreakdown] {
-        let grouped = Dictionary(grouping: dayTransactions) { $0.accountName }
+        let grouped = Dictionary(grouping: dayTransactions.filter(\.isPosted)) { $0.accountName }
         return grouped.map { name, items in
             CalendarAmountBreakdown(
                 title: name,
@@ -608,8 +608,8 @@ private struct DailyDetailView: View {
         return grouped.map { hour, items in
             CalendarHourlyBreakdown(
                 hour: hour,
-                incomeMinor: items.filter { !$0.isExpense }.reduce(Int64(0)) { $0 + $1.amountMinor },
-                expenseMinor: items.filter(\.isExpense).reduce(Int64(0)) { $0 + $1.amountMinor }
+                incomeMinor: items.filter(\.isPostedIncome).reduce(Int64(0)) { $0 + $1.amountMinor },
+                expenseMinor: items.filter(\.isPostedExpense).reduce(Int64(0)) { $0 + $1.amountMinor }
             )
         }
         .sorted { $0.hour < $1.hour }
@@ -1185,7 +1185,9 @@ private struct DailyDetailView: View {
         let copied = TransactionItem(
             amountMinor: transaction.amountMinor,
             isExpense: transaction.isExpense,
+            status: transaction.status,
             timestamp: calendar.timestamp(on: selectedDate, matchingTimeFrom: transaction.timestamp),
+            expectedDueDate: transaction.isPending ? selectedDate : nil,
             category: transaction.category,
             account: transaction.account,
             note: transaction.note
@@ -1508,11 +1510,11 @@ private struct CalendarDaySummary: Identifiable {
 
     var id: Date { date }
     var incomeMinor: Int64 {
-        transactions.filter { !$0.isExpense }.reduce(0) { $0 + $1.amountMinor }
+        transactions.filter(\.isPostedIncome).reduce(0) { $0 + $1.amountMinor }
             + projectedRecurring.filter { !$0.isExpense }.reduce(0) { $0 + $1.amountMinor }
     }
     var expenseMinor: Int64 {
-        transactions.filter(\.isExpense).reduce(0) { $0 + $1.amountMinor }
+        transactions.filter(\.isPostedExpense).reduce(0) { $0 + $1.amountMinor }
             + projectedRecurring.filter(\.isExpense).reduce(0) { $0 + $1.amountMinor }
     }
     var netMinor: Int64 { incomeMinor - expenseMinor }
@@ -1532,11 +1534,11 @@ private struct CalendarPeriodSummary {
     let transactions: [TransactionItem]
 
     var incomeMinor: Int64 {
-        transactions.filter { !$0.isExpense }.reduce(0) { $0 + $1.amountMinor }
+        transactions.filter(\.isPostedIncome).reduce(0) { $0 + $1.amountMinor }
     }
 
     var expenseMinor: Int64 {
-        transactions.filter(\.isExpense).reduce(0) { $0 + $1.amountMinor }
+        transactions.filter(\.isPostedExpense).reduce(0) { $0 + $1.amountMinor }
     }
 
     var netMinor: Int64 { incomeMinor - expenseMinor }
@@ -1562,7 +1564,7 @@ private struct CalendarPeriodSummary {
     }
 
     var topCategoryTitle: String {
-        let grouped = Dictionary(grouping: transactions.filter(\.isExpense)) {
+        let grouped = Dictionary(grouping: transactions.filter(\.isPostedExpense)) {
             $0.categoryName
         }
         return grouped
@@ -1684,7 +1686,9 @@ private struct CalendarDeletedTransactionSnapshot {
     let id: UUID
     let amountMinor: Int64
     let isExpense: Bool
+    let statusRaw: String
     let timestamp: Date
+    let expectedDueDate: Date?
     let categoryID: UUID?
     let accountID: UUID?
     let recurringRuleID: UUID?
@@ -1696,7 +1700,9 @@ private struct CalendarDeletedTransactionSnapshot {
         id = transaction.id
         amountMinor = transaction.amountMinor
         isExpense = transaction.isExpense
+        statusRaw = transaction.statusRaw
         timestamp = transaction.timestamp
+        expectedDueDate = transaction.expectedDueDate
         categoryID = transaction.category?.id
         accountID = transaction.account?.id
         recurringRuleID = transaction.recurringRule?.id
@@ -1714,7 +1720,9 @@ private struct CalendarDeletedTransactionSnapshot {
             id: id,
             amountMinor: amountMinor,
             isExpense: isExpense,
+            status: TransactionStatus(rawValue: statusRaw) ?? .posted,
             timestamp: timestamp,
+            expectedDueDate: expectedDueDate,
             category: categoryID.flatMap { id in categories.first { $0.id == id } },
             account: accountID.flatMap { id in accounts.first { $0.id == id } },
             note: note,

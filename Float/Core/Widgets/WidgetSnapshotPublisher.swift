@@ -44,7 +44,7 @@ enum WidgetSnapshotPublisher {
             period: period,
             expectedIncomeMinor: activeBudget?.expectedIncomeMinor ?? 0,
             transactions: transactions.filter {
-                period.contains($0.timestamp, calendar: .current)
+                $0.isPosted && period.contains($0.timestamp, calendar: .current)
             },
             goals: goals,
             recurringRules: recurringRules
@@ -92,7 +92,7 @@ enum WidgetSnapshotPublisher {
         let calendar = Calendar.current
         let today = Date()
         return transactions
-            .filter { $0.isExpense && calendar.isDate($0.timestamp, inSameDayAs: today) }
+            .filter { $0.isPostedExpense && calendar.isDate($0.timestamp, inSameDayAs: today) }
             .reduce(Int64(0)) { $0 + $1.amountMinor }
     }
 

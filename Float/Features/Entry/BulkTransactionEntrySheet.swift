@@ -24,6 +24,7 @@ struct BulkTransactionEntrySheet: View {
     @State private var selectedTemplateIDs = Set<UUID>()
     @State private var splitAmountText = ""
     @State private var splitRows: [RatioSplitDraftRow] = RatioSplitDraftRow.defaultRows()
+    @State private var pendingRows: [BulkPendingDraftRow] = BulkPendingDraftRow.defaultRows()
     @State private var splitSelectedAccount: AccountItem?
     @State private var splitTimestamp = Date()
     @State private var splitCategoryPickerRowID: UUID?
@@ -70,6 +71,8 @@ struct BulkTransactionEntrySheet: View {
             return selectedGroupTemplates
         case .templates:
             return templates.filter { selectedTemplateIDs.contains($0.id) }
+        case .pending:
+            return []
         case .split:
             return []
         }
@@ -130,6 +133,8 @@ struct BulkTransactionEntrySheet: View {
         switch mode {
         case .groups, .templates:
             return !validSelectedTemplates.isEmpty
+        case .pending:
+            return pendingValidationMessage == nil
         case .split:
             return splitValidationMessage == nil
         }
@@ -139,9 +144,21 @@ struct BulkTransactionEntrySheet: View {
         switch mode {
         case .groups, .templates:
             return "Create"
+        case .pending:
+            return "Create \(pendingRows.count)"
         case .split:
             return "Create \(splitRows.count)"
         }
+    }
+
+    private var pendingValidationMessage: String? {
+        guard !pendingRows.isEmpty else {
+            return "Add at least one pending transaction."
+        }
+        guard pendingRows.allSatisfy({ $0.amountMinor(currencyCode: appState.selectedCurrencyCode) > 0 }) else {
+            return "Every pending transaction needs an amount."
+        }
+        return nil
     }
 
     private var splitValidationMessage: String? {
@@ -176,6 +193,7 @@ struct BulkTransactionEntrySheet: View {
                     Picker("Bulk mode", selection: $mode) {
                         Text("Groups").tag(BulkEntryMode.groups)
                         Text("Templates").tag(BulkEntryMode.templates)
+                        Text("Pending").tag(BulkEntryMode.pending)
                         Text("Split").tag(BulkEntryMode.split)
                     }
                     .pickerStyle(.segmented)
@@ -185,6 +203,8 @@ struct BulkTransactionEntrySheet: View {
                         groupPicker
                     case .templates:
                         templatePicker
+                    case .pending:
+                        pendingEditor
                     case .split:
                         splitEditor
                     }
@@ -397,6 +417,47 @@ struct BulkTransactionEntrySheet: View {
         }
     }
 
+    private var pendingEditor: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                SectionHeader(title: "Pending transactions")
+                Spacer()
+                Button {
+                    pendingRows.append(BulkPendingDraftRow())
+                    message = nil
+                    Haptics.tick()
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(width: 34, height: 34)
+                        .floatGlassCircle(
+                            tint: appState.themePalette.accent,
+                            interactive: true,
+                            strokeOpacity: 0.1
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Add pending row")
+            }
+
+            VStack(spacing: 8) {
+                ForEach($pendingRows) { $row in
+                    BulkPendingRowEditor(
+                        row: $row,
+                        currencyCode: appState.selectedCurrencyCode,
+                        canDelete: pendingRows.count > 1,
+                        delete: {
+                            pendingRows.removeAll { $0.id == row.id }
+                            message = nil
+                            Haptics.tick()
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+
     private var splitAmountCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 12) {
@@ -513,6 +574,8 @@ struct BulkTransactionEntrySheet: View {
                     }
                 }
             }
+        case .pending:
+            EmptyView()
         case .split:
             EmptyView()
         }
@@ -541,6 +604,8 @@ struct BulkTransactionEntrySheet: View {
         switch mode {
         case .groups, .templates:
             createTransactions()
+        case .pending:
+            createPendingTransactions()
         case .split:
             createSplitTransactions()
         }
@@ -560,6 +625,35 @@ struct BulkTransactionEntrySheet: View {
                 message = "Created \(createdCount). Skipped \(invalidCount) incomplete templates."
             }
             dismiss()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    private func createPendingTransactions() {
+        if let pendingValidationMessage {
+            message = pendingValidationMessage
+            return
+        }
+
+        let drafts = pendingRows.map { row in
+            PendingTransactionDraft(
+                amountMinor: row.amountMinor(currencyCode: appState.selectedCurrencyCode),
+                expectedDueDate: row.expectedDueDate,
+                note: row.note
+            )
+        }
+
+        do {
+            let createdCount = try TransactionRepository(modelContext: modelContext)
+                .createManyPending(from: drafts)
+            guard createdCount == pendingRows.count else {
+                message = "Every pending transaction needs an amount."
+                return
+            }
+            Haptics.confirm()
+            dismiss()
+            onCreate?()
         } catch {
             message = error.localizedDescription
         }
@@ -824,7 +918,41 @@ struct BulkTransactionEntrySheet: View {
 private enum BulkEntryMode: String, CaseIterable {
     case groups
     case templates
+    case pending
     case split
+}
+
+private struct BulkPendingDraftRow: Identifiable {
+    let id: UUID
+    var amountText: String
+    var expectedDueDate: Date
+    var note: String
+
+    init(
+        id: UUID = UUID(),
+        amountText: String = "",
+        expectedDueDate: Date = Date(),
+        note: String = ""
+    ) {
+        self.id = id
+        self.amountText = amountText
+        self.expectedDueDate = expectedDueDate
+        self.note = note
+    }
+
+    func amountMinor(currencyCode: String) -> Int64 {
+        MoneyParser.parseDisplayAmountMinor(
+            from: amountText,
+            currencyCode: currencyCode
+        )
+    }
+
+    static func defaultRows() -> [BulkPendingDraftRow] {
+        [
+            BulkPendingDraftRow(),
+            BulkPendingDraftRow(),
+        ]
+    }
 }
 
 private struct RatioSplitDraftRow: Identifiable {
@@ -1142,6 +1270,93 @@ private struct RatioSplitRowEditor: View {
             .buttonStyle(.plain)
             .transition(.opacity)
         }
+    }
+}
+
+private struct BulkPendingRowEditor: View {
+    @Binding var row: BulkPendingDraftRow
+    let currencyCode: String
+    let canDelete: Bool
+    let delete: () -> Void
+
+    private var amountMinor: Int64 {
+        row.amountMinor(currencyCode: currencyCode)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Pending")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(
+                        MoneyFormatter.string(
+                            minorUnits: amountMinor,
+                            currencyCode: currencyCode
+                        )
+                    )
+                    .moneyStyle(size: 20, weight: .bold)
+                    .foregroundStyle(.secondary)
+                    .contentTransition(.numericText())
+                }
+                Spacer()
+                Button(role: .destructive) {
+                    guard canDelete else { return }
+                    delete()
+                } label: {
+                    Image(systemName: "trash")
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!canDelete)
+                .accessibilityLabel("Delete pending row")
+            }
+
+            TextField("Amount", text: $row.amountText)
+                .keyboardType(.decimalPad)
+                .textFieldStyle(.plain)
+                .font(.subheadline.monospacedDigit().weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    Color.primary.opacity(0.05),
+                    in: RoundedRectangle(
+                        cornerRadius: 14,
+                        style: .continuous
+                    )
+                )
+
+            DatePicker(
+                "Expected due date",
+                selection: $row.expectedDueDate,
+                displayedComponents: [.date]
+            )
+
+            TextField("Note", text: $row.note, axis: .vertical)
+                .textFieldStyle(.plain)
+                .font(.subheadline)
+                .lineLimit(1...3)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(
+                    Color.primary.opacity(0.05),
+                    in: RoundedRectangle(
+                        cornerRadius: 14,
+                        style: .continuous
+                    )
+                )
+        }
+        .padding(12)
+        .floatGlassSurface(
+            cornerRadius: FloatTheme.controlRadius,
+            material: .thinMaterial,
+            tint: Color(hex: "#6B7280"),
+            strokeOpacity: 0.07,
+            shadowOpacity: 0.04,
+            shadowRadius: 14,
+            shadowY: 8
+        )
     }
 }
 

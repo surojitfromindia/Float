@@ -10,6 +10,12 @@ struct TransactionDraft {
     let note: String?
 }
 
+struct PendingTransactionDraft {
+    let amountMinor: Int64
+    let expectedDueDate: Date
+    let note: String?
+}
+
 @MainActor
 struct TransactionRepository {
     let modelContext: ModelContext
@@ -28,6 +34,26 @@ struct TransactionRepository {
             timestamp: timestamp,
             category: category,
             account: account,
+            note: note?.trimmedNilIfBlank
+        )
+        modelContext.insert(transaction)
+        try save()
+        return transaction
+    }
+
+    func createPending(
+        amountMinor: Int64,
+        expectedDueDate: Date,
+        note: String?
+    ) throws -> TransactionItem {
+        let transaction = TransactionItem(
+            amountMinor: amountMinor,
+            isExpense: true,
+            status: .pending,
+            timestamp: Date(),
+            expectedDueDate: expectedDueDate,
+            category: nil,
+            account: nil,
             note: note?.trimmedNilIfBlank
         )
         modelContext.insert(transaction)
@@ -79,6 +105,28 @@ struct TransactionRepository {
         return validDrafts.count
     }
 
+    func createManyPending(from drafts: [PendingTransactionDraft]) throws -> Int {
+        let validDrafts = drafts.filter { $0.amountMinor > 0 }
+        guard !validDrafts.isEmpty else { return 0 }
+
+        for draft in validDrafts {
+            modelContext.insert(
+                TransactionItem(
+                    amountMinor: draft.amountMinor,
+                    isExpense: true,
+                    status: .pending,
+                    timestamp: Date(),
+                    expectedDueDate: draft.expectedDueDate,
+                    category: nil,
+                    account: nil,
+                    note: draft.note?.trimmedNilIfBlank
+                )
+            )
+        }
+        try save()
+        return validDrafts.count
+    }
+
     func replace(_ transaction: TransactionItem, with drafts: [TransactionDraft]) throws
         -> Int
     {
@@ -116,9 +164,30 @@ struct TransactionRepository {
         transaction.apply(
             amountMinor: amountMinor,
             isExpense: isExpense,
+            status: .posted,
             timestamp: timestamp,
+            expectedDueDate: nil,
             category: category,
             account: account,
+            note: note
+        )
+        try save()
+    }
+
+    func updatePending(
+        _ transaction: TransactionItem,
+        amountMinor: Int64,
+        expectedDueDate: Date,
+        note: String?
+    ) throws {
+        transaction.apply(
+            amountMinor: amountMinor,
+            isExpense: transaction.isExpense,
+            status: .pending,
+            timestamp: transaction.timestamp,
+            expectedDueDate: expectedDueDate,
+            category: nil,
+            account: nil,
             note: note
         )
         try save()

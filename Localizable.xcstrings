@@ -95,6 +95,9 @@
     "%lld" : {
 
     },
+    "%lld pending" : {
+
+    },
     "%lld spending days" : {
 
     },
@@ -301,6 +304,9 @@
 
     },
     "Add Income" : {
+
+    },
+    "Add pending row" : {
 
     },
     "Add split row" : {
@@ -827,6 +833,15 @@
         }
       }
     },
+    "Convert expected transactions when they post." : {
+
+    },
+    "Convert to expense" : {
+
+    },
+    "Convert to income" : {
+
+    },
     "Copy" : {
 
     },
@@ -993,6 +1008,12 @@
         }
       }
     },
+    "Delete pending row" : {
+
+    },
+    "Delete pending transaction" : {
+
+    },
     "Delete recurring rule?" : {
       "localizations" : {
         "bn" : {
@@ -1101,6 +1122,9 @@
 
     },
     "Edit note" : {
+
+    },
+    "Edit pending transaction" : {
 
     },
     "Edit Rule" : {
@@ -1219,6 +1243,9 @@
           }
         }
       }
+    },
+    "Expected due date" : {
+
     },
     "Expected income" : {
       "localizations" : {
@@ -1930,6 +1957,12 @@
 
     },
     "Over daily allowance" : {
+
+    },
+    "Pending" : {
+
+    },
+    "Pending queue" : {
 
     },
     "per day left this period" : {

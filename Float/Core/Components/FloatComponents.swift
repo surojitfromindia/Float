@@ -400,6 +400,10 @@ struct TransactionRowView: View {
     }
 
     private var accountAndTimeText: String {
+        if transaction.isPending {
+            let dueDate = transaction.displayDate.formatted(date: .abbreviated, time: .omitted)
+            return "Pending • Due \(dueDate)"
+        }
         let timestamp = transaction.timestamp.formatted(date: .abbreviated, time: .shortened)
         return "\(transaction.accountName) • \(timestamp)"
     }
@@ -426,7 +430,7 @@ struct TransactionRowView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 Text(
-                    (transaction.isExpense ? "" : "+")
+                    (transaction.isPending || transaction.isExpense ? "" : "+")
                         + MoneyFormatter.string(
                             minorUnits: transaction.amountMinor,
                             currencyCode: currencyCode
@@ -434,7 +438,9 @@ struct TransactionRowView: View {
                 )
                 .moneyStyle(size: 15, weight: .semibold)
                 .foregroundStyle(
-                    transaction.isExpense ? .primary : Color(hex: "#1B8A5A")
+                    transaction.isPending
+                        ? .secondary
+                        : transaction.isExpense ? .primary : Color(hex: "#1B8A5A")
                 )
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)

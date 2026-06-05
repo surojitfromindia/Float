@@ -63,6 +63,10 @@ struct HomeView: View {
         dashboardSnapshot.budgetAlerts
     }
 
+    private var pendingMetrics: PendingTransactionMetrics {
+        dashboardSnapshot.pendingMetrics
+    }
+
     private var periodDailyAverageMinor: Int64 {
         result.variableSpentMinor / Int64(elapsedPeriodDays)
     }
@@ -126,6 +130,7 @@ struct HomeView: View {
                 budgetOverview
                 cashFlowForecast
                 budgetAlertsSection
+                pendingQueueLink
                 reviewQueueLink
                 upcomingRecurring
                 nearestGoal
@@ -265,11 +270,21 @@ struct HomeView: View {
     }
 
     @ViewBuilder private var budgetAlertsSection: some View {
-        if !budgetAlerts.isEmpty {
+        if !budgetAlerts.isEmpty || !pendingMetrics.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: "Budget alerts")
                 GlassCard {
                     VStack(spacing: 12) {
+                        if !pendingMetrics.isEmpty {
+                            PendingMetricsRows(
+                                metrics: pendingMetrics,
+                                currencyCode: appState.selectedCurrencyCode,
+                                tint: appState.themePalette.accent
+                            )
+                            if !budgetAlerts.isEmpty {
+                                Divider()
+                            }
+                        }
                         ForEach(budgetAlerts.prefix(3)) { alert in
                             BudgetAlertRow(
                                 alert: alert,
@@ -300,6 +315,35 @@ struct HomeView: View {
                         Text("Review queue")
                             .font(.subheadline.weight(.semibold))
                         Text("Find missing details, duplicates, and large transactions.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var pendingQueueLink: some View {
+        NavigationLink {
+            PendingTransactionsView()
+        } label: {
+            GlassCard {
+                HStack(spacing: 12) {
+                    FloatIconBadge(
+                        icon: "clock.badge.exclamationmark.fill",
+                        tint: appState.themePalette.accent,
+                        size: 38
+                    )
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Pending queue")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Convert expected transactions when they post.")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .lineLimit(2)
@@ -500,7 +544,10 @@ struct HomeView: View {
             calendar: calendar
         )
         let periodEnd = endOfDay(for: period.end, calendar: calendar)
-        let periodTransactions = fetchTransactions(from: period.start, through: periodEnd)
+        let allTransactions = fetchAllTransactionsForBalance()
+        let periodTransactions = allTransactions.filter {
+            $0.timestamp >= period.start && $0.timestamp <= periodEnd
+        }
         let comparisonTransactions = fetchComparisonTransactions(now: now, calendar: calendar)
         let result = SafeToSpendUseCase.calculate(
             period: period,
@@ -542,7 +589,45 @@ struct HomeView: View {
             ),
             forecastItems: forecast,
             budgetAlerts: alerts,
+            pendingMetrics: pendingMetrics(
+                transactions: allTransactions,
+                period: period,
+                now: now,
+                calendar: calendar
+            ),
             recentTransactions: fetchRecentTransactions()
+        )
+    }
+
+    private func pendingMetrics(
+        transactions: [TransactionItem],
+        period: BudgetPeriod,
+        now: Date,
+        calendar: Calendar
+    ) -> PendingTransactionMetrics {
+        let todayStart = calendar.startOfDay(for: now)
+        let todayEnd = endOfDay(for: now, calendar: calendar)
+        let upcomingEnd = min(
+            endOfDay(for: period.end, calendar: calendar),
+            calendar.date(byAdding: .day, value: 7, to: todayEnd) ?? todayEnd
+        )
+        let pending = transactions.filter(\.isPending)
+
+        let overdue = pending.filter { $0.displayDate < todayStart }
+        let dueToday = pending.filter {
+            $0.displayDate >= todayStart && $0.displayDate <= todayEnd
+        }
+        let upcoming = pending.filter {
+            $0.displayDate > todayEnd && $0.displayDate <= upcomingEnd
+        }
+
+        return PendingTransactionMetrics(
+            overdueCount: overdue.count,
+            overdueMinor: overdue.reduce(Int64(0)) { $0 + $1.amountMinor },
+            dueTodayCount: dueToday.count,
+            dueTodayMinor: dueToday.reduce(Int64(0)) { $0 + $1.amountMinor },
+            upcomingCount: upcoming.count,
+            upcomingMinor: upcoming.reduce(Int64(0)) { $0 + $1.amountMinor }
         )
     }
 
@@ -574,9 +659,11 @@ struct HomeView: View {
         let end = endOfDay(for: now, calendar: calendar)
 
         do {
+            let postedStatus = TransactionStatus.posted.rawValue
             let descriptor = FetchDescriptor<TransactionItem>(
                 predicate: #Predicate<TransactionItem> { transaction in
-                    transaction.isExpense
+                    transaction.statusRaw == postedStatus
+                        && transaction.isExpense
                         && transaction.timestamp >= start
                         && transaction.timestamp <= end
                 }
@@ -611,7 +698,8 @@ struct HomeView: View {
             transaction in
             guard
                 let accountID = transaction.account?.id,
-                activeAccountIDs.contains(accountID)
+                activeAccountIDs.contains(accountID),
+                transaction.isPosted
             else {
                 return total
             }
@@ -707,6 +795,7 @@ private struct HomeDashboardSnapshot {
     let yesterdayExpensesMinor: Int64
     let forecastItems: [CashFlowForecastItem]
     let budgetAlerts: [BudgetAlertItem]
+    let pendingMetrics: PendingTransactionMetrics
     let recentTransactions: [TransactionItem]
 
     static var placeholder: HomeDashboardSnapshot {
@@ -722,8 +811,31 @@ private struct HomeDashboardSnapshot {
             yesterdayExpensesMinor: 0,
             forecastItems: [],
             budgetAlerts: [],
+            pendingMetrics: .empty,
             recentTransactions: []
         )
+    }
+}
+
+private struct PendingTransactionMetrics: Equatable {
+    let overdueCount: Int
+    let overdueMinor: Int64
+    let dueTodayCount: Int
+    let dueTodayMinor: Int64
+    let upcomingCount: Int
+    let upcomingMinor: Int64
+
+    static let empty = PendingTransactionMetrics(
+        overdueCount: 0,
+        overdueMinor: 0,
+        dueTodayCount: 0,
+        dueTodayMinor: 0,
+        upcomingCount: 0,
+        upcomingMinor: 0
+    )
+
+    var isEmpty: Bool {
+        overdueCount == 0 && dueTodayCount == 0 && upcomingCount == 0
     }
 }
 
@@ -858,6 +970,72 @@ private struct BudgetAlertRow: View {
 
     private func money(_ amount: Int64) -> String {
         MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
+    }
+}
+
+private struct PendingMetricsRows: View {
+    let metrics: PendingTransactionMetrics
+    let currencyCode: String
+    let tint: Color
+
+    var body: some View {
+        VStack(spacing: 10) {
+            if metrics.overdueCount > 0 {
+                row(
+                    title: "Pending overdue",
+                    count: metrics.overdueCount,
+                    amountMinor: metrics.overdueMinor,
+                    icon: "exclamationmark.triangle.fill",
+                    tint: Color(hex: "#B4613B")
+                )
+            }
+            if metrics.dueTodayCount > 0 {
+                row(
+                    title: "Pending due today",
+                    count: metrics.dueTodayCount,
+                    amountMinor: metrics.dueTodayMinor,
+                    icon: "calendar.badge.exclamationmark",
+                    tint: tint
+                )
+            }
+            if metrics.upcomingCount > 0 {
+                row(
+                    title: "Pending upcoming",
+                    count: metrics.upcomingCount,
+                    amountMinor: metrics.upcomingMinor,
+                    icon: "calendar.badge.clock",
+                    tint: tint
+                )
+            }
+        }
+    }
+
+    private func row(
+        title: String,
+        count: Int,
+        amountMinor: Int64,
+        icon: String,
+        tint: Color
+    ) -> some View {
+        HStack(spacing: 12) {
+            FloatIconBadge(icon: icon, tint: tint, size: 36)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text("\(count) pending")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer(minLength: 8)
+            Text(
+                MoneyFormatter.string(
+                    minorUnits: amountMinor,
+                    currencyCode: currencyCode
+                )
+            )
+            .moneyStyle(size: 14, weight: .semibold)
+            .foregroundStyle(tint)
+        }
     }
 }
 

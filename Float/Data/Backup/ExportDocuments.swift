@@ -115,13 +115,75 @@ struct TransactionDTO: Codable {
     var id: UUID
     var amountMinor: Int64
     var isExpense: Bool
+    var statusRaw: String
     var timestamp: Date
+    var expectedDueDate: Date?
     var categoryID: UUID?
     var accountID: UUID?
     var note: String?
     var recurringRuleID: UUID?
     var createdAt: Date
     var updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case amountMinor
+        case isExpense
+        case statusRaw
+        case timestamp
+        case expectedDueDate
+        case categoryID
+        case accountID
+        case note
+        case recurringRuleID
+        case createdAt
+        case updatedAt
+    }
+
+    init(
+        id: UUID,
+        amountMinor: Int64,
+        isExpense: Bool,
+        statusRaw: String = TransactionStatus.posted.rawValue,
+        timestamp: Date,
+        expectedDueDate: Date? = nil,
+        categoryID: UUID?,
+        accountID: UUID?,
+        note: String?,
+        recurringRuleID: UUID?,
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.amountMinor = amountMinor
+        self.isExpense = isExpense
+        self.statusRaw = statusRaw
+        self.timestamp = timestamp
+        self.expectedDueDate = expectedDueDate
+        self.categoryID = categoryID
+        self.accountID = accountID
+        self.note = note
+        self.recurringRuleID = recurringRuleID
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        amountMinor = try container.decode(Int64.self, forKey: .amountMinor)
+        isExpense = try container.decode(Bool.self, forKey: .isExpense)
+        statusRaw = try container.decodeIfPresent(String.self, forKey: .statusRaw)
+            ?? TransactionStatus.posted.rawValue
+        timestamp = try container.decode(Date.self, forKey: .timestamp)
+        expectedDueDate = try container.decodeIfPresent(Date.self, forKey: .expectedDueDate)
+        categoryID = try container.decodeIfPresent(UUID.self, forKey: .categoryID)
+        accountID = try container.decodeIfPresent(UUID.self, forKey: .accountID)
+        note = try container.decodeIfPresent(String.self, forKey: .note)
+        recurringRuleID = try container.decodeIfPresent(UUID.self, forKey: .recurringRuleID)
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+    }
 }
 struct TransactionTemplateDTO: Codable {
     var id: UUID

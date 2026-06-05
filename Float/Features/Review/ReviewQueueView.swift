@@ -12,7 +12,7 @@ struct ReviewQueueView: View {
     @State private var message: String?
 
     private var issues: [ReviewIssue] {
-        ReviewIssueBuilder.issues(for: transactions)
+        ReviewIssueBuilder.issues(for: transactions.filter(\.isPosted))
     }
 
     var body: some View {
@@ -286,7 +286,7 @@ private enum ReviewIssueBuilder {
 
     private static func highValueMinorThreshold(for transactions: [TransactionItem]) -> Int64 {
         let expenses = transactions
-            .filter(\.isExpense)
+            .filter(\.isPostedExpense)
             .map(\.amountMinor)
             .filter { $0 > 0 }
         guard !expenses.isEmpty else { return Int64.max }

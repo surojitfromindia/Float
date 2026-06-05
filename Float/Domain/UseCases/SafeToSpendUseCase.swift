@@ -74,7 +74,7 @@ enum SafeToSpendUseCase {
         let effectiveNow = min(now, calendar.endOfDay(for: period.end))
         let variableSpent = transactions
             .filter {
-                $0.isExpense
+                $0.isPostedExpense
                     && period.contains($0.timestamp, calendar: calendar)
                     && $0.timestamp <= calendar.endOfDay(for: effectiveNow)
                     && $0.recurringRule == nil
@@ -201,7 +201,7 @@ enum RecurringDueCalculator {
     ) -> Int64 {
         let materializedRecurring = transactions
             .filter {
-                $0.isExpense
+                $0.isPostedExpense
                     && $0.recurringRule != nil
                     && period.contains($0.timestamp, calendar: calendar)
             }
@@ -275,6 +275,7 @@ enum RecurringDueCalculator {
     ) -> Bool {
         transactions.contains {
             $0.recurringRule?.id == rule.id
+                && $0.isPosted
                 && calendar.isDate($0.timestamp, inSameDayAs: date)
                 && $0.amountMinor == rule.amountMinor
                 && $0.isExpense == rule.isExpense

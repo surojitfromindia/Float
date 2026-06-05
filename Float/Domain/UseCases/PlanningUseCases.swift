@@ -230,7 +230,7 @@ enum BudgetAlertsUseCase {
 
             let spent = transactions
                 .filter {
-                    $0.isExpense
+                    $0.isPostedExpense
                         && $0.category?.id == category.id
                         && period.contains($0.timestamp, calendar: calendar)
                 }

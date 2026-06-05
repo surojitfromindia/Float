@@ -56,7 +56,7 @@ enum AccountBalanceUseCase {
         transactions: [TransactionItem]
     ) -> Int64 {
         transactions
-            .filter { $0.account?.id == account.id }
+            .filter { $0.isPosted && $0.account?.id == account.id }
             .reduce(Int64(0)) { total, transaction in
                 total + (transaction.isExpense ? -transaction.amountMinor : transaction.amountMinor)
             }
