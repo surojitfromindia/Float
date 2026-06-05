@@ -154,6 +154,7 @@ struct BulkTransactionEntrySheet: View {
                 .padding(20)
                 .padding(.bottom, 24)
             }
+            .scrollDismissesKeyboard(.interactively)
             .navigationTitle("Bulk Add")
             .navigationBarTitleDisplayMode(.inline)
             .floatBackground()
@@ -282,33 +283,35 @@ struct BulkTransactionEntrySheet: View {
             }
 
             VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: "Will create", actionTitle: "Add row") {
-                    addSplitRow()
-                }
-                GlassCard {
-                    VStack(spacing: 14) {
-                        ForEach(Array(splitRows.enumerated()), id: \.element.id) { index, row in
-                            RatioSplitRowEditor(
-                                row: binding(for: row.id),
-                                amountMinor: splitAmount(at: index),
-                                currencyCode: appState.selectedCurrencyCode,
-                                palette: appState.themePalette,
-                                canRemove: splitRows.count > 2,
-                                moveUp: index > 0 ? { moveSplitRow(from: index, to: index - 1) } : nil,
-                                moveDown: index < splitRows.count - 1 ? { moveSplitRow(from: index, to: index + 1) } : nil,
-                                chooseCategory: {
-                                    splitCategoryPickerRowID = row.id
-                                },
-                                remove: {
-                                    removeSplitRow(row.id)
-                                }
-                            )
-                            if index < splitRows.count - 1 {
-                                Divider()
+                splitListHeader
+
+                VStack(spacing: 8) {
+                    ForEach(Array(splitRows.enumerated()), id: \.element.id) { index, row in
+                        RatioSplitRowEditor(
+                            row: binding(for: row.id),
+                            amountMinor: splitAmount(at: index),
+                            currencyCode: appState.selectedCurrencyCode,
+                            palette: appState.themePalette,
+                            canDelete: splitRows.count > 2,
+                            chooseCategory: {
+                                splitCategoryPickerRowID = row.id
+                            },
+                            delete: {
+                                removeSplitRow(row.id)
                             }
-                        }
+                        )
+                        .transition(
+                            .asymmetric(
+                                insertion: .scale(scale: 0.96).combined(with: .opacity),
+                                removal: .opacity
+                            )
+                        )
                     }
                 }
+                .animation(
+                    .spring(response: 0.32, dampingFraction: 0.88),
+                    value: splitRows.map(\.id)
+                )
             }
 
             GlassCard {
@@ -374,6 +377,29 @@ struct BulkTransactionEntrySheet: View {
                     )
             }
         }
+    }
+
+    private var splitListHeader: some View {
+        HStack(spacing: 10) {
+            Text("Will create")
+                .font(.headline)
+            Spacer()
+            Button {
+                addSplitRow()
+            } label: {
+                Image(systemName: "plus")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(width: 34, height: 34)
+                    .floatGlassCircle(
+                        tint: appState.themePalette.accent,
+                        interactive: true,
+                        strokeOpacity: 0.1
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Add split row")
+        }
+        .foregroundStyle(.primary)
     }
 
     @ViewBuilder
@@ -608,17 +634,6 @@ struct BulkTransactionEntrySheet: View {
         Haptics.tick()
     }
 
-    private func moveSplitRow(from source: Int, to destination: Int) {
-        guard splitRows.indices.contains(source),
-              splitRows.indices.contains(destination)
-        else {
-            return
-        }
-        let row = splitRows.remove(at: source)
-        splitRows.insert(row, at: destination)
-        Haptics.tick()
-    }
-
     private func setCategory(_ category: CategoryItem?, for rowID: UUID) {
         guard let index = splitRows.firstIndex(where: { $0.id == rowID }) else {
             return
@@ -728,21 +743,22 @@ private struct RatioPresetChip: View {
     let preset: RatioSplitPreset
     let isSelected: Bool
 
+    private var tint: Color {
+        Color(hex: "#0E7C7B")
+    }
+
     var body: some View {
         Text(preset.title)
             .font(.subheadline.monospacedDigit().weight(.semibold))
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(
-                isSelected
-                    ? Color(hex: "#0E7C7B").opacity(0.2)
-                    : Color.primary.opacity(0.06),
-                in: RoundedRectangle(
-                    cornerRadius: FloatTheme.tileRadius,
-                    style: .continuous
-                )
+            .floatGlassSurface(
+                cornerRadius: FloatTheme.tileRadius,
+                tint: isSelected ? tint : nil,
+                interactive: true,
+                strokeOpacity: isSelected ? 0.1 : 0.06
             )
-            .foregroundStyle(isSelected ? Color(hex: "#0E7C7B") : .primary)
+            .foregroundStyle(isSelected ? tint : .primary)
     }
 }
 
@@ -751,11 +767,11 @@ private struct RatioSplitRowEditor: View {
     let amountMinor: Int64
     let currencyCode: String
     let palette: FloatThemePalette
-    let canRemove: Bool
-    let moveUp: (() -> Void)?
-    let moveDown: (() -> Void)?
+    let canDelete: Bool
     let chooseCategory: () -> Void
-    let remove: () -> Void
+    let delete: () -> Void
+
+    @State private var isEditingNote = false
 
     private var tint: Color {
         row.isExpense ? palette.caution : palette.positive
@@ -769,110 +785,193 @@ private struct RatioSplitRowEditor: View {
         )
     }
 
+    private var trimmedNote: String {
+        row.note.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 Text(amountText)
-                    .moneyStyle(size: 18, weight: .bold)
+                    .moneyStyle(size: 17, weight: .bold)
                     .foregroundStyle(row.isExpense ? .primary : palette.positive)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+                    .minimumScaleFactor(0.68)
+                    .contentTransition(.numericText())
+                    .layoutPriority(1)
 
                 Spacer(minLength: 8)
 
-                Button {
-                    moveUp?()
-                } label: {
-                    Image(systemName: "chevron.up")
-                        .frame(width: 30, height: 30)
-                }
-                .disabled(moveUp == nil)
-                .accessibilityLabel("Move split row up")
+                ratioField
 
-                Button {
-                    moveDown?()
-                } label: {
-                    Image(systemName: "chevron.down")
-                        .frame(width: 30, height: 30)
-                }
-                .disabled(moveDown == nil)
-                .accessibilityLabel("Move split row down")
+                typeToggle
 
-                Button(role: .destructive, action: remove) {
-                    Image(systemName: "trash")
-                        .frame(width: 30, height: 30)
-                }
-                .disabled(!canRemove)
-                .accessibilityLabel("Remove split row")
+                rowMenu
             }
-            .font(.subheadline.weight(.semibold))
-            .buttonStyle(.borderless)
 
+            categoryButton
+
+            noteArea
+        }
+        .padding(12)
+        .floatGlassSurface(
+            cornerRadius: FloatTheme.controlRadius,
+            material: .thinMaterial,
+            tint: tint,
+            strokeOpacity: 0.07,
+            shadowOpacity: 0.04,
+            shadowRadius: 14,
+            shadowY: 8
+        )
+    }
+
+    private var ratioField: some View {
+        TextField("1", text: $row.ratioText)
+            .keyboardType(.numberPad)
+            .textFieldStyle(.plain)
+            .font(.subheadline.monospacedDigit().weight(.bold))
+            .multilineTextAlignment(.center)
+            .frame(width: 46, height: 34)
+            .background(
+                Color.primary.opacity(0.07),
+                in: RoundedRectangle(
+                    cornerRadius: 12,
+                    style: .continuous
+                )
+            )
+            .accessibilityLabel("Ratio")
+    }
+
+    private var typeToggle: some View {
+        Button {
+            withAnimation(.spring(response: 0.24, dampingFraction: 0.9)) {
+                row.isExpense.toggle()
+            }
+        } label: {
+            Text(row.isExpense ? "Expense" : "Income")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(tint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .frame(width: 74, height: 34)
+                .background(
+                    tint.opacity(0.12),
+                    in: Capsule(style: .continuous)
+                )
+                .overlay(
+                    Capsule(style: .continuous)
+                        .strokeBorder(tint.opacity(0.18), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(row.isExpense ? "Expense split" : "Income split")
+    }
+
+    private var rowMenu: some View {
+        let isActive = isEditingNote || !trimmedNote.isEmpty
+
+        return Menu {
+            Button {
+                withAnimation(.spring(response: 0.24, dampingFraction: 0.9)) {
+                    isEditingNote.toggle()
+                }
+            } label: {
+                Label(isEditingNote ? "Hide note" : "Edit note", systemImage: "note.text")
+            }
+
+            Button(role: .destructive) {
+                guard canDelete else { return }
+                delete()
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .disabled(!canDelete)
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(isActive ? palette.accent : .secondary)
+                .frame(width: 34, height: 34)
+                .floatGlassCircle(
+                    tint: isActive ? palette.accent : nil,
+                    interactive: true,
+                    strokeOpacity: isActive ? 0.1 : 0.06
+                )
+        }
+        .accessibilityLabel("Split row actions")
+    }
+
+    private var categoryButton: some View {
+        Button(action: chooseCategory) {
             HStack(spacing: 10) {
-                TextField("Ratio", text: $row.ratioText)
-                    .keyboardType(.numberPad)
-                    .textFieldStyle(.plain)
-                    .font(.headline.monospacedDigit())
-                    .multilineTextAlignment(.center)
-                    .frame(width: 64, height: 42)
-                    .background(
-                        Color.primary.opacity(0.06),
-                        in: RoundedRectangle(
-                            cornerRadius: FloatTheme.tileRadius,
-                            style: .continuous
-                        )
-                    )
-
-                Picker("Type", selection: $row.isExpense) {
-                    Text("Expense").tag(true)
-                    Text("Income").tag(false)
-                }
-                .pickerStyle(.segmented)
-            }
-
-            Button(action: chooseCategory) {
-                HStack(spacing: 12) {
-                    FloatIconBadge(
-                        icon: row.category?.iconKey ?? "square.grid.2x2.fill",
-                        tint: row.category.map { Color(hex: $0.colorHex) } ?? tint,
-                        size: 36
-                    )
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(row.category?.name ?? "Choose category")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
+                FloatIconBadge(
+                    icon: row.category?.iconKey ?? "square.grid.2x2.fill",
+                    tint: tint,
+                    size: 30
+                )
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(row.category?.name ?? "Choose category")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    if row.category == nil {
                         Text(row.isExpense ? "Expense category" : "Income category")
-                            .font(.caption)
+                            .font(.caption2.weight(.medium))
                             .foregroundStyle(.secondary)
                     }
-                    Spacer(minLength: 8)
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
                 }
-                .padding(12)
-                .background(
-                    tint.opacity(0.08),
-                    in: RoundedRectangle(
-                        cornerRadius: FloatTheme.tileRadius,
-                        style: .continuous
-                    )
-                )
+                Spacer(minLength: 8)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
             }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
+            .background(
+                Color.primary.opacity(0.05),
+                in: RoundedRectangle(
+                    cornerRadius: 14,
+                    style: .continuous
+                )
+            )
+        }
+        .buttonStyle(.plain)
+    }
 
+    @ViewBuilder
+    private var noteArea: some View {
+        if isEditingNote {
             TextField("Note", text: $row.note, axis: .vertical)
                 .textFieldStyle(.plain)
-                .lineLimit(1...2)
-                .padding(12)
+                .font(.subheadline)
+                .lineLimit(1...3)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
                 .background(
                     Color.primary.opacity(0.05),
                     in: RoundedRectangle(
-                        cornerRadius: FloatTheme.tileRadius,
+                        cornerRadius: 14,
                         style: .continuous
                     )
                 )
+                .transition(.opacity.combined(with: .move(edge: .top)))
+        } else if !trimmedNote.isEmpty {
+            Button {
+                withAnimation(.spring(response: 0.24, dampingFraction: 0.9)) {
+                    isEditingNote = true
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "note.text")
+                    Text(trimmedNote)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 2)
+            }
+            .buttonStyle(.plain)
+            .transition(.opacity)
         }
     }
 }

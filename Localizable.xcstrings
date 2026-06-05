@@ -127,6 +127,9 @@
     "%lld%%" : {
 
     },
+    "1" : {
+
+    },
     "About" : {
       "localizations" : {
         "bn" : {
@@ -298,6 +301,9 @@
 
     },
     "Add Income" : {
+
+    },
+    "Add split row" : {
 
     },
     "Add template group" : {
@@ -1091,6 +1097,9 @@
     "Edit Group" : {
 
     },
+    "Edit note" : {
+
+    },
     "Edit Rule" : {
       "localizations" : {
         "bn" : {
@@ -1256,6 +1265,9 @@
 
     },
     "Expense mix" : {
+
+    },
+    "Expense split" : {
 
     },
     "Expenses" : {
@@ -1426,6 +1438,9 @@
         }
       }
     },
+    "Hide note" : {
+
+    },
     "Hindi" : {
       "localizations" : {
         "bn" : {
@@ -1547,6 +1562,9 @@
           }
         }
       }
+    },
+    "Income split" : {
+
     },
     "Income vs expenses" : {
 
@@ -1710,12 +1728,6 @@
           }
         }
       }
-    },
-    "Move split row down" : {
-
-    },
-    "Move split row up" : {
-
     },
     "Name" : {
       "localizations" : {
@@ -2101,9 +2113,6 @@
     "Reminders" : {
 
     },
-    "Remove split row" : {
-
-    },
     "Report could not load" : {
 
     },
@@ -2409,6 +2418,9 @@
 
     },
     "Split amount" : {
+
+    },
+    "Split row actions" : {
 
     },
     "Start using Float" : {
@@ -2798,6 +2810,9 @@
       }
     },
     "Use Face ID, Touch ID, or your passcode to continue." : {
+
+    },
+    "Will create" : {
 
     },
     "You can spend" : {
