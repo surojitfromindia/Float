@@ -29,6 +29,7 @@ struct TransactionsView: View {
     @State private var showingUndo = false
     @State private var showingFilters = false
     @State private var editingTransaction: TransactionItem?
+    @State private var splittingTransaction: TransactionItem?
     @State private var editingTransfer: TransferItem?
     @State private var isEntrySheetPresented = false
     @State private var isTransferSheetPresented = false
@@ -121,6 +122,14 @@ struct TransactionsView: View {
             QuickAddKeypadSheet(transactionToEdit: editingTransaction)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(item: $splittingTransaction) { transaction in
+            BulkTransactionEntrySheet(
+                transactionToReplace: transaction,
+                onCreate: { resetAndLoadFirstPage() }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $isTransferSheetPresented) {
             TransferEditorSheet(transferToEdit: editingTransfer)
@@ -259,6 +268,12 @@ struct TransactionsView: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
+                            Button {
+                                splittingTransaction = transaction
+                            } label: {
+                                Label("Split transaction", systemImage: "divide.circle")
+                            }
+
                             Button(role: .destructive) {
                                 delete(transaction)
                             } label: {

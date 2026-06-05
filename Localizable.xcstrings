@@ -1013,6 +1013,9 @@
         }
       }
     },
+    "Delete Template" : {
+
+    },
     "Delete transaction" : {
       "localizations" : {
         "bn" : {
@@ -2255,6 +2258,9 @@
         }
       }
     },
+    "Save %@ for quick reuse." : {
+
+    },
     "Save and add another" : {
 
     },
@@ -2268,6 +2274,9 @@
           }
         }
       }
+    },
+    "Save Split Template" : {
+
     },
     "Save transaction" : {
       "extractionState" : "stale",
@@ -2421,6 +2430,9 @@
 
     },
     "Split row actions" : {
+
+    },
+    "Split transaction" : {
 
     },
     "Start using Float" : {

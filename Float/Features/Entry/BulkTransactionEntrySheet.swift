@@ -14,8 +14,10 @@ struct BulkTransactionEntrySheet: View {
 
     private let initialSplitAmountMinor: Int64?
     private let initialSplitTimestamp: Date?
+    private let transactionToReplace: TransactionItem?
     private let onCreate: (() -> Void)?
 
+    @AppStorage("savedRatioSplitPresetsData") private var savedRatioSplitPresetsData = "[]"
     @State private var mode: BulkEntryMode
     @State private var selectedGroup: TransactionTemplateGroupItem?
     @State private var groupDraftEntries: [BulkGroupDraftEntry] = []
@@ -25,17 +27,41 @@ struct BulkTransactionEntrySheet: View {
     @State private var splitSelectedAccount: AccountItem?
     @State private var splitTimestamp = Date()
     @State private var splitCategoryPickerRowID: UUID?
+    @State private var showingSaveSplitTemplate = false
+    @State private var newSplitTemplateName = ""
     @State private var message: String?
 
     init(
         initialSplitAmountMinor: Int64? = nil,
         initialSplitTimestamp: Date? = nil,
+        transactionToReplace: TransactionItem? = nil,
         onCreate: (() -> Void)? = nil
     ) {
         self.initialSplitAmountMinor = initialSplitAmountMinor
+            ?? transactionToReplace?.amountMinor
         self.initialSplitTimestamp = initialSplitTimestamp
+            ?? transactionToReplace?.timestamp
+        self.transactionToReplace = transactionToReplace
         self.onCreate = onCreate
-        _mode = State(initialValue: initialSplitAmountMinor == nil ? .groups : .split)
+        _mode = State(initialValue: initialSplitAmountMinor == nil && transactionToReplace == nil ? .groups : .split)
+        if let transactionToReplace {
+            _splitRows = State(
+                initialValue: [
+                    RatioSplitDraftRow(
+                        ratioText: "1",
+                        isExpense: transactionToReplace.isExpense,
+                        category: transactionToReplace.category,
+                        note: transactionToReplace.note ?? ""
+                    ),
+                    RatioSplitDraftRow(
+                        ratioText: "1",
+                        isExpense: transactionToReplace.isExpense,
+                        category: transactionToReplace.category,
+                        note: transactionToReplace.note ?? ""
+                    ),
+                ]
+            )
+        }
     }
 
     private var selectedTemplates: [TransactionTemplateItem] {
@@ -78,6 +104,26 @@ struct BulkTransactionEntrySheet: View {
             totalMinor: splitAmountMinor,
             ratios: splitRatios
         )
+    }
+
+    private var savedSplitPresets: [SavedRatioSplitPreset] {
+        decodeSavedSplitPresets()
+    }
+
+    private var splitPresetOptions: [RatioSplitPreset] {
+        RatioSplitPreset.defaults
+            + savedSplitPresets.map { preset in
+                RatioSplitPreset(
+                    id: "saved-\(preset.id.uuidString)",
+                    title: preset.name,
+                    parts: preset.parts,
+                    savedID: preset.id
+                )
+            }
+    }
+
+    private var currentSplitRatioText: String {
+        splitRatios.map(String.init).joined(separator: ":")
     }
 
     private var canCreate: Bool {
@@ -177,6 +223,13 @@ struct BulkTransactionEntrySheet: View {
                 message = nil
                 configureSplitDefaults()
             }
+            .alert("Save Split Template", isPresented: $showingSaveSplitTemplate) {
+                TextField("Name", text: $newSplitTemplateName)
+                Button("Save", action: saveCurrentSplitTemplate)
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Save \(currentSplitRatioText) for quick reuse.")
+            }
             .sheet(
                 item: Binding(
                     get: { splitCategoryPickerPresentation },
@@ -264,10 +317,14 @@ struct BulkTransactionEntrySheet: View {
             splitAmountCard
 
             VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: "Ratios")
+                SectionHeader(
+                    title: "Ratios",
+                    actionTitle: "Save",
+                    action: presentSaveSplitTemplate
+                )
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 8) {
-                        ForEach(RatioSplitPreset.defaults) { preset in
+                        ForEach(splitPresetOptions) { preset in
                             Button {
                                 apply(preset)
                             } label: {
@@ -277,6 +334,15 @@ struct BulkTransactionEntrySheet: View {
                                 )
                             }
                             .buttonStyle(.plain)
+                            .contextMenu {
+                                if let savedID = preset.savedID {
+                                    Button(role: .destructive) {
+                                        deleteSavedSplitPreset(savedID)
+                                    } label: {
+                                        Label("Delete Template", systemImage: "trash")
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -524,9 +590,19 @@ struct BulkTransactionEntrySheet: View {
             )
         }
 
+        guard drafts.count == splitRows.count else {
+            message = "Choose a category for every split row."
+            return
+        }
+
         do {
-            let createdCount = try TransactionRepository(modelContext: modelContext)
-                .createMany(from: drafts)
+            let repository = TransactionRepository(modelContext: modelContext)
+            let createdCount: Int
+            if let transactionToReplace {
+                createdCount = try repository.replace(transactionToReplace, with: drafts)
+            } else {
+                createdCount = try repository.createMany(from: drafts)
+            }
             guard createdCount == splitRows.count else {
                 message = "Choose a category for every split row."
                 return
@@ -556,7 +632,7 @@ struct BulkTransactionEntrySheet: View {
         }
 
         if splitSelectedAccount == nil {
-            splitSelectedAccount = accounts.first {
+            splitSelectedAccount = transactionToReplace?.account ?? accounts.first {
                 !$0.archived && $0.id.uuidString == appState.lastUsedAccountID
             } ?? accounts.first { !$0.archived }
         }
@@ -612,6 +688,57 @@ struct BulkTransactionEntrySheet: View {
             )
         }
         message = nil
+        Haptics.tick()
+    }
+
+    private func presentSaveSplitTemplate() {
+        guard splitRows.count >= 2,
+              splitRatios.allSatisfy({ $0 > 0 })
+        else {
+            message = "Enter valid ratios before saving a split template."
+            return
+        }
+
+        if savedSplitPresets.contains(where: { $0.parts == splitRatios }) {
+            message = "\(currentSplitRatioText) is already saved."
+            return
+        }
+
+        newSplitTemplateName = currentSplitRatioText
+        showingSaveSplitTemplate = true
+    }
+
+    private func saveCurrentSplitTemplate() {
+        guard splitRows.count >= 2,
+              splitRatios.allSatisfy({ $0 > 0 })
+        else {
+            message = "Enter valid ratios before saving a split template."
+            return
+        }
+
+        var presets = savedSplitPresets
+        guard !presets.contains(where: { $0.parts == splitRatios }) else {
+            message = "\(currentSplitRatioText) is already saved."
+            return
+        }
+
+        let trimmedName = newSplitTemplateName.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        let name = trimmedName.isEmpty ? currentSplitRatioText : trimmedName
+        presets.insert(
+            SavedRatioSplitPreset(name: name, parts: splitRatios),
+            at: 0
+        )
+        encodeSavedSplitPresets(Array(presets.prefix(16)))
+        message = "Saved \(name)."
+        Haptics.confirm()
+    }
+
+    private func deleteSavedSplitPreset(_ id: UUID) {
+        let presets = savedSplitPresets.filter { $0.id != id }
+        encodeSavedSplitPresets(presets)
+        message = "Split template deleted."
         Haptics.tick()
     }
 
@@ -676,6 +803,22 @@ struct BulkTransactionEntrySheet: View {
     private func template(for id: UUID) -> TransactionTemplateItem? {
         templates.first { $0.id == id }
     }
+
+    private func decodeSavedSplitPresets() -> [SavedRatioSplitPreset] {
+        guard let data = savedRatioSplitPresetsData.data(using: .utf8) else {
+            return []
+        }
+        return (try? JSONDecoder().decode([SavedRatioSplitPreset].self, from: data)) ?? []
+    }
+
+    private func encodeSavedSplitPresets(_ presets: [SavedRatioSplitPreset]) {
+        guard let data = try? JSONEncoder().encode(presets),
+              let string = String(data: data, encoding: .utf8)
+        else {
+            return
+        }
+        savedRatioSplitPresetsData = string
+    }
 }
 
 private enum BulkEntryMode: String, CaseIterable {
@@ -715,10 +858,16 @@ private struct RatioSplitDraftRow: Identifiable {
 
 private struct RatioSplitPreset: Identifiable {
     let id: String
+    var title: String? = nil
     let parts: [Int]
+    var savedID: UUID? = nil
 
-    var title: String {
+    var ratioText: String {
         parts.map(String.init).joined(separator: ":")
+    }
+
+    var displayTitle: String {
+        title ?? ratioText
     }
 
     static let defaults = [
@@ -731,6 +880,18 @@ private struct RatioSplitPreset: Identifiable {
 
     func matches(rows: [RatioSplitDraftRow]) -> Bool {
         rows.map { Int($0.ratioText) ?? 0 } == parts
+    }
+}
+
+private struct SavedRatioSplitPreset: Codable, Identifiable {
+    let id: UUID
+    var name: String
+    var parts: [Int]
+
+    init(id: UUID = UUID(), name: String, parts: [Int]) {
+        self.id = id
+        self.name = name
+        self.parts = parts
     }
 }
 
@@ -748,10 +909,18 @@ private struct RatioPresetChip: View {
     }
 
     var body: some View {
-        Text(preset.title)
-            .font(.subheadline.monospacedDigit().weight(.semibold))
+        VStack(alignment: .leading, spacing: 2) {
+            Text(preset.displayTitle)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+            if preset.title != nil {
+                Text(preset.ratioText)
+                    .font(.caption2.monospacedDigit().weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, preset.title == nil ? 10 : 8)
             .floatGlassSurface(
                 cornerRadius: FloatTheme.tileRadius,
                 tint: isSelected ? tint : nil,

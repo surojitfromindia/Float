@@ -101,9 +101,15 @@ struct QuickAddKeypadSheet: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
 
+                    if transactionToEdit != nil {
+                        splitAmountButton
+                    }
+
                     keypad
 
-                    splitAmountButton
+                    if transactionToEdit == nil {
+                        splitAmountButton
+                    }
 
                     templateSection
 
@@ -199,6 +205,7 @@ struct QuickAddKeypadSheet: View {
                 BulkTransactionEntrySheet(
                     initialSplitAmountMinor: amountMinor,
                     initialSplitTimestamp: timestamp,
+                    transactionToReplace: transactionToEdit,
                     onCreate: { dismiss() }
                 )
                 .presentationDetents([.large])
@@ -209,14 +216,14 @@ struct QuickAddKeypadSheet: View {
 
     @ViewBuilder
     private var splitAmountButton: some View {
-        if transactionToEdit == nil && amountMinor > 0 {
+        if amountMinor > 0 {
             Button {
                 showingSplitEntry = true
             } label: {
                 HStack(spacing: 10) {
                     Image(systemName: "divide.circle.fill")
                         .font(.headline)
-                    Text("Split amount")
+                    Text(transactionToEdit == nil ? "Split amount" : "Split transaction")
                         .font(.subheadline.weight(.semibold))
                     Spacer()
                     Image(systemName: "chevron.right")

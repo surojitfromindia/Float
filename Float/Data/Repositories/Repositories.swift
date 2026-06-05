@@ -79,6 +79,31 @@ struct TransactionRepository {
         return validDrafts.count
     }
 
+    func replace(_ transaction: TransactionItem, with drafts: [TransactionDraft]) throws
+        -> Int
+    {
+        let validDrafts = drafts.filter { $0.amountMinor > 0 }
+        guard !validDrafts.isEmpty, validDrafts.count == drafts.count else {
+            return 0
+        }
+
+        for draft in validDrafts {
+            modelContext.insert(
+                TransactionItem(
+                    amountMinor: draft.amountMinor,
+                    isExpense: draft.isExpense,
+                    timestamp: draft.timestamp,
+                    category: draft.category,
+                    account: draft.account,
+                    note: draft.note?.trimmedNilIfBlank
+                )
+            )
+        }
+        modelContext.delete(transaction)
+        try save()
+        return validDrafts.count
+    }
+
     func update(
         _ transaction: TransactionItem,
         amountMinor: Int64,
