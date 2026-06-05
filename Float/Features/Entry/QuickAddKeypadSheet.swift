@@ -19,6 +19,7 @@ struct QuickAddKeypadSheet: View {
     @State private var timestamp = Date()
     @State private var validationMessage: String?
     @State private var showingCategoryPicker = false
+    @State private var showingSplitEntry = false
     @State private var recentTransactions: [TransactionItem] = []
     @State private var recentTransactionsLoadKey = false
     @State private var templates: [TransactionTemplateItem] = []
@@ -101,6 +102,8 @@ struct QuickAddKeypadSheet: View {
                     .padding(.vertical, 6)
 
                     keypad
+
+                    splitAmountButton
 
                     templateSection
 
@@ -192,6 +195,44 @@ struct QuickAddKeypadSheet: View {
                     selectedCategory: $selectedCategory
                 )
             }
+            .sheet(isPresented: $showingSplitEntry) {
+                BulkTransactionEntrySheet(
+                    initialSplitAmountMinor: amountMinor,
+                    initialSplitTimestamp: timestamp,
+                    onCreate: { dismiss() }
+                )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var splitAmountButton: some View {
+        if transactionToEdit == nil && amountMinor > 0 {
+            Button {
+                showingSplitEntry = true
+            } label: {
+                HStack(spacing: 10) {
+                    Image(systemName: "divide.circle.fill")
+                        .font(.headline)
+                    Text("Split amount")
+                        .font(.subheadline.weight(.semibold))
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                }
+                .padding(14)
+                .foregroundStyle(palette.accent)
+                .background(
+                    palette.accent.opacity(0.12),
+                    in: RoundedRectangle(
+                        cornerRadius: FloatTheme.controlRadius,
+                        style: .continuous
+                    )
+                )
+            }
+            .buttonStyle(.plain)
         }
     }
 

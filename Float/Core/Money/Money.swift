@@ -23,6 +23,58 @@ enum MoneyParser {
         if !digits.isEmpty { digits.removeLast() }
         return String(digits)
     }
+
+    static func parseDisplayAmountMinor(
+        from text: String,
+        currencyCode: String
+    ) -> Int64 {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return 0 }
+
+        let normalized = normalizedDecimalText(trimmed)
+        guard let decimal = Decimal(string: normalized, locale: Locale(identifier: "en_US_POSIX")) else {
+            return 0
+        }
+
+        let fractionDigits = MoneyFormatter.fractionDigits(for: currencyCode)
+        let multiplier = NSDecimalNumber(
+            mantissa: 1,
+            exponent: Int16(fractionDigits),
+            isNegative: false
+        )
+        let minor = NSDecimalNumber(decimal: decimal)
+            .multiplying(by: multiplier)
+            .rounding(accordingToBehavior: NSDecimalNumberHandler(
+                roundingMode: .plain,
+                scale: 0,
+                raiseOnExactness: false,
+                raiseOnOverflow: false,
+                raiseOnUnderflow: false,
+                raiseOnDivideByZero: false
+            ))
+        return max(0, minor.int64Value)
+    }
+
+    private static func normalizedDecimalText(_ text: String) -> String {
+        let scalarText = text.filter {
+            $0.isNumber || $0 == "." || $0 == ","
+        }
+        guard !scalarText.isEmpty else { return "" }
+
+        if scalarText.contains(".") {
+            return scalarText.replacingOccurrences(of: ",", with: "")
+        }
+
+        let commaParts = scalarText.split(separator: ",", omittingEmptySubsequences: false)
+        if commaParts.count == 2,
+           let fraction = commaParts.last,
+           !fraction.isEmpty,
+           fraction.count <= 2 {
+            return commaParts.joined(separator: ".")
+        }
+
+        return scalarText.replacingOccurrences(of: ",", with: "")
+    }
 }
 
 enum MoneyFormatter {

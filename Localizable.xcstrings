@@ -101,6 +101,9 @@
     "%lld templates" : {
 
     },
+    "%lld transactions" : {
+
+    },
     "%lld transactions, %lld transfers" : {
       "localizations" : {
         "en" : {
@@ -821,9 +824,6 @@
     "Copy" : {
 
     },
-    "Create" : {
-
-    },
     "Create backup" : {
       "localizations" : {
         "bn" : {
@@ -1251,6 +1251,9 @@
           }
         }
       }
+    },
+    "Expense category" : {
+
     },
     "Expense mix" : {
 
@@ -1708,6 +1711,12 @@
         }
       }
     },
+    "Move split row down" : {
+
+    },
+    "Move split row up" : {
+
+    },
     "Name" : {
       "localizations" : {
         "bn" : {
@@ -2039,6 +2048,9 @@
         }
       }
     },
+    "Ratio" : {
+
+    },
     "Read the latest safe-to-spend amount from Float." : {
 
     },
@@ -2087,6 +2099,9 @@
       }
     },
     "Reminders" : {
+
+    },
+    "Remove split row" : {
 
     },
     "Report could not load" : {
@@ -2390,6 +2405,12 @@
         }
       }
     },
+    "Split" : {
+
+    },
+    "Split amount" : {
+
+    },
     "Start using Float" : {
       "localizations" : {
         "bn" : {
@@ -2652,6 +2673,9 @@
           }
         }
       }
+    },
+    "Total amount" : {
+
     },
     "Transaction deleted" : {
       "localizations" : {

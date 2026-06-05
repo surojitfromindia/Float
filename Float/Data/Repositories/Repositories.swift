@@ -1,6 +1,15 @@
 import Foundation
 import SwiftData
 
+struct TransactionDraft {
+    let amountMinor: Int64
+    let isExpense: Bool
+    let timestamp: Date
+    let category: CategoryItem
+    let account: AccountItem
+    let note: String?
+}
+
 @MainActor
 struct TransactionRepository {
     let modelContext: ModelContext
@@ -48,6 +57,26 @@ struct TransactionRepository {
         }
         try save()
         return validTemplates.count
+    }
+
+    func createMany(from drafts: [TransactionDraft]) throws -> Int {
+        let validDrafts = drafts.filter { $0.amountMinor > 0 }
+        guard !validDrafts.isEmpty else { return 0 }
+
+        for draft in validDrafts {
+            modelContext.insert(
+                TransactionItem(
+                    amountMinor: draft.amountMinor,
+                    isExpense: draft.isExpense,
+                    timestamp: draft.timestamp,
+                    category: draft.category,
+                    account: draft.account,
+                    note: draft.note?.trimmedNilIfBlank
+                )
+            )
+        }
+        try save()
+        return validDrafts.count
     }
 
     func update(

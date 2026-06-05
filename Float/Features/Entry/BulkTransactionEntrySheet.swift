@@ -5,16 +5,38 @@ struct BulkTransactionEntrySheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
+    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
+    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
     @Query(sort: \TransactionTemplateGroupItem.createdAt, order: .reverse)
     private var groups: [TransactionTemplateGroupItem]
     @Query(sort: \TransactionTemplateItem.createdAt, order: .reverse)
     private var templates: [TransactionTemplateItem]
 
-    @State private var mode = BulkEntryMode.groups
+    private let initialSplitAmountMinor: Int64?
+    private let initialSplitTimestamp: Date?
+    private let onCreate: (() -> Void)?
+
+    @State private var mode: BulkEntryMode
     @State private var selectedGroup: TransactionTemplateGroupItem?
     @State private var groupDraftEntries: [BulkGroupDraftEntry] = []
     @State private var selectedTemplateIDs = Set<UUID>()
+    @State private var splitAmountText = ""
+    @State private var splitRows: [RatioSplitDraftRow] = RatioSplitDraftRow.defaultRows()
+    @State private var splitSelectedAccount: AccountItem?
+    @State private var splitTimestamp = Date()
+    @State private var splitCategoryPickerRowID: UUID?
     @State private var message: String?
+
+    init(
+        initialSplitAmountMinor: Int64? = nil,
+        initialSplitTimestamp: Date? = nil,
+        onCreate: (() -> Void)? = nil
+    ) {
+        self.initialSplitAmountMinor = initialSplitAmountMinor
+        self.initialSplitTimestamp = initialSplitTimestamp
+        self.onCreate = onCreate
+        _mode = State(initialValue: initialSplitAmountMinor == nil ? .groups : .split)
+    }
 
     private var selectedTemplates: [TransactionTemplateItem] {
         switch mode {
@@ -22,6 +44,8 @@ struct BulkTransactionEntrySheet: View {
             return selectedGroupTemplates
         case .templates:
             return templates.filter { selectedTemplateIDs.contains($0.id) }
+        case .split:
+            return []
         }
     }
 
@@ -38,6 +62,67 @@ struct BulkTransactionEntrySheet: View {
         }
     }
 
+    private var splitAmountMinor: Int64 {
+        MoneyParser.parseDisplayAmountMinor(
+            from: splitAmountText,
+            currencyCode: appState.selectedCurrencyCode
+        )
+    }
+
+    private var splitRatios: [Int] {
+        splitRows.map { Int($0.ratioText) ?? 0 }
+    }
+
+    private var splitAmounts: [Int64] {
+        RatioSplitCalculator.amounts(
+            totalMinor: splitAmountMinor,
+            ratios: splitRatios
+        )
+    }
+
+    private var canCreate: Bool {
+        switch mode {
+        case .groups, .templates:
+            return !validSelectedTemplates.isEmpty
+        case .split:
+            return splitValidationMessage == nil
+        }
+    }
+
+    private var confirmationTitle: String {
+        switch mode {
+        case .groups, .templates:
+            return "Create"
+        case .split:
+            return "Create \(splitRows.count)"
+        }
+    }
+
+    private var splitValidationMessage: String? {
+        guard splitAmountMinor > 0 else {
+            return "Enter a total amount greater than zero."
+        }
+        guard splitRows.count >= 2 else {
+            return "Add at least two split rows."
+        }
+        guard splitRatios.allSatisfy({ $0 > 0 }) else {
+            return "Ratios must be greater than zero."
+        }
+        guard splitAmounts.count == splitRows.count,
+              splitAmounts.allSatisfy({ $0 > 0 })
+        else {
+            return "Each split needs a non-zero amount."
+        }
+        guard splitRows.allSatisfy({ row in
+            guard let category = row.category else { return false }
+            let wantsIncome = !row.isExpense
+            return !category.archived && category.isIncome == wantsIncome
+        }) else {
+            return "Choose a category for every split row."
+        }
+        return nil
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -45,6 +130,7 @@ struct BulkTransactionEntrySheet: View {
                     Picker("Bulk mode", selection: $mode) {
                         Text("Groups").tag(BulkEntryMode.groups)
                         Text("Templates").tag(BulkEntryMode.templates)
+                        Text("Split").tag(BulkEntryMode.split)
                     }
                     .pickerStyle(.segmented)
 
@@ -53,6 +139,8 @@ struct BulkTransactionEntrySheet: View {
                         groupPicker
                     case .templates:
                         templatePicker
+                    case .split:
+                        splitEditor
                     }
 
                     previewSection
@@ -74,16 +162,41 @@ struct BulkTransactionEntrySheet: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Create", action: createTransactions)
-                        .disabled(validSelectedTemplates.isEmpty)
+                    Button(confirmationTitle, action: create)
+                        .disabled(!canCreate)
                 }
             }
             .onAppear {
-                if selectedGroup == nil, let group = groups.first {
+                configureSplitDefaults()
+                if mode == .groups, selectedGroup == nil, let group = groups.first {
                     select(group)
                 }
             }
-            .onChange(of: mode) { _, _ in message = nil }
+            .onChange(of: mode) { _, _ in
+                message = nil
+                configureSplitDefaults()
+            }
+            .sheet(
+                item: Binding(
+                    get: { splitCategoryPickerPresentation },
+                    set: { splitCategoryPickerRowID = $0?.row.id }
+                )
+            ) { presentation in
+                RatioSplitCategoryPickerSheet(
+                    title: presentation.row.isExpense
+                        ? "Expense Category"
+                        : "Income Category",
+                    categories: visibleSplitCategories(isExpense: presentation.row.isExpense),
+                    selectedCategory: Binding(
+                        get: {
+                            splitRows.first { $0.id == presentation.row.id }?.category
+                        },
+                        set: { category in
+                            setCategory(category, for: presentation.row.id)
+                        }
+                    )
+                )
+            }
         }
     }
 
@@ -145,6 +258,124 @@ struct BulkTransactionEntrySheet: View {
         }
     }
 
+    private var splitEditor: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            splitAmountCard
+
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Ratios")
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(RatioSplitPreset.defaults) { preset in
+                            Button {
+                                apply(preset)
+                            } label: {
+                                RatioPresetChip(
+                                    preset: preset,
+                                    isSelected: preset.matches(rows: splitRows)
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Will create", actionTitle: "Add row") {
+                    addSplitRow()
+                }
+                GlassCard {
+                    VStack(spacing: 14) {
+                        ForEach(Array(splitRows.enumerated()), id: \.element.id) { index, row in
+                            RatioSplitRowEditor(
+                                row: binding(for: row.id),
+                                amountMinor: splitAmount(at: index),
+                                currencyCode: appState.selectedCurrencyCode,
+                                palette: appState.themePalette,
+                                canRemove: splitRows.count > 2,
+                                moveUp: index > 0 ? { moveSplitRow(from: index, to: index - 1) } : nil,
+                                moveDown: index < splitRows.count - 1 ? { moveSplitRow(from: index, to: index + 1) } : nil,
+                                chooseCategory: {
+                                    splitCategoryPickerRowID = row.id
+                                },
+                                remove: {
+                                    removeSplitRow(row.id)
+                                }
+                            )
+                            if index < splitRows.count - 1 {
+                                Divider()
+                            }
+                        }
+                    }
+                }
+            }
+
+            GlassCard {
+                VStack(spacing: 14) {
+                    AccountPicker(
+                        selectedAccount: $splitSelectedAccount,
+                        accounts: accounts.filter { !$0.archived }
+                    )
+                    Divider()
+                    DatePicker(
+                        "Date",
+                        selection: $splitTimestamp,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                }
+            }
+        }
+    }
+
+    private var splitAmountCard: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Total amount")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Text(
+                            MoneyFormatter.string(
+                                minorUnits: splitAmountMinor,
+                                currencyCode: appState.selectedCurrencyCode
+                            )
+                        )
+                        .moneyStyle(size: 30, weight: .bold)
+                        .contentTransition(.numericText())
+                    }
+                    Spacer(minLength: 12)
+                    Text("\(splitRows.count) transactions")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(appState.themePalette.accent)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(
+                            appState.themePalette.accent.opacity(0.12),
+                            in: RoundedRectangle(
+                                cornerRadius: FloatTheme.tileRadius,
+                                style: .continuous
+                            )
+                        )
+                }
+
+                TextField("Amount", text: $splitAmountText)
+                    .keyboardType(.decimalPad)
+                    .textFieldStyle(.plain)
+                    .font(.title3.monospacedDigit().weight(.semibold))
+                    .padding(14)
+                    .background(
+                        Color.primary.opacity(0.06),
+                        in: RoundedRectangle(
+                            cornerRadius: FloatTheme.tileRadius,
+                            style: .continuous
+                        )
+                    )
+            }
+        }
+    }
+
     @ViewBuilder
     private var previewSection: some View {
         switch mode {
@@ -190,6 +421,8 @@ struct BulkTransactionEntrySheet: View {
                     }
                 }
             }
+        case .split:
+            EmptyView()
         }
     }
 
@@ -212,6 +445,15 @@ struct BulkTransactionEntrySheet: View {
         Haptics.tick()
     }
 
+    private func create() {
+        switch mode {
+        case .groups, .templates:
+            createTransactions()
+        case .split:
+            createSplitTransactions()
+        }
+    }
+
     private func createTransactions() {
         let invalidCount = selectedTemplates.count - validSelectedTemplates.count
         do {
@@ -231,6 +473,191 @@ struct BulkTransactionEntrySheet: View {
         }
     }
 
+    private func createSplitTransactions() {
+        if let splitValidationMessage {
+            message = splitValidationMessage
+            return
+        }
+
+        let account = splitSelectedAccount ?? DefaultAccountResolver.resolve(
+            preferredID: appState.lastUsedAccountID,
+            accounts: accounts,
+            modelContext: modelContext,
+            currencyCode: appState.selectedCurrencyCode
+        )
+
+        let drafts = zip(splitRows, splitAmounts).compactMap { row, amount -> TransactionDraft? in
+            guard let category = row.category else { return nil }
+            return TransactionDraft(
+                amountMinor: amount,
+                isExpense: row.isExpense,
+                timestamp: splitTimestamp,
+                category: category,
+                account: account,
+                note: row.note
+            )
+        }
+
+        do {
+            let createdCount = try TransactionRepository(modelContext: modelContext)
+                .createMany(from: drafts)
+            guard createdCount == splitRows.count else {
+                message = "Choose a category for every split row."
+                return
+            }
+            appState.lastUsedAccountID = account.id.uuidString
+            if let category = splitRows.last?.category {
+                appState.lastUsedCategoryID = category.id.uuidString
+            }
+            Haptics.confirm()
+            dismiss()
+            onCreate?()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
+    private func configureSplitDefaults() {
+        guard mode == .split else { return }
+
+        if let initialSplitAmountMinor, splitAmountText.isEmpty {
+            splitAmountText = displayAmountText(for: initialSplitAmountMinor)
+        }
+
+        if let initialSplitTimestamp,
+           Calendar.current.compare(splitTimestamp, to: Date(), toGranularity: .second) == .orderedSame {
+            splitTimestamp = initialSplitTimestamp
+        }
+
+        if splitSelectedAccount == nil {
+            splitSelectedAccount = accounts.first {
+                !$0.archived && $0.id.uuidString == appState.lastUsedAccountID
+            } ?? accounts.first { !$0.archived }
+        }
+
+        for index in splitRows.indices where splitRows[index].category == nil {
+            splitRows[index].category = defaultCategory(isExpense: splitRows[index].isExpense)
+        }
+    }
+
+    private var splitCategoryPickerPresentation: RatioSplitCategoryPickerPresentation? {
+        guard let rowID = splitCategoryPickerRowID,
+              let row = splitRows.first(where: { $0.id == rowID })
+        else {
+            return nil
+        }
+        return RatioSplitCategoryPickerPresentation(row: row)
+    }
+
+    private func splitAmount(at index: Int) -> Int64 {
+        guard splitAmounts.indices.contains(index) else { return 0 }
+        return splitAmounts[index]
+    }
+
+    private func binding(for rowID: UUID) -> Binding<RatioSplitDraftRow> {
+        Binding(
+            get: {
+                splitRows.first { $0.id == rowID } ?? RatioSplitDraftRow()
+            },
+            set: { newValue in
+                guard let index = splitRows.firstIndex(where: { $0.id == rowID }) else {
+                    return
+                }
+                var updated = newValue
+                if let category = updated.category,
+                   category.isIncome != (!updated.isExpense) {
+                    updated.category = defaultCategory(isExpense: updated.isExpense)
+                }
+                splitRows[index] = updated
+                message = nil
+            }
+        )
+    }
+
+    private func apply(_ preset: RatioSplitPreset) {
+        splitRows = preset.parts.enumerated().map { index, part in
+            let existing = splitRows.indices.contains(index) ? splitRows[index] : nil
+            let isExpense = existing?.isExpense ?? true
+            return RatioSplitDraftRow(
+                ratioText: String(part),
+                isExpense: isExpense,
+                category: existing?.category ?? defaultCategory(isExpense: isExpense),
+                note: existing?.note ?? ""
+            )
+        }
+        message = nil
+        Haptics.tick()
+    }
+
+    private func addSplitRow() {
+        let isExpense = splitRows.last?.isExpense ?? true
+        splitRows.append(
+            RatioSplitDraftRow(
+                isExpense: isExpense,
+                category: defaultCategory(isExpense: isExpense)
+            )
+        )
+        message = nil
+        Haptics.tick()
+    }
+
+    private func removeSplitRow(_ rowID: UUID) {
+        guard splitRows.count > 2 else { return }
+        splitRows.removeAll { $0.id == rowID }
+        message = nil
+        Haptics.tick()
+    }
+
+    private func moveSplitRow(from source: Int, to destination: Int) {
+        guard splitRows.indices.contains(source),
+              splitRows.indices.contains(destination)
+        else {
+            return
+        }
+        let row = splitRows.remove(at: source)
+        splitRows.insert(row, at: destination)
+        Haptics.tick()
+    }
+
+    private func setCategory(_ category: CategoryItem?, for rowID: UUID) {
+        guard let index = splitRows.firstIndex(where: { $0.id == rowID }) else {
+            return
+        }
+        splitRows[index].category = category
+        message = nil
+    }
+
+    private func visibleSplitCategories(isExpense: Bool) -> [CategoryItem] {
+        let wantsIncome = !isExpense
+        return categories.filter { !$0.archived && $0.isIncome == wantsIncome }
+    }
+
+    private func defaultCategory(isExpense: Bool) -> CategoryItem? {
+        let wantsIncome = !isExpense
+        return categories.first {
+            !$0.archived
+                && $0.isIncome == wantsIncome
+                && $0.id.uuidString == appState.lastUsedCategoryID
+        } ?? categories.first {
+            !$0.archived
+                && $0.isIncome == wantsIncome
+                && (isExpense
+                    ? $0.name.localizedCaseInsensitiveCompare("Other") == .orderedSame
+                    : $0.name.localizedCaseInsensitiveCompare("Salary") == .orderedSame)
+        } ?? categories.first {
+            !$0.archived && $0.isIncome == wantsIncome
+        }
+    }
+
+    private func displayAmountText(for minorUnits: Int64) -> String {
+        let fractionDigits = MoneyFormatter.fractionDigits(for: appState.selectedCurrencyCode)
+        guard fractionDigits > 0 else { return String(minorUnits) }
+
+        let divisor = Decimal(pow(10.0, Double(fractionDigits)))
+        let value = Decimal(minorUnits) / divisor
+        return NSDecimalNumber(decimal: value).stringValue
+    }
+
     private func template(for id: UUID) -> TransactionTemplateItem? {
         templates.first { $0.id == id }
     }
@@ -239,6 +666,281 @@ struct BulkTransactionEntrySheet: View {
 private enum BulkEntryMode: String, CaseIterable {
     case groups
     case templates
+    case split
+}
+
+private struct RatioSplitDraftRow: Identifiable {
+    let id: UUID
+    var ratioText: String
+    var isExpense: Bool
+    var category: CategoryItem?
+    var note: String
+
+    init(
+        id: UUID = UUID(),
+        ratioText: String = "1",
+        isExpense: Bool = true,
+        category: CategoryItem? = nil,
+        note: String = ""
+    ) {
+        self.id = id
+        self.ratioText = ratioText
+        self.isExpense = isExpense
+        self.category = category
+        self.note = note
+    }
+
+    static func defaultRows() -> [RatioSplitDraftRow] {
+        [
+            RatioSplitDraftRow(ratioText: "1", isExpense: true),
+            RatioSplitDraftRow(ratioText: "2", isExpense: false),
+        ]
+    }
+}
+
+private struct RatioSplitPreset: Identifiable {
+    let id: String
+    let parts: [Int]
+
+    var title: String {
+        parts.map(String.init).joined(separator: ":")
+    }
+
+    static let defaults = [
+        RatioSplitPreset(id: "1-1", parts: [1, 1]),
+        RatioSplitPreset(id: "1-2", parts: [1, 2]),
+        RatioSplitPreset(id: "2-1", parts: [2, 1]),
+        RatioSplitPreset(id: "1-1-1", parts: [1, 1, 1]),
+        RatioSplitPreset(id: "2-3", parts: [2, 3]),
+    ]
+
+    func matches(rows: [RatioSplitDraftRow]) -> Bool {
+        rows.map { Int($0.ratioText) ?? 0 } == parts
+    }
+}
+
+private struct RatioSplitCategoryPickerPresentation: Identifiable {
+    let row: RatioSplitDraftRow
+    var id: UUID { row.id }
+}
+
+private struct RatioPresetChip: View {
+    let preset: RatioSplitPreset
+    let isSelected: Bool
+
+    var body: some View {
+        Text(preset.title)
+            .font(.subheadline.monospacedDigit().weight(.semibold))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(
+                isSelected
+                    ? Color(hex: "#0E7C7B").opacity(0.2)
+                    : Color.primary.opacity(0.06),
+                in: RoundedRectangle(
+                    cornerRadius: FloatTheme.tileRadius,
+                    style: .continuous
+                )
+            )
+            .foregroundStyle(isSelected ? Color(hex: "#0E7C7B") : .primary)
+    }
+}
+
+private struct RatioSplitRowEditor: View {
+    @Binding var row: RatioSplitDraftRow
+    let amountMinor: Int64
+    let currencyCode: String
+    let palette: FloatThemePalette
+    let canRemove: Bool
+    let moveUp: (() -> Void)?
+    let moveDown: (() -> Void)?
+    let chooseCategory: () -> Void
+    let remove: () -> Void
+
+    private var tint: Color {
+        row.isExpense ? palette.caution : palette.positive
+    }
+
+    private var amountText: String {
+        MoneyFormatter.string(
+            minorUnits: amountMinor,
+            currencyCode: currencyCode,
+            showsSign: !row.isExpense
+        )
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Text(amountText)
+                    .moneyStyle(size: 18, weight: .bold)
+                    .foregroundStyle(row.isExpense ? .primary : palette.positive)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                Spacer(minLength: 8)
+
+                Button {
+                    moveUp?()
+                } label: {
+                    Image(systemName: "chevron.up")
+                        .frame(width: 30, height: 30)
+                }
+                .disabled(moveUp == nil)
+                .accessibilityLabel("Move split row up")
+
+                Button {
+                    moveDown?()
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .frame(width: 30, height: 30)
+                }
+                .disabled(moveDown == nil)
+                .accessibilityLabel("Move split row down")
+
+                Button(role: .destructive, action: remove) {
+                    Image(systemName: "trash")
+                        .frame(width: 30, height: 30)
+                }
+                .disabled(!canRemove)
+                .accessibilityLabel("Remove split row")
+            }
+            .font(.subheadline.weight(.semibold))
+            .buttonStyle(.borderless)
+
+            HStack(spacing: 10) {
+                TextField("Ratio", text: $row.ratioText)
+                    .keyboardType(.numberPad)
+                    .textFieldStyle(.plain)
+                    .font(.headline.monospacedDigit())
+                    .multilineTextAlignment(.center)
+                    .frame(width: 64, height: 42)
+                    .background(
+                        Color.primary.opacity(0.06),
+                        in: RoundedRectangle(
+                            cornerRadius: FloatTheme.tileRadius,
+                            style: .continuous
+                        )
+                    )
+
+                Picker("Type", selection: $row.isExpense) {
+                    Text("Expense").tag(true)
+                    Text("Income").tag(false)
+                }
+                .pickerStyle(.segmented)
+            }
+
+            Button(action: chooseCategory) {
+                HStack(spacing: 12) {
+                    FloatIconBadge(
+                        icon: row.category?.iconKey ?? "square.grid.2x2.fill",
+                        tint: row.category.map { Color(hex: $0.colorHex) } ?? tint,
+                        size: 36
+                    )
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(row.category?.name ?? "Choose category")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .lineLimit(1)
+                        Text(row.isExpense ? "Expense category" : "Income category")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(12)
+                .background(
+                    tint.opacity(0.08),
+                    in: RoundedRectangle(
+                        cornerRadius: FloatTheme.tileRadius,
+                        style: .continuous
+                    )
+                )
+            }
+            .buttonStyle(.plain)
+
+            TextField("Note", text: $row.note, axis: .vertical)
+                .textFieldStyle(.plain)
+                .lineLimit(1...2)
+                .padding(12)
+                .background(
+                    Color.primary.opacity(0.05),
+                    in: RoundedRectangle(
+                        cornerRadius: FloatTheme.tileRadius,
+                        style: .continuous
+                    )
+                )
+        }
+    }
+}
+
+private struct RatioSplitCategoryPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let title: String
+    let categories: [CategoryItem]
+    @Binding var selectedCategory: CategoryItem?
+    @State private var searchText = ""
+
+    private var filteredCategories: [CategoryItem] {
+        let trimmedSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedSearch.isEmpty else { return categories }
+        return categories.filter {
+            $0.name.localizedCaseInsensitiveContains(trimmedSearch)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if filteredCategories.isEmpty {
+                    EmptyStateView(
+                        icon: "magnifyingglass",
+                        title: "No categories",
+                        message: "Try a different search."
+                    )
+                } else {
+                    ForEach(filteredCategories) { category in
+                        Button {
+                            selectedCategory = category
+                            Haptics.tick()
+                            dismiss()
+                        } label: {
+                            HStack(spacing: 12) {
+                                FloatIconBadge(
+                                    icon: category.iconKey,
+                                    tint: Color(hex: category.colorHex),
+                                    size: 36
+                                )
+                                Text(category.name)
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                Spacer()
+                                if selectedCategory?.id == category.id {
+                                    Image(systemName: "checkmark")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(Color(hex: category.colorHex))
+                                }
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $searchText, prompt: "Search categories")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+    }
 }
 
 private struct BulkGroupDraftEntry: Identifiable {
