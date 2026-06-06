@@ -43,23 +43,6 @@
         }
       }
     },
-    "%@ • Next: %@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ • পরবর্তী: %2$@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ • Next: %2$@"
-          }
-        }
-      }
-    },
     "%@ of %@" : {
       "localizations" : {
         "bn" : {
@@ -551,29 +534,6 @@
     "Budget amount" : {
 
     },
-    "Budget health" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "বাজেটের অবস্থা"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Estado del presupuesto"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "बजट स्थिति"
-          }
-        }
-      }
-    },
     "Budget pace" : {
 
     },
@@ -671,29 +631,6 @@
         }
       }
     },
-    "Category breakdown" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "বিভাগভিত্তিক বিশ্লেষণ"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Desglose por categoría"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "श्रेणी विवरण"
-          }
-        }
-      }
-    },
     "Category Budget" : {
 
     },
@@ -733,29 +670,6 @@
     },
     "Clear budget" : {
 
-    },
-    "Clear filters" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "ফিল্টার মুছুন"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Borrar filtros"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "फ़िल्टर साफ़ करें"
-          }
-        }
-      }
     },
     "Color" : {
       "localizations" : {
@@ -1297,9 +1211,6 @@
     "Expense mix" : {
 
     },
-    "Expense split" : {
-
-    },
     "Expenses" : {
       "localizations" : {
         "bn" : {
@@ -1593,9 +1504,6 @@
         }
       }
     },
-    "Income split" : {
-
-    },
     "Income vs expenses" : {
 
     },
@@ -1698,28 +1606,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "प्रबंधन"
-          }
-        }
-      }
-    },
-    "Max amount" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "সর্বোচ্চ পরিমাণ"
-          }
-        }
-      }
-    },
-    "Min amount" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "সর্বনিম্ন পরিমাণ"
           }
         }
       }
@@ -1964,17 +1850,6 @@
     },
     "Pending queue" : {
 
-    },
-    "per day left this period" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "এই সময়ে প্রতিদিন বাকি"
-          }
-        }
-      }
     },
     "Period" : {
       "localizations" : {
@@ -2240,29 +2115,6 @@
     "safe" : {
 
     },
-    "Safe to spend" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "খরচের জন্য নিরাপদ"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Seguro para gastar"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "खर्च के लिए सुरक्षित"
-          }
-        }
-      }
-    },
     "Safe to Spend" : {
 
     },
@@ -2297,30 +2149,8 @@
     "Save and add another" : {
 
     },
-    "Save changes" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "পরিবর্তন সংরক্ষণ"
-          }
-        }
-      }
-    },
     "Save Split Template" : {
 
-    },
-    "Save transaction" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "লেনদেন সংরক্ষণ"
-          }
-        }
-      }
     },
     "Saved minor units" : {
       "localizations" : {
@@ -2445,17 +2275,6 @@
     "Spend with clarity" : {
 
     },
-    "spent so far" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "এখন পর্যন্ত খরচ"
-          }
-        }
-      }
-    },
     "Split" : {
 
     },
@@ -2541,29 +2360,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "सिस्टम"
-          }
-        }
-      }
-    },
-    "System dynamic" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "সিস্টেম ডায়নামিক"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Dinámico del sistema"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "सिस्टम डायनेमिक"
           }
         }
       }
@@ -2878,28 +2674,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "आप खर्च कर सकते हैं"
-          }
-        }
-      }
-    },
-    "You’re %@ over for this period." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "এই সময়ে আপনি %@ বেশি খরচ করেছেন।"
-          }
-        }
-      }
-    },
-    "You’re on track" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "আপনি সঠিক পথে আছেন"
           }
         }
       }

@@ -73,33 +73,41 @@ struct PendingTransactionsView: View {
                     Button {
                         convert(transaction, isExpense: true)
                     } label: {
-                        Label("Expense", systemImage: "minus.circle")
+                        PendingConversionButton(
+                            title: "Expense",
+                            systemImage: "minus.circle",
+                            tint: appState.themePalette.caution
+                        )
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Convert to expense")
 
                     Button {
                         convert(transaction, isExpense: false)
                     } label: {
-                        Label("Income", systemImage: "plus.circle")
+                        PendingConversionButton(
+                            title: "Income",
+                            systemImage: "plus.circle",
+                            tint: appState.themePalette.positive
+                        )
                     }
-                    .buttonStyle(.bordered)
-
-                    Spacer()
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Convert to income")
 
                     Button {
                         editingTransaction = transaction
                     } label: {
-                        Image(systemName: "pencil")
+                        PendingIconButton(systemImage: "pencil", tint: appState.themePalette.accent)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                     .accessibilityLabel("Edit pending transaction")
 
                     Button(role: .destructive) {
                         delete(transaction)
                     } label: {
-                        Image(systemName: "trash")
+                        PendingIconButton(systemImage: "trash", tint: appState.themePalette.caution)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.plain)
                     .accessibilityLabel("Delete pending transaction")
                 }
             }
@@ -135,5 +143,53 @@ struct PendingTransactionsView: View {
                 }
             }
         }
+    }
+}
+
+private struct PendingConversionButton: View {
+    let title: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: systemImage)
+                .font(.caption.weight(.bold))
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+        }
+        .foregroundStyle(tint)
+        .frame(maxWidth: .infinity, minHeight: 40)
+        .padding(.horizontal, 10)
+        .background(
+            tint.opacity(0.12),
+            in: Capsule(style: .continuous)
+        )
+        .overlay(
+            Capsule(style: .continuous)
+                .strokeBorder(tint.opacity(0.14), lineWidth: 1)
+        )
+    }
+}
+
+private struct PendingIconButton: View {
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(tint)
+            .frame(width: 40, height: 40)
+            .background(
+                tint.opacity(0.12),
+                in: Circle()
+            )
+            .overlay(
+                Circle()
+                    .strokeBorder(tint.opacity(0.14), lineWidth: 1)
+            )
     }
 }

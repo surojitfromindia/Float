@@ -60,7 +60,7 @@ struct RecurringView: View {
         .sheet(isPresented: $showingNewRuleEditor) {
             RecurringEditorView(rule: nil)
         }
-        .confirmationDialog(
+        .alert(
             "Delete recurring rule?",
             isPresented: Binding(
                 get: { rulePendingDeletion != nil },
@@ -69,8 +69,7 @@ struct RecurringView: View {
                         rulePendingDeletion = nil
                     }
                 }
-            ),
-            titleVisibility: .visible
+            )
         ) {
             Button("Delete Rule", role: .destructive, action: deletePendingRule)
             Button("Cancel", role: .cancel) {
@@ -87,6 +86,10 @@ struct RecurringView: View {
     }
 
     private func tint(for rule: RecurringRuleItem) -> Color {
+        if let colorHex = rule.category?.colorHex, !colorHex.isEmpty {
+            return Color(hex: colorHex)
+        }
+
         guard rule.active else {
             return .secondary
         }
@@ -190,8 +193,15 @@ private struct RecurringRuleCard: View {
         .opacity(rule.active ? 1 : 0.62)
         .contextMenu {
             Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
+                Label {
+                    Text("Delete")
+                        .foregroundStyle(Color(hex: "#DC2626"))
+                } icon: {
+                    Image(systemName: "trash")
+                        .foregroundStyle(Color(hex: "#DC2626"))
+                }
             }
+            .tint(Color(hex: "#DC2626"))
         }
     }
 

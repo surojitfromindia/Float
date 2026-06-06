@@ -862,13 +862,38 @@ private struct HomeSummaryTile: View {
 }
 
 private struct HomeActionButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let title: String
     let icon: String
     let tint: Color
     var isEnabled = true
     let action: () -> Void
 
+    private var fillOpacity: Double {
+        if colorScheme == .dark {
+            return isEnabled ? 0.2 : 0.08
+        }
+        return isEnabled ? 0.09 : 0.04
+    }
+
+    private var liftOpacity: Double {
+        colorScheme == .dark && isEnabled ? 0.08 : 0
+    }
+
+    private var strokeOpacity: Double {
+        if colorScheme == .dark {
+            return isEnabled ? 0.3 : 0.1
+        }
+        return isEnabled ? 0.14 : 0.06
+    }
+
     var body: some View {
+        let shape = RoundedRectangle(
+            cornerRadius: FloatTheme.controlRadius,
+            style: .continuous
+        )
+
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 17, weight: .semibold))
@@ -876,18 +901,15 @@ private struct HomeActionButton: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 46)
             .background(
-                tint.opacity(isEnabled ? 0.09 : 0.04),
-                in: RoundedRectangle(
-                    cornerRadius: FloatTheme.controlRadius,
-                    style: .continuous
-                )
+                Color.primary.opacity(liftOpacity),
+                in: shape
+            )
+            .background(
+                tint.opacity(fillOpacity),
+                in: shape
             )
             .overlay(
-                RoundedRectangle(
-                    cornerRadius: FloatTheme.controlRadius,
-                    style: .continuous
-                )
-                .strokeBorder(tint.opacity(isEnabled ? 0.14 : 0.06), lineWidth: 1)
+                shape.strokeBorder(tint.opacity(strokeOpacity), lineWidth: 1)
             )
         }
         .buttonStyle(.plain)

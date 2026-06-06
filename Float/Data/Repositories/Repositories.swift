@@ -16,6 +16,20 @@ struct PendingTransactionDraft {
     let note: String?
 }
 
+enum TransactionCreationDraft {
+    case posted(TransactionDraft)
+    case pending(PendingTransactionDraft)
+
+    var amountMinor: Int64 {
+        switch self {
+        case .posted(let draft):
+            return draft.amountMinor
+        case .pending(let draft):
+            return draft.amountMinor
+        }
+    }
+}
+
 @MainActor
 struct TransactionRepository {
     let modelContext: ModelContext
@@ -110,21 +124,24 @@ struct TransactionRepository {
         guard !validDrafts.isEmpty else { return 0 }
 
         for draft in validDrafts {
-            modelContext.insert(
-                TransactionItem(
-                    amountMinor: draft.amountMinor,
-                    isExpense: true,
-                    status: .pending,
-                    timestamp: Date(),
-                    expectedDueDate: draft.expectedDueDate,
-                    category: nil,
-                    account: nil,
-                    note: draft.note?.trimmedNilIfBlank
-                )
-            )
+            insertPending(draft)
         }
         try save()
         return validDrafts.count
+    }
+
+    func createMany(from drafts: [TransactionCreationDraft]) throws -> Int {
+        guard !drafts.isEmpty,
+              drafts.allSatisfy({ $0.amountMinor > 0 })
+        else {
+            return 0
+        }
+
+        for draft in drafts {
+            insert(draft)
+        }
+        try save()
+        return drafts.count
     }
 
     func replace(_ transaction: TransactionItem, with drafts: [TransactionDraft]) throws
@@ -150,6 +167,23 @@ struct TransactionRepository {
         modelContext.delete(transaction)
         try save()
         return validDrafts.count
+    }
+
+    func replace(_ transaction: TransactionItem, with drafts: [TransactionCreationDraft]) throws
+        -> Int
+    {
+        guard !drafts.isEmpty,
+              drafts.allSatisfy({ $0.amountMinor > 0 })
+        else {
+            return 0
+        }
+
+        for draft in drafts {
+            insert(draft)
+        }
+        modelContext.delete(transaction)
+        try save()
+        return drafts.count
     }
 
     func update(
@@ -212,6 +246,39 @@ struct TransactionRepository {
         } catch {
             throw DataIntegrityError.saveFailed
         }
+    }
+
+    private func insert(_ draft: TransactionCreationDraft) {
+        switch draft {
+        case .posted(let draft):
+            modelContext.insert(
+                TransactionItem(
+                    amountMinor: draft.amountMinor,
+                    isExpense: draft.isExpense,
+                    timestamp: draft.timestamp,
+                    category: draft.category,
+                    account: draft.account,
+                    note: draft.note?.trimmedNilIfBlank
+                )
+            )
+        case .pending(let draft):
+            insertPending(draft)
+        }
+    }
+
+    private func insertPending(_ draft: PendingTransactionDraft) {
+        modelContext.insert(
+            TransactionItem(
+                amountMinor: draft.amountMinor,
+                isExpense: true,
+                status: .pending,
+                timestamp: Date(),
+                expectedDueDate: draft.expectedDueDate,
+                category: nil,
+                account: nil,
+                note: draft.note?.trimmedNilIfBlank
+            )
+        )
     }
 }
 

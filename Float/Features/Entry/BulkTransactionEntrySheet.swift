@@ -50,14 +50,20 @@ struct BulkTransactionEntrySheet: View {
                 initialValue: [
                     RatioSplitDraftRow(
                         ratioText: "1",
-                        isExpense: transactionToReplace.isExpense,
-                        category: transactionToReplace.category,
+                        kind: transactionToReplace.isPending
+                            ? .pending
+                            : (transactionToReplace.isExpense ? .expense : .income),
+                        category: transactionToReplace.isPending ? nil : transactionToReplace.category,
+                        expectedDueDate: transactionToReplace.expectedDueDate ?? transactionToReplace.timestamp,
                         note: transactionToReplace.note ?? ""
                     ),
                     RatioSplitDraftRow(
                         ratioText: "1",
-                        isExpense: transactionToReplace.isExpense,
-                        category: transactionToReplace.category,
+                        kind: transactionToReplace.isPending
+                            ? .pending
+                            : (transactionToReplace.isExpense ? .expense : .income),
+                        category: transactionToReplace.isPending ? nil : transactionToReplace.category,
+                        expectedDueDate: transactionToReplace.expectedDueDate ?? transactionToReplace.timestamp,
                         note: transactionToReplace.note ?? ""
                     ),
                 ]
@@ -177,11 +183,12 @@ struct BulkTransactionEntrySheet: View {
             return "Each split needs a non-zero amount."
         }
         guard splitRows.allSatisfy({ row in
+            guard row.kind != .pending else { return true }
             guard let category = row.category else { return false }
-            let wantsIncome = !row.isExpense
+            let wantsIncome = row.kind == .income
             return !category.archived && category.isIncome == wantsIncome
         }) else {
-            return "Choose a category for every split row."
+            return "Choose a category for every expense or income split row."
         }
         return nil
     }
@@ -257,10 +264,10 @@ struct BulkTransactionEntrySheet: View {
                 )
             ) { presentation in
                 RatioSplitCategoryPickerSheet(
-                    title: presentation.row.isExpense
+                    title: presentation.row.kind == .expense
                         ? "Expense Category"
                         : "Income Category",
-                    categories: visibleSplitCategories(isExpense: presentation.row.isExpense),
+                    categories: visibleSplitCategories(for: presentation.row.kind),
                     selectedCategory: Binding(
                         get: {
                             splitRows.first { $0.id == presentation.row.id }?.category
@@ -400,18 +407,20 @@ struct BulkTransactionEntrySheet: View {
                 )
             }
 
-            GlassCard {
-                VStack(spacing: 14) {
-                    AccountPicker(
-                        selectedAccount: $splitSelectedAccount,
-                        accounts: accounts.filter { !$0.archived }
-                    )
-                    Divider()
-                    DatePicker(
-                        "Date",
-                        selection: $splitTimestamp,
-                        displayedComponents: [.date, .hourAndMinute]
-                    )
+            if splitRows.contains(where: { $0.kind != .pending }) {
+                GlassCard {
+                    VStack(spacing: 14) {
+                        AccountPicker(
+                            selectedAccount: $splitSelectedAccount,
+                            accounts: accounts.filter { !$0.archived }
+                        )
+                        Divider()
+                        DatePicker(
+                            "Date",
+                            selection: $splitTimestamp,
+                            displayedComponents: [.date, .hourAndMinute]
+                        )
+                    }
                 }
             }
         }
@@ -665,27 +674,47 @@ struct BulkTransactionEntrySheet: View {
             return
         }
 
-        let account = splitSelectedAccount ?? DefaultAccountResolver.resolve(
-            preferredID: appState.lastUsedAccountID,
-            accounts: accounts,
-            modelContext: modelContext,
-            currencyCode: appState.selectedCurrencyCode
-        )
-
-        let drafts = zip(splitRows, splitAmounts).compactMap { row, amount -> TransactionDraft? in
-            guard let category = row.category else { return nil }
-            return TransactionDraft(
-                amountMinor: amount,
-                isExpense: row.isExpense,
-                timestamp: splitTimestamp,
-                category: category,
-                account: account,
-                note: row.note
+        let hasPostedRows = splitRows.contains { $0.kind != .pending }
+        let account = hasPostedRows
+            ? splitSelectedAccount ?? DefaultAccountResolver.resolve(
+                preferredID: appState.lastUsedAccountID,
+                accounts: accounts,
+                modelContext: modelContext,
+                currencyCode: appState.selectedCurrencyCode
             )
+            : nil
+
+        let drafts = zip(splitRows, splitAmounts).compactMap { row, amount -> TransactionCreationDraft? in
+            switch row.kind {
+            case .expense, .income:
+                guard let category = row.category,
+                      let account
+                else {
+                    return nil
+                }
+                return .posted(
+                    TransactionDraft(
+                        amountMinor: amount,
+                        isExpense: row.kind == .expense,
+                        timestamp: splitTimestamp,
+                        category: category,
+                        account: account,
+                        note: row.note
+                    )
+                )
+            case .pending:
+                return .pending(
+                    PendingTransactionDraft(
+                        amountMinor: amount,
+                        expectedDueDate: row.expectedDueDate,
+                        note: row.note
+                    )
+                )
+            }
         }
 
         guard drafts.count == splitRows.count else {
-            message = "Choose a category for every split row."
+            message = "Choose a category for every expense or income split row."
             return
         }
 
@@ -698,11 +727,13 @@ struct BulkTransactionEntrySheet: View {
                 createdCount = try repository.createMany(from: drafts)
             }
             guard createdCount == splitRows.count else {
-                message = "Choose a category for every split row."
+                message = "Choose a category for every expense or income split row."
                 return
             }
-            appState.lastUsedAccountID = account.id.uuidString
-            if let category = splitRows.last?.category {
+            if let account {
+                appState.lastUsedAccountID = account.id.uuidString
+            }
+            if let category = splitRows.last(where: { $0.kind != .pending })?.category {
                 appState.lastUsedCategoryID = category.id.uuidString
             }
             Haptics.confirm()
@@ -725,14 +756,15 @@ struct BulkTransactionEntrySheet: View {
             splitTimestamp = initialSplitTimestamp
         }
 
-        if splitSelectedAccount == nil {
+        if splitRows.contains(where: { $0.kind != .pending }),
+           splitSelectedAccount == nil {
             splitSelectedAccount = transactionToReplace?.account ?? accounts.first {
                 !$0.archived && $0.id.uuidString == appState.lastUsedAccountID
             } ?? accounts.first { !$0.archived }
         }
 
         for index in splitRows.indices where splitRows[index].category == nil {
-            splitRows[index].category = defaultCategory(isExpense: splitRows[index].isExpense)
+            splitRows[index].category = defaultCategory(for: splitRows[index].kind)
         }
     }
 
@@ -760,9 +792,13 @@ struct BulkTransactionEntrySheet: View {
                     return
                 }
                 var updated = newValue
-                if let category = updated.category,
-                   category.isIncome != (!updated.isExpense) {
-                    updated.category = defaultCategory(isExpense: updated.isExpense)
+                if updated.kind == .pending {
+                    updated.category = nil
+                } else if updated.category == nil {
+                    updated.category = defaultCategory(for: updated.kind)
+                } else if let category = updated.category,
+                          category.isIncome != (updated.kind == .income) {
+                    updated.category = defaultCategory(for: updated.kind)
                 }
                 splitRows[index] = updated
                 message = nil
@@ -773,11 +809,12 @@ struct BulkTransactionEntrySheet: View {
     private func apply(_ preset: RatioSplitPreset) {
         splitRows = preset.parts.enumerated().map { index, part in
             let existing = splitRows.indices.contains(index) ? splitRows[index] : nil
-            let isExpense = existing?.isExpense ?? true
+            let kind = existing?.kind ?? .expense
             return RatioSplitDraftRow(
                 ratioText: String(part),
-                isExpense: isExpense,
-                category: existing?.category ?? defaultCategory(isExpense: isExpense),
+                kind: kind,
+                category: existing?.category ?? defaultCategory(for: kind),
+                expectedDueDate: existing?.expectedDueDate ?? Date(),
                 note: existing?.note ?? ""
             )
         }
@@ -837,11 +874,11 @@ struct BulkTransactionEntrySheet: View {
     }
 
     private func addSplitRow() {
-        let isExpense = splitRows.last?.isExpense ?? true
+        let kind = splitRows.last?.kind ?? .expense
         splitRows.append(
             RatioSplitDraftRow(
-                isExpense: isExpense,
-                category: defaultCategory(isExpense: isExpense)
+                kind: kind,
+                category: defaultCategory(for: kind)
             )
         )
         message = nil
@@ -863,13 +900,15 @@ struct BulkTransactionEntrySheet: View {
         message = nil
     }
 
-    private func visibleSplitCategories(isExpense: Bool) -> [CategoryItem] {
-        let wantsIncome = !isExpense
+    private func visibleSplitCategories(for kind: RatioSplitKind) -> [CategoryItem] {
+        let wantsIncome = kind == .income
         return categories.filter { !$0.archived && $0.isIncome == wantsIncome }
     }
 
-    private func defaultCategory(isExpense: Bool) -> CategoryItem? {
-        let wantsIncome = !isExpense
+    private func defaultCategory(for kind: RatioSplitKind) -> CategoryItem? {
+        guard kind != .pending else { return nil }
+
+        let wantsIncome = kind == .income
         return categories.first {
             !$0.archived
                 && $0.isIncome == wantsIncome
@@ -877,7 +916,7 @@ struct BulkTransactionEntrySheet: View {
         } ?? categories.first {
             !$0.archived
                 && $0.isIncome == wantsIncome
-                && (isExpense
+                && (kind == .expense
                     ? $0.name.localizedCaseInsensitiveCompare("Other") == .orderedSame
                     : $0.name.localizedCaseInsensitiveCompare("Salary") == .orderedSame)
         } ?? categories.first {
@@ -955,31 +994,57 @@ private struct BulkPendingDraftRow: Identifiable {
     }
 }
 
+private enum RatioSplitKind: String, CaseIterable, Identifiable {
+    case expense
+    case income
+    case pending
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .expense:
+            return "Expense"
+        case .income:
+            return "Income"
+        case .pending:
+            return "Pending"
+        }
+    }
+
+    var accessibilityLabel: String {
+        "\(title) split"
+    }
+}
+
 private struct RatioSplitDraftRow: Identifiable {
     let id: UUID
     var ratioText: String
-    var isExpense: Bool
+    var kind: RatioSplitKind
     var category: CategoryItem?
+    var expectedDueDate: Date
     var note: String
 
     init(
         id: UUID = UUID(),
         ratioText: String = "1",
-        isExpense: Bool = true,
+        kind: RatioSplitKind = .expense,
         category: CategoryItem? = nil,
+        expectedDueDate: Date = Date(),
         note: String = ""
     ) {
         self.id = id
         self.ratioText = ratioText
-        self.isExpense = isExpense
+        self.kind = kind
         self.category = category
+        self.expectedDueDate = expectedDueDate
         self.note = note
     }
 
     static func defaultRows() -> [RatioSplitDraftRow] {
         [
-            RatioSplitDraftRow(ratioText: "1", isExpense: true),
-            RatioSplitDraftRow(ratioText: "2", isExpense: false),
+            RatioSplitDraftRow(ratioText: "1", kind: .expense),
+            RatioSplitDraftRow(ratioText: "2", kind: .income),
         ]
     }
 }
@@ -1071,14 +1136,21 @@ private struct RatioSplitRowEditor: View {
     @State private var isEditingNote = false
 
     private var tint: Color {
-        row.isExpense ? palette.caution : palette.positive
+        switch row.kind {
+        case .expense:
+            return palette.caution
+        case .income:
+            return palette.positive
+        case .pending:
+            return Color(hex: "#6B7280")
+        }
     }
 
     private var amountText: String {
         MoneyFormatter.string(
             minorUnits: amountMinor,
             currencyCode: currencyCode,
-            showsSign: !row.isExpense
+            showsSign: row.kind == .income
         )
     }
 
@@ -1091,7 +1163,7 @@ private struct RatioSplitRowEditor: View {
             HStack(spacing: 10) {
                 Text(amountText)
                     .moneyStyle(size: 17, weight: .bold)
-                    .foregroundStyle(row.isExpense ? .primary : palette.positive)
+                    .foregroundStyle(row.kind == .income ? palette.positive : .primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.68)
                     .contentTransition(.numericText())
@@ -1106,7 +1178,11 @@ private struct RatioSplitRowEditor: View {
                 rowMenu
             }
 
-            categoryButton
+            if row.kind == .pending {
+                dueDatePicker
+            } else {
+                categoryButton
+            }
 
             noteArea
         }
@@ -1140,17 +1216,26 @@ private struct RatioSplitRowEditor: View {
     }
 
     private var typeToggle: some View {
-        Button {
-            withAnimation(.spring(response: 0.24, dampingFraction: 0.9)) {
-                row.isExpense.toggle()
+        Menu {
+            ForEach(RatioSplitKind.allCases) { kind in
+                Button {
+                    withAnimation(.spring(response: 0.24, dampingFraction: 0.9)) {
+                        row.kind = kind
+                    }
+                } label: {
+                    Label(
+                        kind.title,
+                        systemImage: row.kind == kind ? "checkmark.circle.fill" : "circle"
+                    )
+                }
             }
         } label: {
-            Text(row.isExpense ? "Expense" : "Income")
+            Text(row.kind.title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(tint)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
-                .frame(width: 74, height: 34)
+                .frame(width: 78, height: 34)
                 .background(
                     tint.opacity(0.12),
                     in: Capsule(style: .continuous)
@@ -1161,7 +1246,7 @@ private struct RatioSplitRowEditor: View {
                 )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(row.isExpense ? "Expense split" : "Income split")
+        .accessibilityLabel(row.kind.accessibilityLabel)
     }
 
     private var rowMenu: some View {
@@ -1211,7 +1296,7 @@ private struct RatioSplitRowEditor: View {
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                     if row.category == nil {
-                        Text(row.isExpense ? "Expense category" : "Income category")
+                        Text(row.kind == .expense ? "Expense category" : "Income category")
                             .font(.caption2.weight(.medium))
                             .foregroundStyle(.secondary)
                     }
@@ -1232,6 +1317,24 @@ private struct RatioSplitRowEditor: View {
             )
         }
         .buttonStyle(.plain)
+    }
+
+    private var dueDatePicker: some View {
+        DatePicker(
+            "Expected due date",
+            selection: $row.expectedDueDate,
+            displayedComponents: [.date]
+        )
+        .font(.subheadline.weight(.semibold))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            Color.primary.opacity(0.05),
+            in: RoundedRectangle(
+                cornerRadius: 14,
+                style: .continuous
+            )
+        )
     }
 
     @ViewBuilder

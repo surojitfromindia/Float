@@ -227,6 +227,8 @@ struct FloatIconBadge: View {
 }
 
 struct SummaryMetricTile: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let title: String
     let value: String
     let caption: String?
@@ -247,7 +249,24 @@ struct SummaryMetricTile: View {
         self.tint = tint
     }
 
+    private var fillOpacity: Double {
+        colorScheme == .dark ? 0.18 : 0.08
+    }
+
+    private var liftOpacity: Double {
+        colorScheme == .dark ? 0.08 : 0
+    }
+
+    private var strokeOpacity: Double {
+        colorScheme == .dark ? 0.28 : 0.16
+    }
+
     var body: some View {
+        let shape = RoundedRectangle(
+            cornerRadius: FloatTheme.tileRadius,
+            style: .continuous
+        )
+
         HStack(alignment: .top, spacing: 10) {
             FloatIconBadge(icon: icon, tint: tint, size: 32)
             VStack(alignment: .leading, spacing: 3) {
@@ -271,18 +290,15 @@ struct SummaryMetricTile: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            tint.opacity(0.08),
-            in: RoundedRectangle(
-                cornerRadius: FloatTheme.tileRadius,
-                style: .continuous
-            )
+            Color.primary.opacity(liftOpacity),
+            in: shape
+        )
+        .background(
+            tint.opacity(fillOpacity),
+            in: shape
         )
         .overlay(
-            RoundedRectangle(
-                cornerRadius: FloatTheme.tileRadius,
-                style: .continuous
-            )
-            .strokeBorder(tint.opacity(0.16), lineWidth: 1)
+            shape.strokeBorder(tint.opacity(strokeOpacity), lineWidth: 1)
         )
     }
 }

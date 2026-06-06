@@ -1,12 +1,15 @@
 import Foundation
 import SwiftData
 
+/// this is account type Enum
+/// a enum can have fields.
 enum AccountType: String, Codable, CaseIterable, Identifiable {
     case cash
     case bank
     case card
     case wallet
 
+    // also enum can have variables or functional expression.
     var id: String { rawValue }
     var title: String { rawValue.capitalized }
     var icon: String {
@@ -46,9 +49,9 @@ enum TransactionStatus: String, Codable, CaseIterable, Identifiable {
 @Model
 final class AccountItem {
     var id: UUID = UUID()
-    var name: String = ""
-    var type: AccountType = AccountType.cash
-    var openingBalanceMinor: Int64 = 0
+    var name: String = "" /// name of the account
+    var type: AccountType = AccountType.cash /// default type is cash
+    var openingBalanceMinor: Int64 = 0 /// opening balance is zero.
     var currencyCode: String = "USD"
     var archived: Bool = false
     var createdAt: Date = Date()
@@ -196,7 +199,10 @@ final class TransactionTemplateItem {
 final class TransactionTemplateGroupItem {
     var id: UUID = UUID()
     var name: String = ""
-    @Relationship(deleteRule: .cascade, inverse: \TransactionTemplateGroupEntryItem.group)
+    @Relationship(
+        deleteRule: .cascade,
+        inverse: \TransactionTemplateGroupEntryItem.group
+    )
     var entries: [TransactionTemplateGroupEntryItem] = []
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
@@ -558,8 +564,8 @@ extension CategoryItem {
     }
 }
 
-private extension String {
-    var nilIfBlank: String? {
+extension String {
+    fileprivate var nilIfBlank: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
