@@ -232,7 +232,7 @@ struct HomeView: View {
             HomeActionButton(
                 title: "Add to goal",
                 icon: "target",
-                tint: appState.themePalette.accent,
+                tint: Color(hex: "#8B5CF6"),
                 isEnabled: nearestOpenGoal != nil
             ) {
                 contributionGoal = nearestOpenGoal
