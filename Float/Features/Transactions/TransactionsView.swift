@@ -954,68 +954,86 @@ private struct TransactionFilterSheet: View {
                 VStack(alignment: .leading, spacing: 18) {
                     filterHeader
 
-                    filterSection(title: "Type", icon: "tray.full") {
-                    Picker("Type", selection: $selectedType) {
-                        ForEach(TransactionTypeFilter.allCases) {
-                            Text($0.title).tag($0)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                }
-
-                    filterSection(title: "Category", icon: "square.grid.2x2.fill") {
-                        menuRow(
-                            title: "Category",
-                            value: selectedCategoryName,
-                            icon: "folder"
-                        ) {
-                            Picker("Category", selection: $selectedCategoryID) {
-                                Text("All categories").tag(UUID?.none)
-                                ForEach(categories.filter { !$0.archived }) {
-                                    Text($0.name).tag(Optional($0.id))
+                    filterSection(title: "Filters", icon: "line.3.horizontal.decrease.circle") {
+                        VStack(spacing: 10) {
+                            menuRow(
+                                title: "Type",
+                                value: selectedType.title,
+                                icon: "tray.full"
+                            ) {
+                                Picker("Type", selection: $selectedType) {
+                                    ForEach(TransactionTypeFilter.allCases) {
+                                        Text($0.title).tag($0)
+                                    }
                                 }
                             }
-                        }
-                }
 
-                    filterSection(title: "Account", icon: "wallet.pass.fill") {
-                        menuRow(
-                            title: "Account",
-                            value: selectedAccountName,
-                            icon: "creditcard"
-                        ) {
-                            Picker("Account", selection: $selectedAccountID) {
-                                Text("All accounts").tag(UUID?.none)
-                                ForEach(accounts.filter { !$0.archived }) {
-                                    Text($0.name).tag(Optional($0.id))
-                                }
-                            }
-                        }
-                }
-
-                    filterSection(title: "Date", icon: "calendar") {
-                        Toggle("Date range", isOn: $useDateRange)
-                            .font(.subheadline.weight(.semibold))
-                        if useDateRange {
                             Divider()
-                            DatePicker(
-                                "From",
-                                selection: $startDate,
-                                displayedComponents: .date
-                            )
-                            DatePicker(
-                                "To",
-                                selection: $endDate,
-                                displayedComponents: .date
-                            )
-                        }
-                    }
 
-                    filterSection(title: "Amount", icon: "dollarsign.circle.fill") {
-                        VStack(spacing: 0) {
+                            menuRow(
+                                title: "Category",
+                                value: selectedCategoryName,
+                                icon: "folder"
+                            ) {
+                                Picker("Category", selection: $selectedCategoryID) {
+                                    Text("All categories").tag(UUID?.none)
+                                    ForEach(categories.filter { !$0.archived }) {
+                                        Text($0.name).tag(Optional($0.id))
+                                    }
+                                }
+                            }
+
+                            Divider()
+
+                            menuRow(
+                                title: "Account",
+                                value: selectedAccountName,
+                                icon: "creditcard"
+                            ) {
+                                Picker("Account", selection: $selectedAccountID) {
+                                    Text("All accounts").tag(UUID?.none)
+                                    ForEach(accounts.filter { !$0.archived }) {
+                                        Text($0.name).tag(Optional($0.id))
+                                    }
+                                }
+                            }
+
+                            Divider()
+
+                            Toggle(isOn: $useDateRange) {
+                                filterRowLabel(title: "Date range", icon: "calendar")
+                            }
+                            .tint(Color(hex: "#0A6FAE"))
+                            .padding(.vertical, 8)
+
+                            if useDateRange {
+                                Divider()
+                                dateRow(
+                                    title: "From",
+                                    selection: $startDate
+                                )
+                                Divider()
+                                dateRow(
+                                    title: "To",
+                                    selection: $endDate
+                                )
+                            }
+
+                            Divider()
+
                             amountField("Min amount", text: $minimumAmountText)
                             Divider()
                             amountField("Max amount", text: $maximumAmountText)
+                        }
+                    }
+                    .onChange(of: startDate) { _, newValue in
+                        if newValue > endDate {
+                            endDate = newValue
+                        }
+                    }
+                    .onChange(of: endDate) { _, newValue in
+                        if newValue < startDate {
+                            startDate = newValue
                         }
                     }
 
@@ -1119,10 +1137,39 @@ private struct TransactionFilterSheet: View {
             Label(title, systemImage: icon)
                 .font(.headline)
                 .foregroundStyle(.secondary)
-            GlassCard {
-                content()
-            }
+            content()
+                .padding(.vertical, 2)
         }
+    }
+
+    private func filterRowLabel(title: String, icon: String) -> some View {
+        HStack(spacing: 12) {
+            FloatIconBadge(icon: icon, tint: Color(hex: "#0A6FAE"), size: 34)
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+        }
+    }
+
+    private func dateRow(
+        title: String,
+        selection: Binding<Date>
+    ) -> some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+            Spacer()
+            DatePicker(
+                title,
+                selection: selection,
+                displayedComponents: .date
+            )
+            .labelsHidden()
+            .datePickerStyle(.compact)
+            .fixedSize()
+        }
+        .padding(.vertical, 8)
     }
 
     private func menuRow<MenuContent: View>(
@@ -1131,26 +1178,30 @@ private struct TransactionFilterSheet: View {
         icon: String,
         @ViewBuilder menuContent: () -> MenuContent
     ) -> some View {
-        Menu {
-            menuContent()
-        } label: {
-            HStack(spacing: 12) {
-                FloatIconBadge(icon: icon, tint: Color(hex: "#0A6FAE"), size: 34)
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                Spacer()
-                Text(value)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color(hex: "#0A6FAE"))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Color(hex: "#0A6FAE"))
+        HStack(spacing: 12) {
+            FloatIconBadge(icon: icon, tint: Color(hex: "#0A6FAE"), size: 34)
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+            Spacer()
+            Menu {
+                menuContent()
+            } label: {
+                HStack(spacing: 8) {
+                    Text(value)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color(hex: "#0A6FAE"))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color(hex: "#0A6FAE"))
+                }
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
+        .padding(.vertical, 8)
     }
 
     private func amountField(
@@ -1172,7 +1223,7 @@ private struct TransactionFilterSheet: View {
                 .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
     }
 
     private func parsedAmount(_ text: String) -> Int64? {

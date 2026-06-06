@@ -878,6 +878,7 @@
       }
     },
     "Date range" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
