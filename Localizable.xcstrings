@@ -1171,9 +1171,6 @@
     "Enter the normal currency amount for this category." : {
 
     },
-    "Event" : {
-
-    },
     "Event categories" : {
 
     },
@@ -1688,6 +1685,9 @@
           }
         }
       }
+    },
+    "Metric" : {
+
     },
     "Mode" : {
       "localizations" : {
@@ -2760,6 +2760,9 @@
       }
     },
     "Use Face ID, Touch ID, or your passcode to continue." : {
+
+    },
+    "View" : {
 
     },
     "View events" : {

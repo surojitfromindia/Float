@@ -30,6 +30,14 @@ struct EventsView: View {
         }
     }
 
+    private var groupedEvents: [(Date, [EventItem])] {
+        Dictionary(grouping: filteredEvents) {
+            Calendar.current.startOfDay(for: $0.startDate)
+        }
+        .map { ($0.key, $0.value) }
+        .sorted { $0.0 > $1.0 }
+    }
+
     private var hasActiveFilters: Bool {
         selectedStatus != .all || useDateRange
     }
@@ -47,30 +55,8 @@ struct EventsView: View {
                     )
                     .transactionPlainSurface(cornerRadius: FloatTheme.controlRadius)
                 } else {
-                    ForEach(filteredEvents) { event in
-                        NavigationLink {
-                            EventDetailView(event: event)
-                        } label: {
-                            EventRowView(event: event)
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            Button {
-                                editorPresentation = EventEditorPresentation(event: event)
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
-                            }
-
-                            Button(role: .destructive) {
-                                pendingDeleteEvent = event
-                                showingDeleteAlert = true
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                        .onAppear {
-                            loadOlderPageIfNeeded(afterDisplaying: event)
-                        }
+                    ForEach(groupedEvents, id: \.0) { day, items in
+                        eventSection(day: day, items: items)
                     }
                     paginationFooter
                 }
@@ -188,6 +174,60 @@ struct EventsView: View {
             return "Create an event to group transactions, metrics, and charts."
         }
         return "Try a different search or filter."
+    }
+
+    private func eventSection(day: Date, items: [EventItem]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(day.formatted(date: .complete, time: .omitted))
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(eventCountText(items.count))
+                    .font(.caption.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 4)
+
+            VStack(spacing: 6) {
+                ForEach(items) { event in
+                    NavigationLink {
+                        EventDetailView(event: event)
+                    } label: {
+                        EventRowView(event: event, usesCardSurface: false)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button {
+                            editorPresentation = EventEditorPresentation(event: event)
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+
+                        Button(role: .destructive) {
+                            pendingDeleteEvent = event
+                            showingDeleteAlert = true
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                    .onAppear {
+                        loadOlderPageIfNeeded(afterDisplaying: event)
+                    }
+
+                    if event.id != items.last?.id {
+                        Divider()
+                    }
+                }
+            }
+            .padding(14)
+            .transactionPlainSurface(cornerRadius: FloatTheme.controlRadius)
+        }
+    }
+
+    private func eventCountText(_ count: Int) -> String {
+        count == 1 ? "1 event" : "\(count) events"
     }
 
     private var compactFilterSection: some View {
@@ -369,6 +409,7 @@ struct EventsView: View {
 struct EventRowView: View {
     let event: EventItem
     var showsDescription: Bool = true
+    var usesCardSurface: Bool = true
 
     private var palette: Color {
         Color(hex: event.category?.colorHex ?? "#0E7C7B")
@@ -379,59 +420,69 @@ struct EventRowView: View {
     }
 
     var body: some View {
-        GlassCard(padding: 16) {
-            HStack(alignment: .top, spacing: 12) {
-                FloatIconBadge(
-                    icon: event.category?.iconKey ?? "calendar",
-                    tint: palette,
-                    size: 38
-                )
+        if usesCardSurface {
+            GlassCard(padding: 16) {
+                rowContent
+            }
+        } else {
+            rowContent
+        }
+    }
 
-                VStack(alignment: .leading, spacing: 5) {
-                    HStack(alignment: .top, spacing: 8) {
-                        Text(event.name)
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                        if event.pinned {
-                            Image(systemName: "pin.fill")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(appStatePinnedColor)
-                        }
-                    }
+    private var rowContent: some View {
+        HStack(alignment: .top, spacing: 12) {
+            FloatIconBadge(
+                icon: event.category?.iconKey ?? "calendar",
+                tint: palette,
+                size: 38
+            )
 
-                    Text(eventDateRangeText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-
-                    if let category = event.category {
-                        Text(category.name)
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(palette)
-                    }
-
-                    if showsDescription, let description = event.eventDescription?.trimmingCharacters(in: .whitespacesAndNewlines), !description.isEmpty {
-                        Text(description)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(alignment: .top, spacing: 8) {
+                    Text(event.name)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                    if event.pinned {
+                        Image(systemName: "pin.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(appStatePinnedColor)
                     }
                 }
 
-                Spacer(minLength: 0)
+                Text(eventDateRangeText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
 
-                VStack(alignment: .trailing, spacing: 8) {
-                    Text(event.status.title)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(statusTint)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(statusTint.opacity(0.12), in: Capsule())
-
-                    Text("\(event.transactions.count) tx")
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.secondary)
+                if let category = event.category {
+                    Text(category.name)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(palette)
                 }
+
+                if showsDescription,
+                   let description = event.eventDescription?.trimmingCharacters(in: .whitespacesAndNewlines),
+                   !description.isEmpty {
+                    Text(description)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            VStack(alignment: .trailing, spacing: 8) {
+                Text(event.status.title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(statusTint)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(statusTint.opacity(0.12), in: Capsule())
+
+                Text("\(event.transactions.count) tx")
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
             }
         }
     }

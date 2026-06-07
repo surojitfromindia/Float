@@ -21,6 +21,9 @@ struct EventDetailView: View {
     @State private var selectedCategoryID: UUID?
     @State private var selectedAccountID: UUID?
     @State private var selectedType = TransactionTypeFilter.all
+    @State private var selectedSort = EventTransactionSortOption.newestFirst
+    @State private var selectedAnalyticsSection = EventAnalyticsSection.summary
+    @State private var selectedChartMetric = EventChartMetric.spendByDay
     @State private var useDateRange = false
     @State private var startDate = Calendar.current.date(
         byAdding: .month,
@@ -38,8 +41,23 @@ struct EventDetailView: View {
     @State private var showingDeleteAlert = false
 
     private var filteredTransactions: [TransactionItem] {
-        loadedTransactions.filter(matchesTransaction).sorted {
-            $0.timestamp > $1.timestamp
+        loadedTransactions.filter(matchesTransaction).sorted { lhs, rhs in
+            switch selectedSort {
+            case .newestFirst:
+                lhs.displayDate > rhs.displayDate
+            case .oldestFirst:
+                lhs.displayDate < rhs.displayDate
+            }
+        }
+    }
+
+    private var groupedTransactions: [(Date, [TransactionItem])] {
+        Dictionary(grouping: filteredTransactions) {
+            Calendar.current.startOfDay(for: $0.displayDate)
+        }
+        .map { ($0.key, $0.value) }
+        .sorted {
+            selectedSort == .oldestFirst ? $0.0 < $1.0 : $0.0 > $1.0
         }
     }
 
@@ -160,59 +178,68 @@ struct EventDetailView: View {
         }
     }
 
+    @ViewBuilder
+    private var analyticsSectionSwitcher: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                SectionHeader(title: "Overview")
+                Spacer()
+                Menu {
+                    Picker("View", selection: $selectedAnalyticsSection) {
+                        ForEach(EventAnalyticsSection.allCases) { section in
+                            Text(section.title).tag(section)
+                        }
+                    }
+                } label: {
+                    FilterControlLabel(
+                        title: selectedAnalyticsSection.title,
+                        icon: "chevron.down"
+                    )
+                }
+            }
+
+            switch selectedAnalyticsSection {
+            case .summary:
+                summaryCards
+            case .chartMetrics:
+                chartCard
+            case .categoryBreakdown:
+                categoryChartCard
+            }
+        }
+    }
+
+    private var chartSeries: [EventChartPoint] {
+        switch selectedChartMetric {
+        case .spendByDay:
+            return dailySpendSeries.map {
+                EventChartPoint(date: $0.date, value: Double($0.amountMinor))
+            }
+        case .transactionsByDay:
+            let calendar = Calendar.current
+            let grouped = Dictionary(grouping: allTransactions) {
+                calendar.startOfDay(for: $0.displayDate)
+            }
+            return grouped
+                .map {
+                    EventChartPoint(date: $0.key, value: Double($0.value.count))
+                }
+                .sorted { $0.date < $1.date }
+        }
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 18) {
                 eventHeaderCard
-                summaryCards
-                chartCard
-                categoryChartCard
+                analyticsSectionSwitcher
                 compactFilterSection
-
-                if filteredTransactions.isEmpty && !isLoadingPage {
-                    EmptyStateView(
-                        icon: "list.bullet.rectangle",
-                        title: emptyStateTitle,
-                        message: emptyStateMessage
-                    )
-                    .transactionPlainSurface(cornerRadius: FloatTheme.controlRadius)
-                } else {
-                    ForEach(filteredTransactions) { transaction in
-                        Button {
-                            editingTransaction = transaction
-                            showingTransactionEditor = true
-                        } label: {
-                            TransactionRowView(
-                                transaction: transaction,
-                                currencyCode: appState.selectedCurrencyCode
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            Button {
-                                editingTransaction = transaction
-                                showingTransactionEditor = true
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
-                            }
-                            Button(role: .destructive) {
-                                pendingDeleteTransaction = transaction
-                                showingDeleteAlert = true
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                        .onAppear {
-                            loadOlderPageIfNeeded(afterDisplaying: transaction)
-                        }
-                    }
-                    paginationFooter
-                }
+                transactionListSections
             }
             .padding(20)
             .padding(.bottom, 42)
         }
-        .navigationTitle("Event")
+        .navigationTitle(event.name)
         .searchable(text: $searchText, prompt: "Search event transactions")
         .keyboardDismissControls()
         .floatBackground()
@@ -295,6 +322,7 @@ struct EventDetailView: View {
         .onChange(of: selectedCategoryID) { _, _ in resetAndLoadFirstPage() }
         .onChange(of: selectedAccountID) { _, _ in resetAndLoadFirstPage() }
         .onChange(of: selectedType) { _, _ in resetAndLoadFirstPage() }
+        .onChange(of: selectedSort) { _, _ in resetAndLoadFirstPage() }
         .onChange(of: useDateRange) { _, _ in resetAndLoadFirstPage() }
         .onChange(of: startDate) { _, newValue in
             if newValue > endDate { endDate = newValue }
@@ -315,18 +343,15 @@ struct EventDetailView: View {
     private var eventHeaderCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 14) {
-                HStack(alignment: .top, spacing: 12) {
+                HStack(alignment: .center, spacing: 12) {
                     FloatIconBadge(
                         icon: event.category?.iconKey ?? "calendar",
                         tint: Color(hex: event.category?.colorHex ?? "#0E7C7B"),
                         size: 42
                     )
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(event.name)
-                            .font(.title2.weight(.bold))
-                        Text(event.status.title)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(event.isActive ? appState.themePalette.positive : appState.themePalette.caution)
+                        Text(eventDateRangeText)
+                            .font(.headline.weight(.semibold))
                     }
                     Spacer()
                     if event.pinned {
@@ -336,15 +361,10 @@ struct EventDetailView: View {
                     }
                 }
 
-                HStack(spacing: 8) {
-                    Label(eventDateRangeText, systemImage: "calendar")
+                if let category = event.category {
+                    Label(category.name, systemImage: category.iconKey)
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(.secondary)
-                    if let category = event.category {
-                        Label(category.name, systemImage: category.iconKey)
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(Color(hex: category.colorHex))
-                    }
+                        .foregroundStyle(Color(hex: category.colorHex))
                 }
 
                 if let description = event.eventDescription?.trimmingCharacters(in: .whitespacesAndNewlines), !description.isEmpty {
@@ -352,6 +372,10 @@ struct EventDetailView: View {
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
+
+                Text(event.status.title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(event.isActive ? appState.themePalette.positive : appState.themePalette.caution)
             }
         }
     }
@@ -359,18 +383,34 @@ struct EventDetailView: View {
     private var chartCard: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: 14) {
-                SectionHeader(title: "Spend by day")
-                if dailySpendSeries.isEmpty {
+                HStack {
+                    SectionHeader(title: "Chart metrics")
+                    Spacer()
+                    Menu {
+                        Picker("Metric", selection: $selectedChartMetric) {
+                            ForEach(EventChartMetric.allCases) { metric in
+                                Text(metric.title).tag(metric)
+                            }
+                        }
+                    } label: {
+                        FilterControlLabel(
+                            title: selectedChartMetric.title,
+                            icon: "chart.bar"
+                        )
+                    }
+                }
+
+                if chartSeries.isEmpty {
                     EmptyStateView(
-                        icon: "chart.bar.xaxis",
-                        title: "No spending yet",
-                        message: "Add transactions to see the event trend."
+                        icon: selectedChartMetric.emptyIcon,
+                        title: selectedChartMetric.emptyTitle,
+                        message: selectedChartMetric.emptyMessage
                     )
                 } else {
-                    Chart(dailySpendSeries) { item in
+                    Chart(chartSeries) { item in
                         BarMark(
                             x: .value("Day", item.date, unit: .day),
-                            y: .value("Amount", item.amountMinor)
+                            y: .value(selectedChartMetric.yAxisLabel, item.value)
                         )
                         .foregroundStyle(appState.themePalette.accent)
                     }
@@ -415,7 +455,35 @@ struct EventDetailView: View {
 
     private var compactFilterSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
+            HStack(spacing: 10) {
+                Menu {
+                    Picker("Sort", selection: $selectedSort) {
+                        ForEach(EventTransactionSortOption.allCases) {
+                            Text($0.title).tag($0)
+                        }
+                    }
+                } label: {
+                    FilterControlLabel(
+                        title: selectedSort.title,
+                        icon: "arrow.up.arrow.down"
+                    )
+                }
+
+                Menu {
+                    Picker("Type", selection: $selectedType) {
+                        ForEach(TransactionTypeFilter.allCases) {
+                            Text($0.title).tag($0)
+                        }
+                    }
+                } label: {
+                    FilterControlLabel(
+                        title: selectedType.title,
+                        icon: "tray.full"
+                    )
+                }
+
+                Spacer(minLength: 0)
+
                 Button {
                     showingFilters = true
                 } label: {
@@ -428,7 +496,6 @@ struct EventDetailView: View {
                 }
                 .buttonStyle(.plain)
 
-                Spacer()
             }
             .padding(.horizontal, 2)
 
@@ -503,6 +570,90 @@ struct EventDetailView: View {
             return "Add transactions to build event-level charts and metrics."
         }
         return "Try a different search or filter."
+    }
+
+    @ViewBuilder
+    private var transactionListSections: some View {
+        if filteredTransactions.isEmpty && !isLoadingPage {
+            EmptyStateView(
+                icon: "list.bullet.rectangle",
+                title: emptyStateTitle,
+                message: emptyStateMessage
+            )
+            .transactionPlainSurface(cornerRadius: FloatTheme.controlRadius)
+        } else {
+            ForEach(groupedTransactions, id: \.0) { day, items in
+                transactionSection(day: day, items: items)
+            }
+            paginationFooter
+        }
+    }
+
+    private func transactionSection(day: Date, items: [TransactionItem]) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(day.formatted(date: .complete, time: .omitted))
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(dayTotal(items))
+                    .font(.caption.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 4)
+
+            VStack(spacing: 6) {
+                ForEach(items) { transaction in
+                    Button {
+                        editingTransaction = transaction
+                        showingTransactionEditor = true
+                    } label: {
+                        TransactionRowView(
+                            transaction: transaction,
+                            currencyCode: appState.selectedCurrencyCode
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button {
+                            editingTransaction = transaction
+                            showingTransactionEditor = true
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            pendingDeleteTransaction = transaction
+                            showingDeleteAlert = true
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                    .onAppear {
+                        loadOlderPageIfNeeded(afterDisplaying: transaction)
+                    }
+
+                    if transaction.id != items.last?.id {
+                        Divider()
+                    }
+                }
+            }
+            .padding(14)
+            .transactionPlainSurface(cornerRadius: FloatTheme.controlRadius)
+        }
+    }
+
+    private func dayTotal(_ items: [TransactionItem]) -> String {
+        let income = items.filter(\.isPostedIncome).reduce(Int64(0)) { $0 + $1.amountMinor }
+        let expenses = items.filter(\.isPostedExpense).reduce(Int64(0)) { $0 + $1.amountMinor }
+        let net = income - expenses
+        let amount = MoneyFormatter.string(
+            minorUnits: abs(net),
+            currencyCode: appState.selectedCurrencyCode
+        )
+        if net > 0 { return "+\(amount)" }
+        if net < 0 { return "-\(amount)" }
+        return amount
     }
 
     private var activeFilterChips: [TransactionFilterChip] {
@@ -632,7 +783,9 @@ struct EventDetailView: View {
 
     private func shouldLoadOlderPage(afterDisplaying transaction: TransactionItem) -> Bool {
         guard hasMorePages, !isLoadingPage, pageError == nil else { return false }
-        let triggerItems = filteredTransactions.suffix(5)
+        let triggerItems = selectedSort == .oldestFirst
+            ? filteredTransactions.prefix(5)
+            : filteredTransactions.suffix(5)
         return triggerItems.contains { $0.id == transaction.id }
     }
 
@@ -653,7 +806,12 @@ struct EventDetailView: View {
             predicate: #Predicate<TransactionItem> { transaction in
                 transaction.event?.id == eventID
             },
-            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+            sortBy: [
+                SortDescriptor(
+                    \.timestamp,
+                    order: selectedSort == .oldestFirst ? .forward : .reverse
+                )
+            ]
         )
         descriptor.fetchLimit = 100
         descriptor.fetchOffset = offset
@@ -737,6 +895,13 @@ struct EventDetailView: View {
     }
 }
 
+private struct EventChartPoint: Identifiable {
+    let date: Date
+    let value: Double
+
+    var id: Date { date }
+}
+
 private struct EventDailySpend: Identifiable {
     let date: Date
     let amountMinor: Int64
@@ -771,6 +936,50 @@ private struct TransactionFilterChip: Identifiable {
     }
 }
 
+private enum EventChartMetric: String, CaseIterable, Identifiable {
+    case spendByDay
+    case transactionsByDay
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .spendByDay: "Spend by day"
+        case .transactionsByDay: "Transactions by day"
+        }
+    }
+
+    var yAxisLabel: String {
+        switch self {
+        case .spendByDay: "Amount"
+        case .transactionsByDay: "Count"
+        }
+    }
+
+    var emptyIcon: String {
+        switch self {
+        case .spendByDay: "chart.bar.xaxis"
+        case .transactionsByDay: "chart.bar.doc.horizontal"
+        }
+    }
+
+    var emptyTitle: String {
+        switch self {
+        case .spendByDay: "No spending yet"
+        case .transactionsByDay: "No transactions yet"
+        }
+    }
+
+    var emptyMessage: String {
+        switch self {
+        case .spendByDay:
+            "Add transactions to see the event spend trend."
+        case .transactionsByDay:
+            "Add transactions to see daily activity."
+        }
+    }
+}
+
 private enum TransactionTypeFilter: String, CaseIterable, Identifiable {
     case all
     case expenses
@@ -785,6 +994,36 @@ private enum TransactionTypeFilter: String, CaseIterable, Identifiable {
         case .expenses: "Expenses"
         case .income: "Income"
         case .pending: "Pending"
+        }
+    }
+}
+
+private enum EventTransactionSortOption: String, CaseIterable, Identifiable {
+    case newestFirst
+    case oldestFirst
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .newestFirst: "Newest first"
+        case .oldestFirst: "Oldest first"
+        }
+    }
+}
+
+private enum EventAnalyticsSection: String, CaseIterable, Identifiable {
+    case summary
+    case chartMetrics
+    case categoryBreakdown
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .summary: "Summary"
+        case .chartMetrics: "Chart metrics"
+        case .categoryBreakdown: "Category breakdown"
         }
     }
 }
