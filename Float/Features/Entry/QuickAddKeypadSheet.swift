@@ -29,6 +29,7 @@ struct QuickAddKeypadSheet: View {
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
 
     let transactionToEdit: TransactionItem?
+    let event: EventItem?
     var initialTimestamp: Date?
     var initialIsExpense: Bool?
     @State private var keypadText = ""
@@ -52,10 +53,12 @@ struct QuickAddKeypadSheet: View {
 
     init(
         transactionToEdit: TransactionItem?,
+        event: EventItem? = nil,
         initialTimestamp: Date? = nil,
         initialIsExpense: Bool? = nil
     ) {
         self.transactionToEdit = transactionToEdit
+        self.event = event
         self.initialTimestamp = initialTimestamp
         self.initialIsExpense = initialIsExpense
     }
@@ -594,6 +597,10 @@ struct QuickAddKeypadSheet: View {
             validationMessage = "Enter an amount greater than zero."
             return
         }
+        if transactionToEdit == nil, event?.isEnded == true {
+            validationMessage = "Ended events cannot add transactions."
+            return
+        }
 
         let cleanNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
         let repository = TransactionRepository(modelContext: modelContext)
@@ -605,12 +612,14 @@ struct QuickAddKeypadSheet: View {
                         transactionToEdit,
                         amountMinor: amountMinor,
                         expectedDueDate: expectedDueDate,
+                        event: event,
                         note: cleanNote
                     )
                 } else {
                     _ = try repository.createPending(
                         amountMinor: amountMinor,
                         expectedDueDate: expectedDueDate,
+                        event: event,
                         note: cleanNote
                     )
                 }
@@ -650,6 +659,7 @@ struct QuickAddKeypadSheet: View {
                     timestamp: timestamp,
                     category: category,
                     account: account,
+                    event: event,
                     note: cleanNote
                 )
             } else {
@@ -659,6 +669,7 @@ struct QuickAddKeypadSheet: View {
                     timestamp: timestamp,
                     category: category,
                     account: account,
+                    event: event,
                     note: cleanNote
                 )
             }

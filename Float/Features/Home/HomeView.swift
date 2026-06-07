@@ -9,6 +9,7 @@ struct HomeView: View {
     @Query private var recurringRules: [RecurringRuleItem]
     @Query private var budgets: [BudgetPeriodItem]
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query(sort: \EventItem.startDate, order: .reverse) private var events: [EventItem]
     @Query private var categoryBudgets: [CategoryBudgetItem]
     @State private var recurringRuleToEdit: RecurringRuleItem?
     @State private var contributionGoal: GoalItem?
@@ -57,6 +58,10 @@ struct HomeView: View {
 
     private var forecastItems: [CashFlowForecastItem] {
         dashboardSnapshot.forecastItems
+    }
+
+    private var pinnedEvents: [EventItem] {
+        events.filter { $0.pinned }
     }
 
     private var budgetAlerts: [BudgetAlertItem] {
@@ -109,6 +114,33 @@ struct HomeView: View {
 
                 quickActions
 
+                NavigationLink {
+                    EventsView()
+                } label: {
+                    GlassCard {
+                        HStack(spacing: 12) {
+                            FloatIconBadge(
+                                icon: "calendar.badge.plus",
+                                tint: appState.themePalette.accent,
+                                size: 38
+                            )
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("View events")
+                                    .font(.headline)
+                                Text("Open the event hub for timelines, charts, and linked transactions.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(2)
+                            }
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .buttonStyle(.plain)
+
                 HStack(spacing: 14) {
                     HomeSummaryTile(
                         title: "Today",
@@ -130,6 +162,7 @@ struct HomeView: View {
                 budgetOverview
                 cashFlowForecast
                 budgetAlertsSection
+                pinnedEventsSection
                 pendingQueueLink
                 reviewQueueLink
                 upcomingRecurring
@@ -294,6 +327,24 @@ struct HomeView: View {
                                 Divider()
                             }
                         }
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder private var pinnedEventsSection: some View {
+        if appState.showPinnedEventsInHomeView && !pinnedEvents.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Pinned events")
+                VStack(spacing: 12) {
+                    ForEach(pinnedEvents.prefix(3)) { event in
+                        NavigationLink {
+                            EventDetailView(event: event)
+                        } label: {
+                            EventRowView(event: event, showsDescription: false)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -1227,7 +1278,7 @@ private struct BudgetStatusChart: View {
             VStack(alignment: .leading, spacing: 14) {
                 chartMetric(
                     title: "Period",
-                    detail: "\(progressPercent(result.periodProgress)) elapsed",
+                    detail: "\(progressPercent(value: result.periodProgress)) elapsed",
                     note: periodSummary,
                     amount: nil,
                     progress: result.periodProgress,
@@ -1235,7 +1286,7 @@ private struct BudgetStatusChart: View {
                 )
                 chartMetric(
                     title: "Spending",
-                    detail: "\(progressPercent(result.spendingProgress)) used",
+                    detail: "\(progressPercent(value:result.spendingProgress)) used",
                     note: spendingSummary,
                     amount: result.variableSpentMinor,
                     progress: result.spendingProgress,
@@ -1391,7 +1442,7 @@ private struct BudgetStatusChart: View {
         }
     }
 
-    private func progressPercent(_ value: Double) -> String {
+    private func progressPercent(value: Double) -> String {
         percentText(for: value)
     }
 

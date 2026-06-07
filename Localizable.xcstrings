@@ -110,6 +110,9 @@
         }
       }
     },
+    "%lld tx" : {
+
+    },
     "%lld%%" : {
 
     },
@@ -280,6 +283,15 @@
         }
       }
     },
+    "Add event" : {
+
+    },
+    "Add Event" : {
+
+    },
+    "Add event category" : {
+
+    },
     "Add Expense" : {
 
     },
@@ -372,6 +384,9 @@
           }
         }
       }
+    },
+    "All events" : {
+
     },
     "All transactions" : {
 
@@ -888,6 +903,12 @@
         }
       }
     },
+    "Dates" : {
+
+    },
+    "Day" : {
+
+    },
     "Deactivate" : {
       "localizations" : {
         "bn" : {
@@ -922,6 +943,18 @@
           }
         }
       }
+    },
+    "Delete %@ from this event?" : {
+
+    },
+    "Delete event" : {
+
+    },
+    "Delete event category" : {
+
+    },
+    "Delete event?" : {
+
     },
     "Delete pending row" : {
 
@@ -962,7 +995,16 @@
         }
       }
     },
+    "Delete transaction?" : {
+
+    },
     "Delete transfer" : {
+
+    },
+    "Deleting %@ will remove the event from Float, but its transactions will stay in your ledger." : {
+
+    },
+    "Description" : {
 
     },
     "Destination" : {
@@ -1022,6 +1064,12 @@
           }
         }
       }
+    },
+    "Edit event" : {
+
+    },
+    "Edit Event" : {
+
     },
     "Edit Goal" : {
       "localizations" : {
@@ -1121,6 +1169,27 @@
       }
     },
     "Enter the normal currency amount for this category." : {
+
+    },
+    "Event" : {
+
+    },
+    "Event categories" : {
+
+    },
+    "Event Categories" : {
+
+    },
+    "Event name" : {
+
+    },
+    "Event settings" : {
+
+    },
+    "Event Settings" : {
+
+    },
+    "Events" : {
 
     },
     "Every %@" : {
@@ -1460,6 +1529,9 @@
         }
       }
     },
+    "In use" : {
+
+    },
     "Inactive" : {
       "localizations" : {
         "bn" : {
@@ -1583,7 +1655,13 @@
     "Load older data" : {
 
     },
+    "Load older events" : {
+
+    },
     "Loading older data" : {
+
+    },
+    "Loading older events" : {
 
     },
     "Loading report" : {
@@ -1765,6 +1843,9 @@
         }
       }
     },
+    "No category" : {
+
+    },
     "No templates available." : {
 
     },
@@ -1816,6 +1897,9 @@
 
     },
     "Open Float ready to move money between accounts." : {
+
+    },
+    "Open the event hub for timelines, charts, and linked transactions." : {
 
     },
     "Open today" : {
@@ -1873,6 +1957,9 @@
           }
         }
       }
+    },
+    "Pin event" : {
+
     },
     "Portable data" : {
       "localizations" : {
@@ -2166,6 +2253,12 @@
     "Search categories" : {
 
     },
+    "Search event transactions" : {
+
+    },
+    "Search events" : {
+
+    },
     "Search notes, accounts, amounts" : {
       "localizations" : {
         "bn" : {
@@ -2225,6 +2318,9 @@
           }
         }
       }
+    },
+    "Show pinned events in home view" : {
+
     },
     "Sort" : {
       "localizations" : {
@@ -2288,6 +2384,9 @@
     "Split transaction" : {
 
     },
+    "Start date" : {
+
+    },
     "Start using Float" : {
       "localizations" : {
         "bn" : {
@@ -2339,6 +2438,9 @@
           }
         }
       }
+    },
+    "Status" : {
+
     },
     "Swap" : {
 
@@ -2619,6 +2721,12 @@
     "Unlocking" : {
 
     },
+    "Unpin event" : {
+
+    },
+    "Unused" : {
+
+    },
     "Upcoming recurring" : {
       "localizations" : {
         "bn" : {
@@ -2652,6 +2760,9 @@
       }
     },
     "Use Face ID, Touch ID, or your passcode to continue." : {
+
+    },
+    "View events" : {
 
     },
     "Will create" : {

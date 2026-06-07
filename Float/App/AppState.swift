@@ -89,6 +89,7 @@ final class AppState: ObservableObject {
     @AppStorage("selectedLanguageCode") var selectedLanguageCode = "system"
     @AppStorage("lastUsedCategoryID") var lastUsedCategoryID = ""
     @AppStorage("lastUsedAccountID") var lastUsedAccountID = ""
+    @AppStorage("showPinnedEventsInHomeView") var showPinnedEventsInHomeView = false
     @AppStorage("isAppLockEnabled") var isAppLockEnabled = false
     @AppStorage("recurringRemindersEnabled") var recurringRemindersEnabled = true
     @AppStorage("budgetAlertsEnabled") var budgetAlertsEnabled = true

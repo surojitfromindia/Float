@@ -20,6 +20,8 @@ struct SettingsView: View {
         var transactionTemplateGroups: [TransactionTemplateGroupItem]
     @Query(sort: \TransferItem.timestamp, order: .reverse) private
         var transfers: [TransferItem]
+    @Query(sort: \EventCategoryItem.sortOrder) private var eventCategories: [EventCategoryItem]
+    @Query(sort: \EventItem.startDate, order: .reverse) private var events: [EventItem]
     @Query private var accounts: [AccountItem]
     @Query private var categories: [CategoryItem]
     @Query private var goals: [GoalItem]
@@ -281,6 +283,8 @@ struct SettingsView: View {
             backupDocument = try BackupService.createDocument(
                 accounts: accounts,
                 categories: categories,
+                eventCategories: eventCategories,
+                events: events,
                 transactions: transactions,
                 transactionTemplates: transactionTemplates,
                 transactionTemplateGroups: transactionTemplateGroups,
@@ -334,6 +338,8 @@ struct SettingsView: View {
         for item in transactionTemplateGroups { modelContext.delete(item) }
         for item in transactionTemplates { modelContext.delete(item) }
         for item in transfers { modelContext.delete(item) }
+        for item in events { modelContext.delete(item) }
+        for item in eventCategories { modelContext.delete(item) }
         for item in recurringRules { modelContext.delete(item) }
         for item in goals { modelContext.delete(item) }
         for item in categoryBudgets { modelContext.delete(item) }

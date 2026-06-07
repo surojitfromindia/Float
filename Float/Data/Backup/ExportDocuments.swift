@@ -23,6 +23,8 @@ struct BackupDocument: FileDocument {
 struct FloatBackupDTO: Codable {
     var accounts: [AccountDTO]
     var categories: [CategoryDTO]
+    var eventCategories: [EventCategoryDTO]
+    var events: [EventDTO]
     var transactions: [TransactionDTO]
     var transactionTemplates: [TransactionTemplateDTO]
     var transactionTemplateGroups: [TransactionTemplateGroupDTO]
@@ -36,6 +38,8 @@ struct FloatBackupDTO: Codable {
     enum CodingKeys: String, CodingKey {
         case accounts
         case categories
+        case eventCategories
+        case events
         case transactions
         case transactionTemplates
         case transactionTemplateGroups
@@ -50,6 +54,8 @@ struct FloatBackupDTO: Codable {
     init(
         accounts: [AccountDTO],
         categories: [CategoryDTO],
+        eventCategories: [EventCategoryDTO] = [],
+        events: [EventDTO] = [],
         transactions: [TransactionDTO],
         transactionTemplates: [TransactionTemplateDTO] = [],
         transactionTemplateGroups: [TransactionTemplateGroupDTO] = [],
@@ -62,6 +68,8 @@ struct FloatBackupDTO: Codable {
     ) {
         self.accounts = accounts
         self.categories = categories
+        self.eventCategories = eventCategories
+        self.events = events
         self.transactions = transactions
         self.transactionTemplates = transactionTemplates
         self.transactionTemplateGroups = transactionTemplateGroups
@@ -77,6 +85,8 @@ struct FloatBackupDTO: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         accounts = try container.decode([AccountDTO].self, forKey: .accounts)
         categories = try container.decode([CategoryDTO].self, forKey: .categories)
+        eventCategories = try container.decodeIfPresent([EventCategoryDTO].self, forKey: .eventCategories) ?? []
+        events = try container.decodeIfPresent([EventDTO].self, forKey: .events) ?? []
         transactions = try container.decode([TransactionDTO].self, forKey: .transactions)
         transactionTemplates = try container.decodeIfPresent([TransactionTemplateDTO].self, forKey: .transactionTemplates) ?? []
         transactionTemplateGroups = try container.decodeIfPresent([TransactionTemplateGroupDTO].self, forKey: .transactionTemplateGroups) ?? []
@@ -111,6 +121,27 @@ struct CategoryDTO: Codable {
     var createdAt: Date?
     var updatedAt: Date?
 }
+struct EventCategoryDTO: Codable {
+    var id: UUID
+    var name: String
+    var iconKey: String
+    var colorHex: String
+    var sortOrder: Int
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct EventDTO: Codable {
+    var id: UUID
+    var name: String
+    var startDate: Date
+    var endDate: Date
+    var statusRaw: String
+    var eventDescription: String?
+    var pinned: Bool
+    var categoryID: UUID?
+    var createdAt: Date
+    var updatedAt: Date
+}
 struct TransactionDTO: Codable {
     var id: UUID
     var amountMinor: Int64
@@ -120,6 +151,7 @@ struct TransactionDTO: Codable {
     var expectedDueDate: Date?
     var categoryID: UUID?
     var accountID: UUID?
+    var eventID: UUID?
     var note: String?
     var recurringRuleID: UUID?
     var createdAt: Date
@@ -134,6 +166,7 @@ struct TransactionDTO: Codable {
         case expectedDueDate
         case categoryID
         case accountID
+        case eventID
         case note
         case recurringRuleID
         case createdAt
@@ -149,6 +182,7 @@ struct TransactionDTO: Codable {
         expectedDueDate: Date? = nil,
         categoryID: UUID?,
         accountID: UUID?,
+        eventID: UUID? = nil,
         note: String?,
         recurringRuleID: UUID?,
         createdAt: Date,
@@ -162,6 +196,7 @@ struct TransactionDTO: Codable {
         self.expectedDueDate = expectedDueDate
         self.categoryID = categoryID
         self.accountID = accountID
+        self.eventID = eventID
         self.note = note
         self.recurringRuleID = recurringRuleID
         self.createdAt = createdAt
@@ -179,6 +214,7 @@ struct TransactionDTO: Codable {
         expectedDueDate = try container.decodeIfPresent(Date.self, forKey: .expectedDueDate)
         categoryID = try container.decodeIfPresent(UUID.self, forKey: .categoryID)
         accountID = try container.decodeIfPresent(UUID.self, forKey: .accountID)
+        eventID = try container.decodeIfPresent(UUID.self, forKey: .eventID)
         note = try container.decodeIfPresent(String.self, forKey: .note)
         recurringRuleID = try container.decodeIfPresent(UUID.self, forKey: .recurringRuleID)
         createdAt = try container.decode(Date.self, forKey: .createdAt)

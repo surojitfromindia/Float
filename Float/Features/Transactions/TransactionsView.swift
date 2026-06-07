@@ -6,6 +6,7 @@ struct TransactionsView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query(sort: \EventItem.startDate, order: .reverse) private var events: [EventItem]
     @State private var ledgerItems: [LedgerListItem] = []
     @State private var nextPageEndDate: Date?
     @State private var isLoadingPage = false
@@ -488,7 +489,8 @@ struct TransactionsView: View {
         guard let snapshot = deletedSnapshot else { return }
         modelContext.insert(snapshot.makeTransaction(
             categories: categories,
-            accounts: accounts
+            accounts: accounts,
+            events: events
         ))
         try? modelContext.save()
         resetAndLoadFirstPage()
@@ -1235,41 +1237,44 @@ private struct TransactionFilterSheet: View {
     }
 }
 
-private struct DeletedTransactionSnapshot {
-    let id: UUID
-    let amountMinor: Int64
-    let isExpense: Bool
-    let statusRaw: String
-    let timestamp: Date
-    let expectedDueDate: Date?
-    let categoryID: UUID?
-    let accountID: UUID?
-    let note: String?
-    let createdAt: Date
-    let updatedAt: Date
+    private struct DeletedTransactionSnapshot {
+        let id: UUID
+        let amountMinor: Int64
+        let isExpense: Bool
+        let statusRaw: String
+        let timestamp: Date
+        let expectedDueDate: Date?
+        let categoryID: UUID?
+        let accountID: UUID?
+        let eventID: UUID?
+        let note: String?
+        let createdAt: Date
+        let updatedAt: Date
 
-    init(transaction: TransactionItem) {
+        init(transaction: TransactionItem) {
         id = transaction.id
         amountMinor = transaction.amountMinor
         isExpense = transaction.isExpense
         statusRaw = transaction.statusRaw
-        timestamp = transaction.timestamp
-        expectedDueDate = transaction.expectedDueDate
-        categoryID = transaction.category?.id
-        accountID = transaction.account?.id
-        note = transaction.note
-        createdAt = transaction.createdAt
-        updatedAt = transaction.updatedAt
-    }
+            timestamp = transaction.timestamp
+            expectedDueDate = transaction.expectedDueDate
+            categoryID = transaction.category?.id
+            accountID = transaction.account?.id
+            eventID = transaction.event?.id
+            note = transaction.note
+            createdAt = transaction.createdAt
+            updatedAt = transaction.updatedAt
+        }
 
-    func makeTransaction(
-        categories: [CategoryItem],
-        accounts: [AccountItem]
-    ) -> TransactionItem {
-        TransactionItem(
-            id: id,
-            amountMinor: amountMinor,
-            isExpense: isExpense,
+        func makeTransaction(
+            categories: [CategoryItem],
+            accounts: [AccountItem],
+            events: [EventItem]
+        ) -> TransactionItem {
+            TransactionItem(
+                id: id,
+                amountMinor: amountMinor,
+                isExpense: isExpense,
             status: TransactionStatus(rawValue: statusRaw) ?? .posted,
             timestamp: timestamp,
             expectedDueDate: expectedDueDate,
@@ -1278,6 +1283,9 @@ private struct DeletedTransactionSnapshot {
             },
             account: accountID.flatMap { id in
                 accounts.first { $0.id == id }
+            },
+            event: eventID.flatMap { id in
+                events.first { $0.id == id }
             },
             note: note,
             createdAt: createdAt,

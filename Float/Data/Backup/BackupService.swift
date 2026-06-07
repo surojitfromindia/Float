@@ -6,6 +6,8 @@ enum BackupService {
     static func createDocument(
         accounts: [AccountItem],
         categories: [CategoryItem],
+        eventCategories: [EventCategoryItem],
+        events: [EventItem],
         transactions: [TransactionItem],
         transactionTemplates: [TransactionTemplateItem],
         transactionTemplateGroups: [TransactionTemplateGroupItem],
@@ -19,6 +21,8 @@ enum BackupService {
         let dto = FloatBackupDTO(
             accounts: accounts.map(AccountDTO.init),
             categories: categories.map(CategoryDTO.init),
+            eventCategories: eventCategories.map(EventCategoryDTO.init),
+            events: events.map(EventDTO.init),
             transactions: transactions.map(TransactionDTO.init),
             transactionTemplates: transactionTemplates.map(TransactionTemplateDTO.init),
             transactionTemplateGroups: transactionTemplateGroups.map(TransactionTemplateGroupDTO.init),
@@ -43,11 +47,19 @@ enum BackupService {
         try deleteExistingData(in: modelContext)
 
         var categoryMap: [UUID: CategoryItem] = [:]
+        var eventCategoryMap: [UUID: EventCategoryItem] = [:]
+        var eventMap: [UUID: EventItem] = [:]
         var accountMap: [UUID: AccountItem] = [:]
 
         for item in dto.categories {
             let model = CategoryItem(dto: item)
             categoryMap[item.id] = model
+            modelContext.insert(model)
+        }
+
+        for item in dto.eventCategories {
+            let model = EventCategoryItem(dto: item)
+            eventCategoryMap[item.id] = model
             modelContext.insert(model)
         }
 
@@ -120,12 +132,22 @@ enum BackupService {
             modelContext.insert(model)
         }
 
+        for item in dto.events {
+            let model = EventItem(
+                dto: item,
+                category: item.categoryID.flatMap { eventCategoryMap[$0] }
+            )
+            eventMap[item.id] = model
+            modelContext.insert(model)
+        }
+
         for item in dto.transactions {
             modelContext.insert(
                 TransactionItem(
                     dto: item,
                     category: item.categoryID.flatMap { categoryMap[$0] },
                     account: item.accountID.flatMap { accountMap[$0] },
+                    event: item.eventID.flatMap { eventMap[$0] },
                     recurringRule: item.recurringRuleID.flatMap {
                         recurringMap[$0]
                     }
@@ -143,6 +165,8 @@ enum BackupService {
 
     private static func deleteExistingData(in modelContext: ModelContext) throws {
         try modelContext.delete(model: TransactionItem.self)
+        try modelContext.delete(model: EventItem.self)
+        try modelContext.delete(model: EventCategoryItem.self)
         try modelContext.delete(model: TransactionTemplateGroupEntryItem.self)
         try modelContext.delete(model: TransactionTemplateGroupItem.self)
         try modelContext.delete(model: TransactionTemplateItem.self)
@@ -188,6 +212,71 @@ private extension CategoryDTO {
     }
 }
 
+private extension EventCategoryDTO {
+    init(_ item: EventCategoryItem) {
+        self.init(
+            id: item.id,
+            name: item.name,
+            iconKey: item.iconKey,
+            colorHex: item.colorHex,
+            sortOrder: item.sortOrder,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension EventCategoryItem {
+    convenience init(dto: EventCategoryDTO) {
+        self.init(
+            id: dto.id,
+            name: dto.name,
+            iconKey: dto.iconKey,
+            colorHex: dto.colorHex,
+            sortOrder: dto.sortOrder,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension EventDTO {
+    init(_ item: EventItem) {
+        self.init(
+            id: item.id,
+            name: item.name,
+            startDate: item.startDate,
+            endDate: item.endDate,
+            statusRaw: item.statusRaw,
+            eventDescription: item.eventDescription,
+            pinned: item.pinned,
+            categoryID: item.category?.id,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension EventItem {
+    convenience init(
+        dto: EventDTO,
+        category: EventCategoryItem? = nil
+    ) {
+        self.init(
+            id: dto.id,
+            name: dto.name,
+            startDate: dto.startDate,
+            endDate: dto.endDate,
+            status: EventStatus(rawValue: dto.statusRaw) ?? .active,
+            eventDescription: dto.eventDescription,
+            pinned: dto.pinned,
+            category: category,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
 private extension TransactionDTO {
     init(_ item: TransactionItem) {
         self.init(
@@ -199,10 +288,37 @@ private extension TransactionDTO {
             expectedDueDate: item.expectedDueDate,
             categoryID: item.category?.id,
             accountID: item.account?.id,
+            eventID: item.event?.id,
             note: item.note,
             recurringRuleID: item.recurringRule?.id,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension TransactionItem {
+    convenience init(
+        dto: TransactionDTO,
+        category: CategoryItem? = nil,
+        account: AccountItem? = nil,
+        event: EventItem? = nil,
+        recurringRule: RecurringRuleItem? = nil
+    ) {
+        self.init(
+            id: dto.id,
+            amountMinor: dto.amountMinor,
+            isExpense: dto.isExpense,
+            status: TransactionStatus(rawValue: dto.statusRaw) ?? .posted,
+            timestamp: dto.timestamp,
+            expectedDueDate: dto.expectedDueDate,
+            category: category,
+            account: account,
+            event: event,
+            note: dto.note,
+            recurringRule: recurringRule,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
         )
     }
 }

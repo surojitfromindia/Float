@@ -40,6 +40,7 @@ struct TransactionRepository {
         timestamp: Date,
         category: CategoryItem,
         account: AccountItem,
+        event: EventItem? = nil,
         note: String?
     ) throws -> TransactionItem {
         let transaction = TransactionItem(
@@ -48,6 +49,7 @@ struct TransactionRepository {
             timestamp: timestamp,
             category: category,
             account: account,
+            event: event,
             note: note?.trimmedNilIfBlank
         )
         modelContext.insert(transaction)
@@ -58,6 +60,7 @@ struct TransactionRepository {
     func createPending(
         amountMinor: Int64,
         expectedDueDate: Date,
+        event: EventItem? = nil,
         note: String?
     ) throws -> TransactionItem {
         let transaction = TransactionItem(
@@ -68,6 +71,7 @@ struct TransactionRepository {
             expectedDueDate: expectedDueDate,
             category: nil,
             account: nil,
+            event: event,
             note: note?.trimmedNilIfBlank
         )
         modelContext.insert(transaction)
@@ -91,6 +95,7 @@ struct TransactionRepository {
                     timestamp: timestamp,
                     category: template.category,
                     account: template.account,
+                    event: nil,
                     note: template.note
                 )
             )
@@ -111,6 +116,7 @@ struct TransactionRepository {
                     timestamp: draft.timestamp,
                     category: draft.category,
                     account: draft.account,
+                    event: nil,
                     note: draft.note?.trimmedNilIfBlank
                 )
             )
@@ -154,16 +160,17 @@ struct TransactionRepository {
 
         for draft in validDrafts {
             modelContext.insert(
-                TransactionItem(
-                    amountMinor: draft.amountMinor,
-                    isExpense: draft.isExpense,
-                    timestamp: draft.timestamp,
-                    category: draft.category,
-                    account: draft.account,
-                    note: draft.note?.trimmedNilIfBlank
-                )
+            TransactionItem(
+                amountMinor: draft.amountMinor,
+                isExpense: draft.isExpense,
+                timestamp: draft.timestamp,
+                category: draft.category,
+                account: draft.account,
+                event: nil,
+                note: draft.note?.trimmedNilIfBlank
             )
-        }
+        )
+    }
         modelContext.delete(transaction)
         try save()
         return validDrafts.count
@@ -193,6 +200,7 @@ struct TransactionRepository {
         timestamp: Date,
         category: CategoryItem,
         account: AccountItem,
+        event: EventItem? = nil,
         note: String?
     ) throws {
         transaction.apply(
@@ -205,6 +213,7 @@ struct TransactionRepository {
             account: account,
             note: note
         )
+        transaction.event = event ?? transaction.event
         try save()
     }
 
@@ -212,6 +221,7 @@ struct TransactionRepository {
         _ transaction: TransactionItem,
         amountMinor: Int64,
         expectedDueDate: Date,
+        event: EventItem? = nil,
         note: String?
     ) throws {
         transaction.apply(
@@ -224,6 +234,7 @@ struct TransactionRepository {
             account: nil,
             note: note
         )
+        transaction.event = event ?? transaction.event
         try save()
     }
 
@@ -276,9 +287,125 @@ struct TransactionRepository {
                 expectedDueDate: draft.expectedDueDate,
                 category: nil,
                 account: nil,
+                event: nil,
                 note: draft.note?.trimmedNilIfBlank
             )
         )
+    }
+}
+
+@MainActor
+struct EventCategoryRepository {
+    let modelContext: ModelContext
+
+    func create(
+        name: String,
+        iconKey: String,
+        colorHex: String,
+        sortOrder: Int
+    ) throws -> EventCategoryItem {
+        let category = EventCategoryItem(
+            name: name.trimmedNilIfBlank ?? "Event Category",
+            iconKey: iconKey,
+            colorHex: colorHex,
+            sortOrder: sortOrder
+        )
+        modelContext.insert(category)
+        try save()
+        return category
+    }
+
+    func update(
+        _ category: EventCategoryItem,
+        name: String,
+        iconKey: String,
+        colorHex: String
+    ) throws {
+        category.name = name.trimmedNilIfBlank ?? "Event Category"
+        category.iconKey = iconKey
+        category.colorHex = colorHex
+        category.updatedAt = Date()
+        try save()
+    }
+
+    func deleteIfUnused(_ category: EventCategoryItem) throws -> Bool {
+        let events = (try? modelContext.fetch(FetchDescriptor<EventItem>())) ?? []
+        guard !events.contains(where: { $0.category?.id == category.id }) else {
+            return false
+        }
+        modelContext.delete(category)
+        try save()
+        return true
+    }
+
+    private func save() throws {
+        do {
+            try modelContext.save()
+        } catch {
+            throw DataIntegrityError.saveFailed
+        }
+    }
+}
+
+@MainActor
+struct EventRepository {
+    let modelContext: ModelContext
+
+    func create(
+        name: String,
+        startDate: Date,
+        endDate: Date,
+        status: EventStatus = .active,
+        category: EventCategoryItem? = nil,
+        eventDescription: String? = nil,
+        pinned: Bool = false
+    ) throws -> EventItem {
+        let event = EventItem(
+            name: name.trimmedNilIfBlank ?? "Event",
+            startDate: startDate,
+            endDate: endDate,
+            status: status,
+            eventDescription: eventDescription?.trimmedNilIfBlank,
+            pinned: pinned,
+            category: category
+        )
+        modelContext.insert(event)
+        try save()
+        return event
+    }
+
+    func update(
+        _ event: EventItem,
+        name: String,
+        startDate: Date,
+        endDate: Date,
+        status: EventStatus,
+        category: EventCategoryItem?,
+        eventDescription: String?,
+        pinned: Bool
+    ) throws {
+        event.name = name.trimmedNilIfBlank ?? "Event"
+        event.startDate = startDate
+        event.endDate = endDate
+        event.statusRaw = status.rawValue
+        event.category = category
+        event.eventDescription = eventDescription?.trimmedNilIfBlank
+        event.pinned = pinned
+        event.updatedAt = Date()
+        try save()
+    }
+
+    func delete(_ event: EventItem) throws {
+        modelContext.delete(event)
+        try save()
+    }
+
+    private func save() throws {
+        do {
+            try modelContext.save()
+        } catch {
+            throw DataIntegrityError.saveFailed
+        }
     }
 }
 

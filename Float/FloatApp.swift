@@ -9,6 +9,8 @@ struct FloatApp: App {
         let schema = Schema([
             AccountItem.self,
             CategoryItem.self,
+            EventCategoryItem.self,
+            EventItem.self,
             TransactionItem.self,
             TransactionTemplateItem.self,
             TransactionTemplateGroupItem.self,

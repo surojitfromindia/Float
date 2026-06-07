@@ -46,6 +46,20 @@ enum TransactionStatus: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum EventStatus: String, Codable, CaseIterable, Identifiable {
+    case active
+    case ended
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .active: "Active"
+        case .ended: "Ended"
+        }
+    }
+}
+
 @Model
 final class AccountItem {
     var id: UUID = UUID()
@@ -126,6 +140,7 @@ final class TransactionItem {
     var expectedDueDate: Date?
     var category: CategoryItem?
     var account: AccountItem?
+    var event: EventItem?
     var note: String?
     var recurringRule: RecurringRuleItem?
     var createdAt: Date = Date()
@@ -140,6 +155,7 @@ final class TransactionItem {
         expectedDueDate: Date? = nil,
         category: CategoryItem? = nil,
         account: AccountItem? = nil,
+        event: EventItem? = nil,
         note: String? = nil,
         recurringRule: RecurringRuleItem? = nil,
         createdAt: Date = Date(),
@@ -153,6 +169,7 @@ final class TransactionItem {
         self.expectedDueDate = expectedDueDate
         self.category = category
         self.account = account
+        self.event = event
         self.note = note
         self.recurringRule = recurringRule
         self.createdAt = createdAt
@@ -275,6 +292,81 @@ final class TransferItem {
         self.toAccount = toAccount
         self.timestamp = timestamp
         self.note = note?.nilIfBlank
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
+final class EventCategoryItem {
+    var id: UUID = UUID()
+    var name: String = ""
+    var iconKey: String = "calendar"
+    var colorHex: String = "#0E7C7B"
+    var sortOrder: Int = 0
+    @Relationship(deleteRule: .nullify, inverse: \EventItem.category)
+    var events: [EventItem] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        iconKey: String,
+        colorHex: String,
+        sortOrder: Int = 0,
+        events: [EventItem] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.name = name
+        self.iconKey = iconKey
+        self.colorHex = colorHex
+        self.sortOrder = sortOrder
+        self.events = events
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
+final class EventItem {
+    var id: UUID = UUID()
+    var name: String = ""
+    var startDate: Date = Date()
+    var endDate: Date = Date()
+    var statusRaw: String = EventStatus.active.rawValue
+    var eventDescription: String?
+    var pinned: Bool = false
+    var category: EventCategoryItem?
+    @Relationship(deleteRule: .nullify, inverse: \TransactionItem.event)
+    var transactions: [TransactionItem] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        startDate: Date,
+        endDate: Date,
+        status: EventStatus = .active,
+        eventDescription: String? = nil,
+        pinned: Bool = false,
+        category: EventCategoryItem? = nil,
+        transactions: [TransactionItem] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.name = name
+        self.startDate = startDate
+        self.endDate = endDate
+        self.statusRaw = status.rawValue
+        self.eventDescription = eventDescription?.nilIfBlank
+        self.pinned = pinned
+        self.category = category
+        self.transactions = transactions
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -516,6 +608,21 @@ extension TransactionItem {
         self.account = account
         self.note = note?.nilIfBlank
         updatedAt = Date()
+    }
+}
+
+extension EventItem {
+    var status: EventStatus {
+        get { EventStatus(rawValue: statusRaw) ?? .active }
+        set { statusRaw = newValue.rawValue }
+    }
+
+    var isActive: Bool {
+        status == .active
+    }
+
+    var isEnded: Bool {
+        status == .ended
     }
 }
 
