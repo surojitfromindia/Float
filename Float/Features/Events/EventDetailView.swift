@@ -613,8 +613,10 @@ struct EventDetailView: View {
                             transaction: transaction,
                             currencyCode: appState.selectedCurrencyCode
                         )
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .contentShape(Rectangle())
                     .contextMenu {
                         Button {
                             editingTransaction = transaction
@@ -622,12 +624,21 @@ struct EventDetailView: View {
                         } label: {
                             Label("Edit", systemImage: "pencil")
                         }
+
                         Button(role: .destructive) {
                             pendingDeleteTransaction = transaction
                             showingDeleteAlert = true
                         } label: {
-                            Label("Delete", systemImage: "trash")
+                            redDeleteLabel
                         }
+                        .tint(.red)
+                    } preview: {
+                        TransactionRowView(
+                            transaction: transaction,
+                            currencyCode: appState.selectedCurrencyCode
+                        )
+                        .padding(16)
+                        .frame(maxWidth: 420)
                     }
                     .onAppear {
                         loadOlderPageIfNeeded(afterDisplaying: transaction)
@@ -640,6 +651,16 @@ struct EventDetailView: View {
             }
             .padding(14)
             .transactionPlainSurface(cornerRadius: FloatTheme.controlRadius)
+        }
+    }
+
+    private var redDeleteLabel: some View {
+        Label {
+            Text("Delete")
+                .foregroundStyle(.red)
+        } icon: {
+            Image(systemName: "trash")
+                .foregroundStyle(.red)
         }
     }
 

@@ -191,17 +191,18 @@ private struct RecurringRuleCard: View {
             }
         }
         .opacity(rule.active ? 1 : 0.62)
+        .contentShape(Rectangle())
         .contextMenu {
             Button(role: .destructive, action: onDelete) {
                 Label {
                     Text("Delete")
-                        .foregroundStyle(Color(hex: "#DC2626"))
+                        .foregroundStyle(.red)
                 } icon: {
                     Image(systemName: "trash")
-                        .foregroundStyle(Color(hex: "#DC2626"))
+                        .foregroundStyle(.red)
                 }
             }
-            .tint(Color(hex: "#DC2626"))
+            .tint(.red)
         }
     }
 

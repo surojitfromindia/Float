@@ -14,38 +14,30 @@ struct CategoryManagerView: View {
                         category: category
                     )
                 } label: {
-                    HStack(spacing: 12) {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    Color(hex: category.colorHex).opacity(0.16)
-                                )
-                            Image(systemName: category.iconKey)
-                                .foregroundStyle(Color(hex: category.colorHex))
-                        }
-                        .frame(width: 36, height: 36)
-
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(category.name)
-                                .font(.headline)
-                            Text(category.isIncome ? "Income" : "Expense")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        if category.archived {
-                            Text("Archived")
-                                .font(.caption.weight(.medium))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+                    categoryRow(category)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-            }
-            .onDelete {
-                let repository = CategoryRepository(modelContext: modelContext)
-                $0.map { categories[$0] }.forEach {
-                    try? repository.deleteIfUnused($0)
+                .contentShape(Rectangle())
+                .contextMenu {
+                    Button {
+                        editorPresentation = CategoryEditorPresentation(
+                            category: category
+                        )
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+
+                    Button(role: .destructive) {
+                        delete(category)
+                    } label: {
+                        redDeleteLabel
+                    }
+                    .tint(.red)
+                } preview: {
+                    categoryRow(category)
+                        .padding(16)
+                        .frame(maxWidth: 420)
                 }
             }
         }
@@ -70,6 +62,49 @@ struct CategoryManagerView: View {
                 nextSortOrder: categories.count
             )
         }
+    }
+
+    private func categoryRow(_ category: CategoryItem) -> some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(
+                        Color(hex: category.colorHex).opacity(0.16)
+                    )
+                Image(systemName: category.iconKey)
+                    .foregroundStyle(Color(hex: category.colorHex))
+            }
+            .frame(width: 36, height: 36)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(category.name)
+                    .font(.headline)
+                Text(category.isIncome ? "Income" : "Expense")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            if category.archived {
+                Text("Archived")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var redDeleteLabel: some View {
+        Label {
+            Text("Delete")
+                .foregroundStyle(.red)
+        } icon: {
+            Image(systemName: "trash")
+                .foregroundStyle(.red)
+        }
+    }
+
+    private func delete(_ category: CategoryItem) {
+        try? CategoryRepository(modelContext: modelContext)
+            .deleteIfUnused(category)
     }
 }
 

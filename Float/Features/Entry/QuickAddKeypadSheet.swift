@@ -188,10 +188,16 @@ struct QuickAddKeypadSheet: View {
 
                         if transactionToEdit != nil {
                             Button(role: .destructive, action: deleteTransaction) {
-                                Label("Delete transaction", systemImage: "trash")
+                                Label {
+                                    Text("Delete transaction")
+                                } icon: {
+                                    Image(systemName: "trash")
+                                        .foregroundStyle(.red)
+                                }
                                     .font(.subheadline.weight(.semibold))
                                     .frame(maxWidth: .infinity)
                             }
+                            .tint(.red)
                             .buttonStyle(.borderless)
                         }
 

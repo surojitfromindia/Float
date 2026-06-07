@@ -78,38 +78,58 @@ private struct TemplateCard: View {
 
     var body: some View {
         GlassCard {
-            HStack(spacing: 14) {
-                FloatIconBadge(
-                    icon: template.category?.iconKey ?? "square.text.square",
-                    tint: tint,
-                    size: 42
-                )
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(template.displayTitle)
-                        .font(.headline)
-                        .lineLimit(1)
-                    Text(detail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-                Spacer(minLength: 8)
-                Text(amount)
-                    .moneyStyle(size: 15, weight: .semibold)
-                    .foregroundStyle(template.isExpense ? .primary : Color(hex: "#1B8A5A"))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-            }
+            cardContent
         }
+        .contentShape(Rectangle())
         .contextMenu {
             Button(action: onEdit) {
                 Label("Edit", systemImage: "pencil")
             }
             Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
+                redDeleteLabel
             }
+            .tint(.red)
+        } preview: {
+            cardContent
+                .padding(16)
+                .frame(maxWidth: 420)
         }
         .onTapGesture(perform: onEdit)
+    }
+
+    private var cardContent: some View {
+        HStack(spacing: 14) {
+            FloatIconBadge(
+                icon: template.category?.iconKey ?? "square.text.square",
+                tint: tint,
+                size: 42
+            )
+            VStack(alignment: .leading, spacing: 5) {
+                Text(template.displayTitle)
+                    .font(.headline)
+                    .lineLimit(1)
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 8)
+            Text(amount)
+                .moneyStyle(size: 15, weight: .semibold)
+                .foregroundStyle(template.isExpense ? .primary : Color(hex: "#1B8A5A"))
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+    }
+
+    private var redDeleteLabel: some View {
+        Label {
+            Text("Delete")
+                .foregroundStyle(.red)
+        } icon: {
+            Image(systemName: "trash")
+                .foregroundStyle(.red)
+        }
     }
 
     private var detail: String {

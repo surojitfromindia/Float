@@ -842,20 +842,30 @@ private struct DailyDetailView: View {
                                     transaction: transaction,
                                     currencyCode: appState.selectedCurrencyCode
                                 )
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
-                            .swipeActions {
-                                Button(role: .destructive) {
-                                    delete(transaction)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
+                            .contentShape(Rectangle())
+                            .contextMenu {
                                 Button {
                                     copy(transaction)
                                 } label: {
                                     Label("Copy", systemImage: "doc.on.doc")
                                 }
-                                .tint(appState.themePalette.accent)
+
+                                Button(role: .destructive) {
+                                    delete(transaction)
+                                } label: {
+                                    redDeleteLabel
+                                }
+                                .tint(.red)
+                            } preview: {
+                                TransactionRowView(
+                                    transaction: transaction,
+                                    currencyCode: appState.selectedCurrencyCode
+                                )
+                                .padding(16)
+                                .frame(maxWidth: 420)
                             }
 
                             if transaction.id != dayTransactions.last?.id {
@@ -895,14 +905,24 @@ private struct DailyDetailView: View {
                                     transfer: transfer,
                                     currencyCode: transfer.currencyCode
                                 )
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
-                            .swipeActions {
+                            .contentShape(Rectangle())
+                            .contextMenu {
                                 Button(role: .destructive) {
                                     delete(transfer)
                                 } label: {
-                                    Label("Delete", systemImage: "trash")
+                                    redDeleteLabel
                                 }
+                                .tint(.red)
+                            } preview: {
+                                TransferRowView(
+                                    transfer: transfer,
+                                    currencyCode: transfer.currencyCode
+                                )
+                                .padding(16)
+                                .frame(maxWidth: 420)
                             }
 
                             if transfer.id != dayTransfers.last?.id {
@@ -912,6 +932,16 @@ private struct DailyDetailView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var redDeleteLabel: some View {
+        Label {
+            Text("Delete")
+                .foregroundStyle(.red)
+        } icon: {
+            Image(systemName: "trash")
+                .foregroundStyle(.red)
         }
     }
 

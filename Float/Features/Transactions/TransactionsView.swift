@@ -271,8 +271,10 @@ struct TransactionsView: View {
                                 transaction: transaction,
                                 currencyCode: appState.selectedCurrencyCode
                             )
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .contentShape(Rectangle())
                         .contextMenu {
                             if transaction.isPending {
                                 Button {
@@ -296,8 +298,16 @@ struct TransactionsView: View {
                             Button(role: .destructive) {
                                 delete(transaction)
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                redDeleteLabel
                             }
+                            .tint(.red)
+                        } preview: {
+                            TransactionRowView(
+                                transaction: transaction,
+                                currencyCode: appState.selectedCurrencyCode
+                            )
+                            .padding(16)
+                            .frame(maxWidth: 420)
                         }
                         .onAppear {
                             loadOlderPageIfNeeded(afterDisplaying: item)
@@ -310,14 +320,24 @@ struct TransactionsView: View {
                                 transfer: transfer,
                                 currencyCode: transfer.currencyCode
                             )
+                            .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .contentShape(Rectangle())
                         .contextMenu {
                             Button(role: .destructive) {
                                 delete(transfer)
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                redDeleteLabel
                             }
+                            .tint(.red)
+                        } preview: {
+                            TransferRowView(
+                                transfer: transfer,
+                                currencyCode: transfer.currencyCode
+                            )
+                            .padding(16)
+                            .frame(maxWidth: 420)
                         }
                         .onAppear {
                             loadOlderPageIfNeeded(afterDisplaying: item)
@@ -330,6 +350,16 @@ struct TransactionsView: View {
             }
             .padding(14)
             .transactionPlainSurface(cornerRadius: FloatTheme.controlRadius)
+        }
+    }
+
+    private var redDeleteLabel: some View {
+        Label {
+            Text("Delete")
+                .foregroundStyle(.red)
+        } icon: {
+            Image(systemName: "trash")
+                .foregroundStyle(.red)
         }
     }
 

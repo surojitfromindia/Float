@@ -366,8 +366,15 @@ struct BulkTransactionEntrySheet: View {
                                     Button(role: .destructive) {
                                         deleteSavedSplitPreset(savedID)
                                     } label: {
-                                        Label("Delete Template", systemImage: "trash")
+                                        Label {
+                                            Text("Delete Template")
+                                                .foregroundStyle(.red)
+                                        } icon: {
+                                            Image(systemName: "trash")
+                                                .foregroundStyle(.red)
+                                        }
                                     }
+                                    .tint(.red)
                                 }
                             }
                         }
@@ -1265,8 +1272,15 @@ private struct RatioSplitRowEditor: View {
                 guard canDelete else { return }
                 delete()
             } label: {
-                Label("Delete", systemImage: "trash")
+                Label {
+                    Text("Delete")
+                        .foregroundStyle(.red)
+                } icon: {
+                    Image(systemName: "trash")
+                        .foregroundStyle(.red)
+                }
             }
+            .tint(.red)
             .disabled(!canDelete)
         } label: {
             Image(systemName: "ellipsis")
@@ -1577,9 +1591,17 @@ struct TransactionTemplateGroupManagerView: View {
                         Button(role: .destructive) {
                             delete(group)
                         } label: {
-                            Label("Delete", systemImage: "trash")
+                            Label {
+                                Text("Delete")
+                                    .foregroundStyle(.red)
+                            } icon: {
+                                Image(systemName: "trash")
+                                    .foregroundStyle(.red)
+                            }
                         }
+                        .tint(.red)
                     }
+                    .contentShape(Rectangle())
                     .onTapGesture {
                         editorPresentation =
                             TransactionTemplateGroupEditorPresentation(group: group)

@@ -196,8 +196,12 @@ struct EventsView: View {
                         EventDetailView(event: event)
                     } label: {
                         EventRowView(event: event, usesCardSurface: false)
+                            .padding(.vertical, 8)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .contentShape(Rectangle())
                     .contextMenu {
                         Button {
                             editorPresentation = EventEditorPresentation(event: event)
@@ -209,8 +213,19 @@ struct EventsView: View {
                             pendingDeleteEvent = event
                             showingDeleteAlert = true
                         } label: {
-                            Label("Delete", systemImage: "trash")
+                            redDeleteLabel
                         }
+                        .tint(.red)
+                    } preview: {
+                        EventRowView(event: event, usesCardSurface: false)
+                            .padding(16)
+                            .frame(maxWidth: 420)
+                            .contentShape(
+                                RoundedRectangle(
+                                    cornerRadius: FloatTheme.controlRadius,
+                                    style: .continuous
+                                )
+                            )
                     }
                     .onAppear {
                         loadOlderPageIfNeeded(afterDisplaying: event)
@@ -288,6 +303,16 @@ struct EventsView: View {
                     }
                 }
             }
+        }
+    }
+
+    private var redDeleteLabel: some View {
+        Label {
+            Text("Delete")
+                .foregroundStyle(.red)
+        } icon: {
+            Image(systemName: "trash")
+                .foregroundStyle(.red)
         }
     }
 

@@ -17,26 +17,8 @@ struct AccountManagerView: View {
                             account: account
                         )
                     } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: account.type.icon)
-                                .font(.headline)
-                                .foregroundStyle(appState.themePalette.accent)
-                                .frame(width: 36, height: 36)
-                                .background(
-                                    appState.themePalette.accent.opacity(0.14),
-                                    in: Circle()
-                                )
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(account.name)
-                                    .font(.headline)
-                                Text(
-                                    "\(account.type.title) • \(account.currencyCode)"
-                                )
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            }
-                        }
+                        accountInfo(account)
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
 
@@ -50,11 +32,26 @@ struct AccountManagerView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-            }
-            .onDelete {
-                let repository = AccountRepository(modelContext: modelContext)
-                $0.map { accounts[$0] }.forEach {
-                    try? repository.deleteIfUnused($0)
+                .contentShape(Rectangle())
+                .contextMenu {
+                    Button {
+                        editorPresentation = AccountEditorPresentation(
+                            account: account
+                        )
+                    } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+
+                    Button(role: .destructive) {
+                        delete(account)
+                    } label: {
+                        redDeleteLabel
+                    }
+                    .tint(.red)
+                } preview: {
+                    accountPreviewRow(account)
+                        .padding(16)
+                        .frame(maxWidth: 420)
                 }
             }
         }
@@ -83,6 +80,53 @@ struct AccountManagerView: View {
             if presentationID == nil {
                 balanceStates.removeAll()
             }
+        }
+    }
+
+    private func accountInfo(_ account: AccountItem) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: account.type.icon)
+                .font(.headline)
+                .foregroundStyle(appState.themePalette.accent)
+                .frame(width: 36, height: 36)
+                .background(
+                    appState.themePalette.accent.opacity(0.14),
+                    in: Circle()
+                )
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(account.name)
+                    .font(.headline)
+                Text(
+                    "\(account.type.title) • \(account.currencyCode)"
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func accountPreviewRow(_ account: AccountItem) -> some View {
+        HStack(spacing: 12) {
+            accountInfo(account)
+
+            Spacer()
+
+            if account.archived {
+                Text("Archived")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private var redDeleteLabel: some View {
+        Label {
+            Text("Delete")
+                .foregroundStyle(.red)
+        } icon: {
+            Image(systemName: "trash")
+                .foregroundStyle(.red)
         }
     }
 
@@ -124,6 +168,11 @@ struct AccountManagerView: View {
             .font(.caption.weight(.semibold))
             .buttonStyle(.borderless)
         }
+    }
+
+    private func delete(_ account: AccountItem) {
+        try? AccountRepository(modelContext: modelContext)
+            .deleteIfUnused(account)
     }
 
     private func loadBalance(for account: AccountItem) {

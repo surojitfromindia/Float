@@ -58,10 +58,16 @@ struct TransferEditorSheet: View {
 
                     if transferToEdit != nil {
                         Button(role: .destructive, action: deleteTransfer) {
-                            Label("Delete transfer", systemImage: "trash")
+                            Label {
+                                Text("Delete transfer")
+                            } icon: {
+                                Image(systemName: "trash")
+                                    .foregroundStyle(.red)
+                            }
                                 .font(.subheadline.weight(.semibold))
                                 .frame(maxWidth: .infinity)
                         }
+                        .tint(.red)
                         .buttonStyle(.borderless)
                     }
                 }

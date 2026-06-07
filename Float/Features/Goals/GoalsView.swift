@@ -163,10 +163,18 @@ private struct GoalCard: View {
             }
         }
         .opacity(goal.achieved ? 0.72 : 1)
+        .contentShape(Rectangle())
         .contextMenu {
             Button(role: .destructive, action: onDelete) {
-                Label("Delete", systemImage: "trash")
+                Label {
+                    Text("Delete")
+                        .foregroundStyle(.red)
+                } icon: {
+                    Image(systemName: "trash")
+                        .foregroundStyle(.red)
+                }
             }
+            .tint(.red)
         }
     }
 
