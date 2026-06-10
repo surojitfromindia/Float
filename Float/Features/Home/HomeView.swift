@@ -12,6 +12,7 @@ struct HomeView: View {
     @Query(sort: \EventItem.startDate, order: .reverse) private var events: [EventItem]
     @Query private var categoryBudgets: [CategoryBudgetItem]
     @State private var recurringRuleToEdit: RecurringRuleItem?
+    @State private var recurringRulePendingPayment: RecurringRuleItem?
     @State private var contributionGoal: GoalItem?
     @State private var dashboardSnapshot = HomeDashboardSnapshot.placeholder
     @State private var isEntrySheetPresented = false
@@ -114,33 +115,6 @@ struct HomeView: View {
 
                 quickActions
 
-                NavigationLink {
-                    EventsView()
-                } label: {
-                    GlassCard {
-                        HStack(spacing: 12) {
-                            FloatIconBadge(
-                                icon: "calendar.badge.plus",
-                                tint: appState.themePalette.accent,
-                                size: 38
-                            )
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("View events")
-                                    .font(.headline)
-                                Text("Open the event hub for timelines, charts, and linked transactions.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(2)
-                            }
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-
                 HStack(spacing: 14) {
                     HomeSummaryTile(
                         title: "Today",
@@ -163,10 +137,7 @@ struct HomeView: View {
                 cashFlowForecast
                 budgetAlertsSection
                 pinnedEventsSection
-                pendingQueueLink
-                reviewQueueLink
-                upcomingRecurring
-                nearestGoal
+                queueLinksSection
                 recentTransactionsSection
             }
             .padding(20)
@@ -193,6 +164,30 @@ struct HomeView: View {
         .floatBackground()
         .sheet(item: $recurringRuleToEdit) { rule in
             RecurringEditorView(rule: rule)
+        }
+        .alert(
+            "Pay recurring?",
+            isPresented: Binding(
+                get: { recurringRulePendingPayment != nil },
+                set: { isPresented in
+                    if !isPresented {
+                        recurringRulePendingPayment = nil
+                    }
+                }
+            ),
+            presenting: recurringRulePendingPayment
+        ) { rule in
+            Button("Mark paid", role: .destructive) {
+                markUpcomingRecurringPaid(rule)
+                recurringRulePendingPayment = nil
+            }
+            Button("Cancel", role: .cancel) {
+                recurringRulePendingPayment = nil
+            }
+        } message: { rule in
+            Text(
+                "This will create a posted transaction and advance the next recurring date.\n\n\(recurringTitle(for: rule))"
+            )
         }
         .sheet(item: $contributionGoal) { goal in
             GoalContributionSheet(goal: goal)
@@ -276,7 +271,7 @@ struct HomeView: View {
                 tint: appState.themePalette.caution,
                 isEnabled: upcomingRecurringExpense != nil
             ) {
-                markUpcomingRecurringPaid()
+                recurringRulePendingPayment = upcomingRecurringExpense
             }
         }
         .frame(maxWidth: .infinity)
@@ -351,62 +346,92 @@ struct HomeView: View {
         }
     }
 
-    private var reviewQueueLink: some View {
-        NavigationLink {
-            ReviewQueueView()
-        } label: {
+    private var queueLinksSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: "Action center")
             GlassCard {
-                HStack(spacing: 12) {
-                    FloatIconBadge(
-                        icon: "checklist",
-                        tint: appState.themePalette.accent,
-                        size: 38
-                    )
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Review queue")
-                            .font(.subheadline.weight(.semibold))
-                        Text("Find missing details, duplicates, and large transactions.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
+                VStack(spacing: 12) {
+                    NavigationLink {
+                        EventsView()
+                    } label: {
+                        QueueLinkRow(
+                            title: "View events",
+                            subtitle: "Open the event hub for timelines, charts, and linked transactions.",
+                            icon: "calendar.badge.plus",
+                            tint: appState.themePalette.accent
+                        )
                     }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-    }
+                    .buttonStyle(.plain)
 
-    private var pendingQueueLink: some View {
-        NavigationLink {
-            PendingTransactionsView()
-        } label: {
-            GlassCard {
-                HStack(spacing: 12) {
-                    FloatIconBadge(
-                        icon: "clock.badge.exclamationmark.fill",
-                        tint: appState.themePalette.accent,
-                        size: 38
-                    )
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Pending queue")
-                            .font(.subheadline.weight(.semibold))
-                        Text("Convert expected transactions when they post.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
+                    Divider()
+
+                    NavigationLink {
+                        PendingTransactionsView()
+                    } label: {
+                        QueueLinkRow(
+                            title: "Pending queue",
+                            subtitle: "Convert expected transactions when they post.",
+                            icon: "clock.badge.exclamationmark.fill",
+                            tint: appState.themePalette.accent
+                        )
                     }
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.secondary)
+                    .buttonStyle(.plain)
+
+                    Divider()
+
+                    NavigationLink {
+                        ReviewQueueView()
+                    } label: {
+                        QueueLinkRow(
+                            title: "Review queue",
+                            subtitle: "Find missing details, duplicates, and large transactions.",
+                            icon: "checklist",
+                            tint: appState.themePalette.accent
+                        )
+                    }
+                    .buttonStyle(.plain)
+
+                    if let rule = upcomingRecurringExpense {
+                        Divider()
+
+                        Button {
+                            recurringRuleToEdit = rule
+                        } label: {
+                            QueueLinkRow(
+                                title: "Upcoming recurring",
+                                subtitle: recurringSubtitle(for: rule),
+                                icon: rule.category?.iconKey ?? "repeat",
+                                tint: Color(hex: "#B4613B"),
+                                trailingText: MoneyFormatter.string(
+                                    minorUnits: rule.amountMinor,
+                                    currencyCode: appState.selectedCurrencyCode
+                                )
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Edit upcoming recurring rule")
+                    }
+
+                    if let goal = nearestOpenGoal {
+                        Divider()
+
+                        Button {
+                            contributionGoal = goal
+                        } label: {
+                            QueueLinkRow(
+                                title: "Nearest goal",
+                                subtitle: goalSubtitle(for: goal),
+                                icon: "target",
+                                tint: Color(hex: goal.colorHex),
+                                trailingText: goalProgressText(for: goal)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Add to nearest goal")
+                    }
                 }
             }
         }
-        .buttonStyle(.plain)
     }
 
     private var budgetOverview: some View {
@@ -419,86 +444,38 @@ struct HomeView: View {
         }
     }
 
-    @ViewBuilder private var upcomingRecurring: some View {
-        if let rule = upcomingRecurringExpense {
-            Button {
-                recurringRuleToEdit = rule
-            } label: {
-                GlassCard {
-                    HStack(spacing: 14) {
-                        FloatIconBadge(
-                            icon: rule.category?.iconKey ?? "repeat",
-                            tint: Color(hex: "#B4613B"),
-                            size: 42
-                        )
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Upcoming recurring")
-                                .font(.headline)
-                            Text(
-                                rule.note?.isEmpty == false
-                                    ? rule.note ?? ""
-                                    : rule.category?.name ?? "Unknown Category"
-                            )
-                            .font(.subheadline)
-                            Text(
-                                rule.nextRunDate.formatted(
-                                    date: .abbreviated,
-                                    time: .omitted
-                                )
-                            )
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Text(
-                            MoneyFormatter.string(
-                                minorUnits: rule.amountMinor,
-                                currencyCode: appState.selectedCurrencyCode
-                            )
-                        )
-                        .moneyStyle(size: 15, weight: .semibold)
-                    }
-                }
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Edit upcoming recurring rule")
-        }
+    private func recurringSubtitle(for rule: RecurringRuleItem) -> String {
+        let date = rule.nextRunDate.formatted(
+            date: .abbreviated,
+            time: .omitted
+        )
+        return "\(recurringTitle(for: rule)) - \(date)"
     }
 
-    @ViewBuilder private var nearestGoal: some View {
-        // Show the unfinished goal with the closest target date. Goals without a
-        // date sort last because distantFuture is used as their comparison value.
-        if let goal = nearestOpenGoal {
-            GlassCard {
-                VStack(alignment: .leading, spacing: 12) {
-                    SectionHeader(title: "Nearest goal")
-                    HStack(spacing: 16) {
-                        // The goal chart is a progress ring. It fills by saved / target,
-                        // with max(..., 1) preventing division by zero for invalid data.
-                        FloatProgressRing(
-                            progress: Double(goal.savedMinor)
-                                / Double(max(goal.targetMinor, 1)),
-                            tint: Color(hex: goal.colorHex),
-                            lineWidth: 8
-                        )
-                        .frame(width: 56, height: 56)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(goal.name).font(.headline)
-                            Text(
-                                "\(MoneyFormatter.string(minorUnits: goal.savedMinor, currencyCode: appState.selectedCurrencyCode)) of \(MoneyFormatter.string(minorUnits: goal.targetMinor, currencyCode: appState.selectedCurrencyCode))"
-                            )
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                    }
-                }
-            }
-        }
+    private func recurringTitle(for rule: RecurringRuleItem) -> String {
+        rule.note?.isEmpty == false
+            ? rule.note ?? ""
+            : rule.category?.name ?? "Unknown Category"
     }
 
-    private func markUpcomingRecurringPaid() {
-        guard let rule = upcomingRecurringExpense else { return }
+    private func goalSubtitle(for goal: GoalItem) -> String {
+        let saved = MoneyFormatter.string(
+            minorUnits: goal.savedMinor,
+            currencyCode: appState.selectedCurrencyCode
+        )
+        let target = MoneyFormatter.string(
+            minorUnits: goal.targetMinor,
+            currencyCode: appState.selectedCurrencyCode
+        )
+        return "\(goal.name) - \(saved) of \(target)"
+    }
+
+    private func goalProgressText(for goal: GoalItem) -> String {
+        let progress = Double(goal.savedMinor) / Double(max(goal.targetMinor, 1))
+        return "\(Int((progress * 100).rounded()))%"
+    }
+
+    private func markUpcomingRecurringPaid(_ rule: RecurringRuleItem) {
         let transaction = TransactionItem(
             amountMinor: rule.amountMinor,
             isExpense: rule.isExpense,
@@ -1109,6 +1086,44 @@ private struct PendingMetricsRows: View {
             .moneyStyle(size: 14, weight: .semibold)
             .foregroundStyle(tint)
         }
+    }
+}
+
+private struct QueueLinkRow: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let tint: Color
+    var trailingText: String?
+
+    var body: some View {
+        HStack(spacing: 12) {
+            FloatIconBadge(
+                icon: icon,
+                tint: tint,
+                size: 38
+            )
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 8)
+            if let trailingText {
+                Text(trailingText)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.76)
+            }
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+        .contentShape(Rectangle())
     }
 }
 

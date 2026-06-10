@@ -984,8 +984,6 @@ private struct TransactionFilterSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    filterHeader
-
                     filterSection(title: "Filters", icon: "line.3.horizontal.decrease.circle") {
                         VStack(spacing: 10) {
                             menuRow(
@@ -1069,63 +1067,25 @@ private struct TransactionFilterSheet: View {
                         }
                     }
 
-                    HStack(spacing: 12) {
-                        Button(action: clearFilters) {
-                            Label("Clear", systemImage: "xmark.circle")
-                                .font(.subheadline.weight(.semibold))
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(!hasActiveFilters)
-
-                        Button {
-                            dismiss()
-                        } label: {
-                            Label("Done", systemImage: "checkmark.circle.fill")
-                                .font(.subheadline.weight(.semibold))
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
                 }
                 .padding(20)
-                .padding(.bottom, 24)
+                .padding(.bottom, 156)
+            }
+            .safeAreaInset(edge: .bottom) {
+                FilterActionBar(
+                    hasActiveFilters: hasActiveFilters,
+                    clearFilters: clearFilters,
+                    done: { dismiss() }
+                )
             }
             .navigationTitle("Filters")
             .navigationBarTitleDisplayMode(.inline)
             .keyboardDismissControls()
             .scrollContentBackground(.hidden)
             .floatBackground()
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
         }
     }
 
-    private var filterHeader: some View {
-        GlassCard {
-            HStack(spacing: 12) {
-                FloatIconBadge(
-                    icon: hasActiveFilters
-                        ? "line.3.horizontal.decrease.circle.fill"
-                        : "line.3.horizontal.decrease.circle",
-                    tint: Color(hex: "#0A6FAE"),
-                    size: 40
-                )
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(hasActiveFilters ? "Filters active" : "All transactions")
-                        .font(.headline)
-                    Text(filterSummary)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-                Spacer()
-            }
-        }
-    }
 
     private var filterSummary: String {
         var parts: [String] = []
@@ -1264,6 +1224,124 @@ private struct TransactionFilterSheet: View {
             currencyCode: currencyCode
         )
         return parsed > 0 ? parsed : nil
+    }
+}
+
+private struct FilterActionBar: View {
+    let hasActiveFilters: Bool
+    let clearFilters: () -> Void
+    let done: () -> Void
+
+    var body: some View {
+        VStack(spacing: 10) {
+            FilterActionButton(
+                title: "Clear",
+                icon: "xmark.circle",
+                tint: .secondary,
+                isProminent: false,
+                isEnabled: hasActiveFilters,
+                action: clearFilters
+            )
+
+            FilterActionButton(
+                title: "Done",
+                icon: "checkmark.circle.fill",
+                tint: Color(hex: "#0E7C7B"),
+                isProminent: true,
+                isEnabled: true,
+                action: done
+            )
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
+    }
+}
+
+private struct FilterActionButton: View {
+    let title: String
+    let icon: String
+    let tint: Color
+    let isProminent: Bool
+    let isEnabled: Bool
+    let action: () -> Void
+
+    @ViewBuilder
+    var body: some View {
+        if #available(iOS 26.0, *) {
+            if isProminent {
+                Button(action: performAction) {
+                    label
+                        .foregroundStyle(.white)
+                }
+                .buttonStyle(.glassProminent)
+                .tint(tint)
+            } else {
+                Button(action: performAction) {
+                    label
+                        .foregroundStyle(
+                            isEnabled ? Color.primary : Color.primary.opacity(0.62)
+                        )
+                }
+                .buttonStyle(.glass)
+            }
+        } else {
+            Button(action: performAction) {
+                label
+                    .foregroundStyle(foregroundColor)
+                    .background(
+                        fallbackFill,
+                        in: Capsule(style: .continuous)
+                    )
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .strokeBorder(fallbackStroke, lineWidth: 1)
+                    )
+                    .shadow(
+                        color: .black.opacity(isProminent ? 0.10 : 0.04),
+                        radius: isProminent ? 18 : 10,
+                        y: isProminent ? 8 : 4
+                    )
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func performAction() {
+        guard isEnabled else {
+            return
+        }
+        action()
+    }
+
+    private var label: some View {
+        Label(title, systemImage: icon)
+            .font(.headline.weight(.semibold))
+            .frame(maxWidth: .infinity)
+            .frame(height: 54)
+            .contentShape(Capsule(style: .continuous))
+    }
+
+    private var fallbackFill: some ShapeStyle {
+        if isProminent {
+            AnyShapeStyle(tint)
+        } else {
+            AnyShapeStyle(.ultraThinMaterial)
+        }
+    }
+
+    private var fallbackStroke: Color {
+        if isProminent {
+            return Color.white.opacity(0.18)
+        }
+        return Color.primary.opacity(0.08)
+    }
+
+    private var foregroundColor: Color {
+        guard isEnabled else {
+            return Color.primary.opacity(0.62)
+        }
+        return isProminent ? .white : .primary
     }
 }
 

@@ -313,6 +313,9 @@
     "Add templates to this group." : {
 
     },
+    "Add to nearest goal" : {
+
+    },
     "Add transaction" : {
       "localizations" : {
         "bn" : {
@@ -761,9 +764,6 @@
           }
         }
       }
-    },
-    "Convert expected transactions when they post." : {
-
     },
     "Convert to expense" : {
 
@@ -1328,9 +1328,6 @@
     "Filters active" : {
 
     },
-    "Find missing details, duplicates, and large transactions." : {
-
-    },
     "Float" : {
       "localizations" : {
         "bn" : {
@@ -1686,6 +1683,9 @@
         }
       }
     },
+    "Mark paid" : {
+
+    },
     "Metric" : {
 
     },
@@ -1899,9 +1899,6 @@
     "Open Float ready to move money between accounts." : {
 
     },
-    "Open the event hub for timelines, charts, and linked transactions." : {
-
-    },
     "Open today" : {
 
     },
@@ -1930,10 +1927,10 @@
     "Over daily allowance" : {
 
     },
-    "Pending" : {
+    "Pay recurring?" : {
 
     },
-    "Pending queue" : {
+    "Pending" : {
 
     },
     "Period" : {
@@ -2192,9 +2189,6 @@
       }
     },
     "Retry" : {
-
-    },
-    "Review queue" : {
 
     },
     "Review Queue" : {
@@ -2585,6 +2579,9 @@
         }
       }
     },
+    "This will create a posted transaction and advance the next recurring date.\n\n%@" : {
+
+    },
     "Time of day" : {
 
     },
@@ -2728,6 +2725,7 @@
 
     },
     "Upcoming recurring" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -2763,9 +2761,6 @@
 
     },
     "View" : {
-
-    },
-    "View events" : {
 
     },
     "Will create" : {

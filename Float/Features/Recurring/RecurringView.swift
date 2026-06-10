@@ -24,22 +24,32 @@ struct RecurringView: View {
                     }
                 }
 
-                ForEach(rules) { rule in
-                    RecurringRuleCard(
-                        rule: rule,
-                        currencyCode: appState.selectedCurrencyCode,
-                        tint: tint(for: rule),
-                        cadenceText: cadenceText(for: rule),
-                        onEdit: {
-                            editingRule = rule
-                        },
-                        onToggleActive: {
-                            toggleActive(rule)
-                        },
-                        onDelete: {
-                            rulePendingDeletion = rule
+                if !rules.isEmpty {
+                    GlassCard {
+                        VStack(spacing: 14) {
+                            ForEach(rules) { rule in
+                                RecurringRuleRow(
+                                    rule: rule,
+                                    currencyCode: appState.selectedCurrencyCode,
+                                    tint: tint(for: rule),
+                                    cadenceText: cadenceText(for: rule),
+                                    onEdit: {
+                                        editingRule = rule
+                                    },
+                                    onToggleActive: {
+                                        toggleActive(rule)
+                                    },
+                                    onDelete: {
+                                        rulePendingDeletion = rule
+                                    }
+                                )
+
+                                if rule.id != rules.last?.id {
+                                    Divider()
+                                }
+                            }
                         }
-                    )
+                    }
                 }
             }
             .padding(20)
@@ -120,7 +130,7 @@ struct RecurringView: View {
     }
 }
 
-private struct RecurringRuleCard: View {
+private struct RecurringRuleRow: View {
     let rule: RecurringRuleItem
     let currencyCode: String
     let tint: Color
@@ -130,64 +140,62 @@ private struct RecurringRuleCard: View {
     let onDelete: () -> Void
 
     var body: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 14) {
-                    FloatIconBadge(
-                        icon: rule.category?.iconKey ?? "repeat",
-                        tint: tint,
-                        size: 42
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 14) {
+                FloatIconBadge(
+                    icon: rule.category?.iconKey ?? "repeat",
+                    tint: tint,
+                    size: 42
+                )
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(rule.active ? .primary : .secondary)
+                        .lineLimit(1)
+                    Text(
+                        "\(rule.account?.name ?? "Unknown Account") • Next \(rule.nextRunDate.formatted(date: .abbreviated, time: .omitted))"
                     )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                }
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(title)
-                            .font(.headline)
-                            .foregroundStyle(rule.active ? .primary : .secondary)
-                            .lineLimit(1)
-                        Text(
-                            "\(rule.account?.name ?? "Unknown Account") • Next \(rule.nextRunDate.formatted(date: .abbreviated, time: .omitted))"
-                        )
-                        .font(.caption)
+                Spacer(minLength: 8)
+
+                VStack(alignment: .trailing, spacing: 5) {
+                    Text(amount)
+                        .moneyStyle(size: 14, weight: .semibold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    Text(cadenceText)
+                        .font(.caption2.weight(.semibold))
                         .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                    }
-
-                    Spacer(minLength: 8)
-
-                    VStack(alignment: .trailing, spacing: 5) {
-                        Text(amount)
-                            .moneyStyle(size: 14, weight: .semibold)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.75)
-                        Text(cadenceText)
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
+                        .lineLimit(1)
                 }
+            }
 
-                HStack(spacing: 10) {
-                    statusBadge
+            HStack(spacing: 10) {
+                statusBadge
 
-                    Spacer()
+                Spacer()
 
-                    Button(action: onToggleActive) {
-                        Label(
-                            rule.active ? "Deactivate" : "Activate",
-                            systemImage: rule.active
-                                ? "pause.circle.fill"
-                                : "play.circle.fill"
-                        )
-                    }
-                    .font(.caption.weight(.semibold))
-                    .buttonStyle(.borderless)
-
-                    Button(action: onEdit) {
-                        Label("Edit", systemImage: "pencil")
-                    }
-                    .font(.caption.weight(.semibold))
-                    .buttonStyle(.borderless)
+                Button(action: onToggleActive) {
+                    Label(
+                        rule.active ? "Deactivate" : "Activate",
+                        systemImage: rule.active
+                            ? "pause.circle.fill"
+                            : "play.circle.fill"
+                    )
                 }
+                .font(.caption.weight(.semibold))
+                .buttonStyle(.borderless)
+
+                Button(action: onEdit) {
+                    Label("Edit", systemImage: "pencil")
+                }
+                .font(.caption.weight(.semibold))
+                .buttonStyle(.borderless)
             }
         }
         .opacity(rule.active ? 1 : 0.62)
