@@ -5,9 +5,9 @@ enum FloatColorTheme: String, CaseIterable, Identifiable {
     case float
     case ocean
     case forest
-    case royal
-    case rose
-    case ember
+    case sage
+    case mint
+    case willow
     case graphite
     case system
 
@@ -18,9 +18,9 @@ enum FloatColorTheme: String, CaseIterable, Identifiable {
         case .float: "Float"
         case .ocean: "Ocean"
         case .forest: "Forest"
-        case .royal: "Royal"
-        case .rose: "Rose"
-        case .ember: "Ember"
+        case .sage: "Sage"
+        case .mint: "Mint"
+        case .willow: "Willow"
         case .graphite: "Graphite"
         case .system: "System dynamic"
         }
@@ -61,7 +61,17 @@ enum FloatTheme {
     static let cautionDark = Color(hex: "#D08A62")
 
     static func colorTheme(for rawValue: String) -> FloatColorTheme {
-        FloatColorTheme(rawValue: rawValue) ?? .float
+        switch rawValue {
+        case "royal":
+            return .sage
+        case "rose":
+            return .mint
+        case "ember", "amber":
+            return .willow
+        default:
+            break
+        }
+        return FloatColorTheme(rawValue: rawValue) ?? .float
     }
 
     static func palette(for rawValue: String) -> FloatThemePalette {
@@ -121,55 +131,55 @@ enum FloatTheme {
                     Color(hex: "#3B82F6"),
                 ]
             )
-        case .royal:
+        case .sage:
             FloatThemePalette(
-                accent: Color(hex: "#5B4DDB"),
-                accentSoft: Color(hex: "#E7E4FF"),
-                positive: Color(hex: "#15803D"),
-                caution: Color(hex: "#C2410C"),
-                backgroundTop: Color(lightHex: "#F4F1FF", darkHex: "#100D22"),
-                backgroundBottom: Color(lightHex: "#E4DFFF", darkHex: "#1B1738"),
+                accent: Color(hex: "#5C8C69"),
+                accentSoft: Color(hex: "#E2F0E4"),
+                positive: Color(hex: "#2F8C63"),
+                caution: Color(hex: "#A67C55"),
+                backgroundTop: Color(lightHex: "#F2FAF4", darkHex: "#091410"),
+                backgroundBottom: Color(lightHex: "#DDE9E0", darkHex: "#13211B"),
                 chartColors: [
-                    Color(hex: "#5B4DDB"),
-                    Color(hex: "#2563EB"),
-                    Color(hex: "#A855F7"),
-                    Color(hex: "#DB2777"),
-                    Color(hex: "#15803D"),
-                    Color(hex: "#C2410C"),
+                    Color(hex: "#5C8C69"),
+                    Color(hex: "#8AB58B"),
+                    Color(hex: "#2F8C63"),
+                    Color(hex: "#4C9D8B"),
+                    Color(hex: "#A67C55"),
+                    Color(hex: "#99B56B"),
                 ]
             )
-        case .rose:
+        case .mint:
             FloatThemePalette(
-                accent: Color(hex: "#C0265E"),
-                accentSoft: Color(hex: "#FCE1EC"),
-                positive: Color(hex: "#168A5A"),
-                caution: Color(hex: "#B45309"),
-                backgroundTop: Color(lightHex: "#FFF0F5", darkHex: "#1D0B12"),
-                backgroundBottom: Color(lightHex: "#F8DCE8", darkHex: "#321522"),
+                accent: Color(hex: "#4B9A8A"),
+                accentSoft: Color(hex: "#DCF4EE"),
+                positive: Color(hex: "#3F8B64"),
+                caution: Color(hex: "#A47E57"),
+                backgroundTop: Color(lightHex: "#F1FBF8", darkHex: "#081512"),
+                backgroundBottom: Color(lightHex: "#D5ECE5", darkHex: "#10211C"),
                 chartColors: [
-                    Color(hex: "#C0265E"),
-                    Color(hex: "#E11D48"),
-                    Color(hex: "#9333EA"),
-                    Color(hex: "#0EA5E9"),
-                    Color(hex: "#168A5A"),
-                    Color(hex: "#B45309"),
+                    Color(hex: "#4B9A8A"),
+                    Color(hex: "#72C3A6"),
+                    Color(hex: "#3F8B64"),
+                    Color(hex: "#69A3B8"),
+                    Color(hex: "#A47E57"),
+                    Color(hex: "#8DB88B"),
                 ]
             )
-        case .ember:
+        case .willow:
             FloatThemePalette(
-                accent: Color(hex: "#B45309"),
-                accentSoft: Color(hex: "#FDE7C7"),
-                positive: Color(hex: "#1B8A5A"),
-                caution: Color(hex: "#B91C1C"),
-                backgroundTop: Color(lightHex: "#FFF3E4", darkHex: "#1B1008"),
-                backgroundBottom: Color(lightHex: "#F3DFC2", darkHex: "#302012"),
+                accent: Color(hex: "#6B8E5A"),
+                accentSoft: Color(hex: "#E4F1D8"),
+                positive: Color(hex: "#4A8F6D"),
+                caution: Color(hex: "#A58B57"),
+                backgroundTop: Color(lightHex: "#F5FAF1", darkHex: "#0D150B"),
+                backgroundBottom: Color(lightHex: "#E1E9D5", darkHex: "#172317"),
                 chartColors: [
-                    Color(hex: "#B45309"),
-                    Color(hex: "#DC2626"),
-                    Color(hex: "#D97706"),
-                    Color(hex: "#0F766E"),
-                    Color(hex: "#2563EB"),
-                    Color(hex: "#7C3AED"),
+                    Color(hex: "#6B8E5A"),
+                    Color(hex: "#9AB56C"),
+                    Color(hex: "#4A8F6D"),
+                    Color(hex: "#6AA9A1"),
+                    Color(hex: "#A58B57"),
+                    Color(hex: "#8696C8"),
                 ]
             )
         case .graphite:

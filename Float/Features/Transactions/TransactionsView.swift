@@ -966,6 +966,7 @@ private struct TransactionFilterChip: Identifiable {
 
 private struct TransactionFilterSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var appState: AppState
     let categories: [CategoryItem]
     let accounts: [AccountItem]
     @Binding var selectedCategoryID: UUID?
@@ -1033,7 +1034,7 @@ private struct TransactionFilterSheet: View {
                             Toggle(isOn: $useDateRange) {
                                 filterRowLabel(title: "Date range", icon: "calendar")
                             }
-                            .tint(Color(hex: "#0A6FAE"))
+                            .tint(appState.themePalette.accent)
                             .padding(.vertical, 8)
 
                             if useDateRange {
@@ -1073,6 +1074,7 @@ private struct TransactionFilterSheet: View {
             }
             .safeAreaInset(edge: .bottom) {
                 FilterActionBar(
+                    accent: appState.themePalette.accent,
                     hasActiveFilters: hasActiveFilters,
                     clearFilters: clearFilters,
                     done: { dismiss() }
@@ -1085,7 +1087,6 @@ private struct TransactionFilterSheet: View {
             .floatBackground()
         }
     }
-
 
     private var filterSummary: String {
         var parts: [String] = []
@@ -1126,9 +1127,12 @@ private struct TransactionFilterSheet: View {
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label(title, systemImage: icon)
-                .font(.headline)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                FloatIconBadge(icon: icon, tint: appState.themePalette.accent, size: 30)
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+            }
             content()
                 .padding(.vertical, 2)
         }
@@ -1136,7 +1140,7 @@ private struct TransactionFilterSheet: View {
 
     private func filterRowLabel(title: String, icon: String) -> some View {
         HStack(spacing: 12) {
-            FloatIconBadge(icon: icon, tint: Color(hex: "#0A6FAE"), size: 34)
+            FloatIconBadge(icon: icon, tint: appState.themePalette.accent, size: 34)
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)
@@ -1171,7 +1175,7 @@ private struct TransactionFilterSheet: View {
         @ViewBuilder menuContent: () -> MenuContent
     ) -> some View {
         HStack(spacing: 12) {
-            FloatIconBadge(icon: icon, tint: Color(hex: "#0A6FAE"), size: 34)
+            FloatIconBadge(icon: icon, tint: appState.themePalette.accent, size: 34)
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)
@@ -1182,12 +1186,12 @@ private struct TransactionFilterSheet: View {
                 HStack(spacing: 8) {
                     Text(value)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color(hex: "#0A6FAE"))
+                        .foregroundStyle(appState.themePalette.accent)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(Color(hex: "#0A6FAE"))
+                        .foregroundStyle(appState.themePalette.accent)
                 }
                 .contentShape(Rectangle())
             }
@@ -1228,6 +1232,7 @@ private struct TransactionFilterSheet: View {
 }
 
 private struct FilterActionBar: View {
+    let accent: Color
     let hasActiveFilters: Bool
     let clearFilters: () -> Void
     let done: () -> Void
@@ -1238,7 +1243,7 @@ private struct FilterActionBar: View {
             Button(action: clearFilters) {
                 Label("Clear", systemImage: "xmark.circle.fill")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(clearForeground)
+                    .foregroundStyle(.primary)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
                     .contentShape(actionShape)
@@ -1252,12 +1257,12 @@ private struct FilterActionBar: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 50)
-                    .background(Color(hex: "#0E7C7B"), in: actionShape)
+                    .background(accent, in: actionShape)
                     .overlay(
                         actionShape
                             .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
                     )
-                    .shadow(color: Color(hex: "#0E7C7B").opacity(0.24), radius: 16, y: 8)
+                    .shadow(color: accent.opacity(0.24), radius: 16, y: 8)
             }
             .buttonStyle(.plain)
         }
@@ -1266,9 +1271,6 @@ private struct FilterActionBar: View {
         .padding(.bottom, 10)
     }
 
-    private var clearForeground: Color {
-        hasActiveFilters ? .primary : Color.primary.opacity(0.70)
-    }
 }
 
     private struct DeletedTransactionSnapshot {

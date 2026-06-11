@@ -439,7 +439,7 @@ struct HomeView: View {
                                 title: "Upcoming recurring",
                                 subtitle: recurringSubtitle(for: rule),
                                 icon: rule.category?.iconKey ?? "repeat",
-                                tint: Color(hex: "#B4613B"),
+                                tint: appState.themePalette.accent,
                                 trailingText: MoneyFormatter.string(
                                     minorUnits: rule.amountMinor,
                                     currencyCode: appState.selectedCurrencyCode
@@ -460,7 +460,7 @@ struct HomeView: View {
                                 title: "Nearest goal",
                                 subtitle: goalSubtitle(for: goal),
                                 icon: "target",
-                                tint: Color(hex: goal.colorHex),
+                                tint: appState.themePalette.accent,
                                 trailingText: goalProgressText(for: goal)
                             )
                         }
