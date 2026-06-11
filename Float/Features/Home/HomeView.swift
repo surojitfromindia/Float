@@ -124,8 +124,14 @@ struct HomeView: View {
             .padding(20)
             .padding(.bottom, 150)
         }
-        .navigationTitle("Float")
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("Float")
+                    .font(.headline.weight(.bold))
+                    .foregroundStyle(.primary)
+            }
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
                     isBulkEntrySheetPresented = true
@@ -142,7 +148,11 @@ struct HomeView: View {
                 .accessibilityLabel("Add transaction")
             }
         }
-        .floatBackground()
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .background {
+            HomeCalmBackground()
+                .ignoresSafeArea()
+        }
         .sheet(item: $recurringRuleToEdit) { rule in
             RecurringEditorView(rule: rule)
         }
@@ -299,7 +309,7 @@ struct HomeView: View {
     private var recentTransactionsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: "Recent")
-            GlassCard {
+            HomeGlassPanel(padding: 18, tint: appState.themePalette.accent) {
                 if dashboardSnapshot.recentTransactions.isEmpty {
                     EmptyStateView(
                         icon: "sparkles",
@@ -376,8 +386,8 @@ struct HomeView: View {
     private var queueLinksSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: "Action center")
-            GlassCard {
-                VStack(spacing: 12) {
+            HomeGlassPanel(padding: 18, tint: appState.themePalette.accent) {
+                VStack(spacing: 11) {
                     NavigationLink {
                         PendingTransactionsView()
                     } label: {
@@ -879,6 +889,54 @@ private struct HomeSummaryTile: View {
     }
 }
 
+private struct HomeCalmBackground: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        Color(colorScheme == .dark ? .systemBackground : .systemGroupedBackground)
+    }
+}
+
+private struct HomeGlassPanel<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let padding: CGFloat
+    let tint: Color
+    let content: Content
+
+    init(
+        padding: CGFloat = 18,
+        tint: Color,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.padding = padding
+        self.tint = tint
+        self.content = content()
+    }
+
+    var body: some View {
+        let shape = RoundedRectangle(
+            cornerRadius: 24,
+            style: .continuous
+        )
+
+        content
+            .padding(padding)
+            .background(
+                Color(colorScheme == .dark ? .secondarySystemGroupedBackground : .systemBackground),
+                in: shape
+            )
+            .overlay(
+                shape.strokeBorder(Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05), lineWidth: 1)
+            )
+            .shadow(
+                color: .black.opacity(colorScheme == .dark ? 0.20 : 0.06),
+                radius: colorScheme == .dark ? 18 : 20,
+                x: 0,
+                y: colorScheme == .dark ? 10 : 8
+            )
+    }
+}
+
 private struct HomeActionButton: View {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -889,21 +947,11 @@ private struct HomeActionButton: View {
     let action: () -> Void
 
     private var fillOpacity: Double {
-        if colorScheme == .dark {
-            return isEnabled ? 0.2 : 0.08
-        }
-        return isEnabled ? 0.09 : 0.04
-    }
-
-    private var liftOpacity: Double {
-        colorScheme == .dark && isEnabled ? 0.08 : 0
+        colorScheme == .dark ? 0.14 : 0.08
     }
 
     private var strokeOpacity: Double {
-        if colorScheme == .dark {
-            return isEnabled ? 0.3 : 0.1
-        }
-        return isEnabled ? 0.14 : 0.06
+        colorScheme == .dark ? 0.14 : 0.08
     }
 
     var body: some View {
@@ -914,14 +962,10 @@ private struct HomeActionButton: View {
 
         Button(action: action) {
             Image(systemName: icon)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(tint)
-                .frame(maxWidth: .infinity)
-                .frame(height: 46)
-            .background(
-                Color.primary.opacity(liftOpacity),
-                in: shape
-            )
+                .font(.system(size: 18, weight: .semibold))
+            .foregroundStyle(tint)
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
             .background(
                 tint.opacity(fillOpacity),
                 in: shape
@@ -944,7 +988,7 @@ private struct ForecastStripCard: View {
     let tint: Color
 
     var body: some View {
-        GlassCard(padding: 14) {
+        HomeGlassPanel(padding: 12, tint: tint) {
             if items.isEmpty {
                 EmptyStateView(
                     icon: "calendar.badge.clock",
@@ -1121,11 +1165,7 @@ private struct QueueLinkRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            FloatIconBadge(
-                icon: icon,
-                tint: tint,
-                size: 38
-            )
+            HomeRowIcon(icon: icon, tint: tint)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
@@ -1153,66 +1193,77 @@ private struct QueueLinkRow: View {
     }
 }
 
+private struct HomeRowIcon: View {
+    let icon: String
+    let tint: Color
+
+    var body: some View {
+        Image(systemName: icon)
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundStyle(tint)
+            .frame(width: 38, height: 38)
+            .background(tint.opacity(0.10), in: Circle())
+    }
+}
+
 struct SafeToSpendHeroCard: View {
     @Environment(\.colorScheme) private var colorScheme
     let result: SafeToSpendResult
     let currencyCode: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text("Spendable today")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Spendable")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(
+                        MoneyFormatter.string(
+                            minorUnits: result.safeToSpendMinor,
+                            currencyCode: currencyCode
+                        )
+                    )
+                    .moneyStyle(size: 46, weight: .bold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.52)
+                }
+                Spacer(minLength: 12)
                 statusPill
             }
-            Text(
-                MoneyFormatter.string(
-                    minorUnits: result.safeToSpendMinor,
-                    currencyCode: currencyCode
-                )
-            )
-            .moneyStyle(size: 44, weight: .bold)
-            .lineLimit(1)
-            .minimumScaleFactor(0.54)
+
             Text(statusCaption)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
-                .minimumScaleFactor(0.84)
+                .fixedSize(horizontal: false, vertical: true)
 
-            Divider().opacity(colorScheme == .dark ? 0.72 : 0.5)
+            HeroProgressRail(progress: result.spendingProgress, tint: statusTint)
 
-            HStack(spacing: 10) {
+            HStack(spacing: 0) {
                 HeroMetricPill(
                     title: "Daily",
                     value: MoneyFormatter.string(
                         minorUnits: result.dailyAllowanceMinor,
                         currencyCode: currencyCode
-                    ),
-                    icon: "calendar",
-                    tint: accentTint
+                    )
                 )
-                HeroMetricPill(
-                    title: "Left",
-                    value: "\(result.daysRemaining)d",
-                    icon: "hourglass",
-                    tint: positiveTint
-                )
+                Divider().padding(.vertical, 4)
+                HeroMetricPill(title: "Left", value: "\(result.daysRemaining)d")
+                Divider().padding(.vertical, 4)
                 HeroMetricPill(
                     title: "Spent",
                     value: MoneyFormatter.string(
                         minorUnits: result.variableSpentMinor,
                         currencyCode: currencyCode
-                    ),
-                    icon: "chart.bar.fill",
-                    tint: cautionTint
+                    )
                 )
             }
+            .frame(height: 54)
+            .padding(.horizontal, 4)
         }
         .padding(20)
-        .heroSurface(tint: accentTint, isDark: colorScheme == .dark)
+        .heroSurface(accent: accentTint, status: statusTint, isDark: colorScheme == .dark)
     }
 
     private var accentTint: Color {
@@ -1259,82 +1310,100 @@ struct SafeToSpendHeroCard: View {
 }
 
 private extension View {
-    func heroSurface(tint: Color, isDark: Bool) -> some View {
+    @ViewBuilder
+    func heroSurface(accent: Color, status: Color, isDark: Bool) -> some View {
         let shape = RoundedRectangle(
-            cornerRadius: FloatTheme.radius,
+            cornerRadius: 30,
             style: .continuous
         )
 
-        return self
+        self
             .background(
-                Color(.secondarySystemGroupedBackground)
-                    .opacity(isDark ? 0.82 : 0.72),
+                LinearGradient(
+                    colors: isDark
+                        ? [
+                            Color(.secondarySystemGroupedBackground),
+                            accent.opacity(0.18),
+                        ]
+                        : [
+                            Color(.systemBackground),
+                            accent.opacity(0.055),
+                        ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
                 in: shape
             )
-            .background(
-                tint.opacity(isDark ? 0.12 : 0.06),
-                in: shape
-            )
-            .floatGlassSurface(
-                cornerRadius: FloatTheme.radius,
-                material: .regularMaterial,
-                tint: tint,
-                strokeOpacity: isDark ? 0.22 : 0.10,
-                shadowOpacity: isDark ? 0.32 : 0.08,
-                shadowRadius: isDark ? 30 : 24,
-                shadowY: 14
-            )
+            .overlay(alignment: .topTrailing) {
+                Circle()
+                    .fill(status.opacity(isDark ? 0.18 : 0.10))
+                    .frame(width: 112, height: 112)
+                    .blur(radius: 28)
+                    .offset(x: 26, y: -34)
+                    .allowsHitTesting(false)
+            }
             .overlay(
-                shape.strokeBorder(
-                    Color.primary.opacity(isDark ? 0.16 : 0.06),
-                    lineWidth: 1
-                )
+                shape.strokeBorder(Color.primary.opacity(isDark ? 0.10 : 0.055), lineWidth: 1)
+            )
+            .shadow(
+                color: .black.opacity(isDark ? 0.26 : 0.075),
+                radius: 24,
+                x: 0,
+                y: 14
             )
     }
 }
 
 private struct HeroMetricPill: View {
-    @Environment(\.colorScheme) private var colorScheme
     let title: String
     let value: String
-    let icon: String
-    let tint: Color
 
     var body: some View {
-        HStack(spacing: 7) {
-            Image(systemName: icon)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(tint)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Text(value)
-                    .moneyStyle(size: 13, weight: .semibold)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+        VStack(alignment: .center, spacing: 3) {
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .moneyStyle(size: 13, weight: .semibold)
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private struct HeroProgressRail: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let progress: Double
+    let tint: Color
+
+    private var clampedProgress: Double {
+        min(max(progress, 0), 1)
+    }
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.primary.opacity(colorScheme == .dark ? 0.13 : 0.08))
+                Capsule()
+                    .fill(tint.gradient)
+                    .frame(
+                        width: max(
+                            8,
+                            proxy.size.width * CGFloat(clampedProgress)
+                        )
+                    )
+                    .shadow(
+                        color: tint.opacity(colorScheme == .dark ? 0.32 : 0.18),
+                        radius: 8,
+                        y: 2
+                    )
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            tint.opacity(colorScheme == .dark ? 0.18 : 0.08),
-            in: RoundedRectangle(
-                cornerRadius: FloatTheme.tileRadius,
-                style: .continuous
-            )
-        )
-        .overlay(
-            RoundedRectangle(
-                cornerRadius: FloatTheme.tileRadius,
-                style: .continuous
-            )
-            .strokeBorder(
-                tint.opacity(colorScheme == .dark ? 0.30 : 0.14),
-                lineWidth: 1
-            )
-        )
+        .frame(height: 7)
+        .padding(2)
+        .background(.white.opacity(colorScheme == .dark ? 0.04 : 0.26), in: Capsule())
     }
 }
 
@@ -1428,11 +1497,9 @@ private struct BudgetStatusChart: View {
             }
         }
         .padding(16)
-        .floatGlassSurface(
-            cornerRadius: FloatTheme.controlRadius,
-            material: .thinMaterial,
-            tint: palette.accent,
-            strokeOpacity: 0.1
+        .background(
+            Color(.secondarySystemGroupedBackground),
+            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
         )
     }
 

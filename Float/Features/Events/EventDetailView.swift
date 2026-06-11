@@ -1340,117 +1340,43 @@ private struct FilterActionBar: View {
     let hasActiveFilters: Bool
     let clearFilters: () -> Void
     let done: () -> Void
+    private let actionShape = RoundedRectangle(cornerRadius: 25, style: .continuous)
 
     var body: some View {
-        VStack(spacing: 10) {
-            FilterActionButton(
-                title: "Clear",
-                icon: "xmark.circle",
-                tint: .secondary,
-                isProminent: false,
-                isEnabled: hasActiveFilters,
-                action: clearFilters
-            )
-
-            FilterActionButton(
-                title: "Done",
-                icon: "checkmark.circle.fill",
-                tint: Color(hex: "#0E7C7B"),
-                isProminent: true,
-                isEnabled: true,
-                action: done
-            )
-        }
-        .padding(.horizontal, 20)
-        .padding(.top, 12)
-        .padding(.bottom, 10)
-    }
-}
-
-private struct FilterActionButton: View {
-    let title: String
-    let icon: String
-    let tint: Color
-    let isProminent: Bool
-    let isEnabled: Bool
-    let action: () -> Void
-
-    @ViewBuilder
-    var body: some View {
-        if #available(iOS 26.0, *) {
-            if isProminent {
-                Button(action: performAction) {
-                    label
-                        .foregroundStyle(.white)
-                }
-                .buttonStyle(.glassProminent)
-                .tint(tint)
-            } else {
-                Button(action: performAction) {
-                    label
-                        .foregroundStyle(
-                            isEnabled ? Color.primary : Color.primary.opacity(0.62)
-                        )
-                }
-                .buttonStyle(.glass)
+        HStack(spacing: 10) {
+            Button(action: clearFilters) {
+                Label("Clear", systemImage: "xmark.circle.fill")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(clearForeground)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .contentShape(actionShape)
             }
-        } else {
-            Button(action: performAction) {
-                label
-                    .foregroundStyle(foregroundColor)
-                    .background(
-                        fallbackFill,
-                        in: Capsule(style: .continuous)
-                    )
+            .buttonStyle(.plain)
+            .disabled(!hasActiveFilters)
+
+            Button(action: done) {
+                Label("Done", systemImage: "checkmark.circle.fill")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 50)
+                    .background(Color(hex: "#0E7C7B"), in: actionShape)
                     .overlay(
-                        Capsule(style: .continuous)
-                            .strokeBorder(fallbackStroke, lineWidth: 1)
+                        actionShape
+                            .strokeBorder(Color.white.opacity(0.18), lineWidth: 1)
                     )
-                    .shadow(
-                        color: .black.opacity(isProminent ? 0.10 : 0.04),
-                        radius: isProminent ? 18 : 10,
-                        y: isProminent ? 8 : 4
-                    )
+                    .shadow(color: Color(hex: "#0E7C7B").opacity(0.24), radius: 16, y: 8)
             }
             .buttonStyle(.plain)
         }
+        .padding(.horizontal, 20)
+        .padding(.top, 10)
+        .padding(.bottom, 10)
     }
 
-    private func performAction() {
-        guard isEnabled else {
-            return
-        }
-        action()
-    }
-
-    private var label: some View {
-        Label(title, systemImage: icon)
-            .font(.headline.weight(.semibold))
-            .frame(maxWidth: .infinity)
-            .frame(height: 54)
-            .contentShape(Capsule(style: .continuous))
-    }
-
-    private var fallbackFill: some ShapeStyle {
-        if isProminent {
-            AnyShapeStyle(tint)
-        } else {
-            AnyShapeStyle(.ultraThinMaterial)
-        }
-    }
-
-    private var fallbackStroke: Color {
-        if isProminent {
-            return Color.white.opacity(0.18)
-        }
-        return Color.primary.opacity(0.08)
-    }
-
-    private var foregroundColor: Color {
-        guard isEnabled else {
-            return Color.primary.opacity(0.62)
-        }
-        return isProminent ? .white : .primary
+    private var clearForeground: Color {
+        hasActiveFilters ? .primary : Color.primary.opacity(0.70)
     }
 }
 

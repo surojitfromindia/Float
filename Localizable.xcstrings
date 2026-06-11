@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "" : {
+
+    },
     "%@ %@" : {
       "localizations" : {
         "bn" : {
@@ -69,12 +72,6 @@
         }
       }
     },
-    "%@ over this period" : {
-
-    },
-    "%@/day after recurring and goals" : {
-
-    },
     "%lld" : {
 
     },
@@ -114,6 +111,9 @@
 
     },
     "%lld%%" : {
+
+    },
+    "%lldd" : {
 
     },
     "1" : {
@@ -1824,9 +1824,6 @@
     "New Template" : {
 
     },
-    "Next %lld days" : {
-
-    },
     "Next day" : {
 
     },
@@ -1881,9 +1878,6 @@
         }
       }
     },
-    "On track this period" : {
-
-    },
     "Open a specific area of Float." : {
 
     },
@@ -1922,6 +1916,9 @@
 
     },
     "Opening Float to add income." : {
+
+    },
+    "Over budget" : {
 
     },
     "Over daily allowance" : {
@@ -2197,6 +2194,9 @@
     "safe" : {
 
     },
+    "Safe" : {
+
+    },
     "Safe to Spend" : {
 
     },
@@ -2364,6 +2364,9 @@
 
     },
     "Spend with clarity" : {
+
+    },
+    "Spendable" : {
 
     },
     "Split" : {
@@ -2767,6 +2770,7 @@
 
     },
     "You can spend" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
