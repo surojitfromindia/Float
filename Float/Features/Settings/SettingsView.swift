@@ -312,6 +312,7 @@ struct SettingsView: View {
                 document: document,
                 modelContext: modelContext
             )
+            FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
             message = "Backup restored."
         } catch { message = error.localizedDescription }
     }
@@ -325,6 +326,7 @@ struct SettingsView: View {
                 modelContext: modelContext,
                 currencyCode: appState.selectedCurrencyCode
             )
+            FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
             message =
                 "Seeded \(summary.transactionCount) transactions and \(summary.transferCount) transfers."
         } catch {
@@ -346,13 +348,14 @@ struct SettingsView: View {
         for item in budgets { modelContext.delete(item) }
         for item in accounts { modelContext.delete(item) }
         for item in categories { modelContext.delete(item) }
-        try? modelContext.save()
+        guard (try? modelContext.save()) != nil else { return }
         if reseedDefaults {
             SeedDataService.ensureSeedData(
                 modelContext: modelContext,
                 currencyCode: appState.selectedCurrencyCode
             )
         }
+        FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
     }
 
     private func resultMessage(_ result: Result<URL, Error>, success: String)

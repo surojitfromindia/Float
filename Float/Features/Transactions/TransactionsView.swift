@@ -93,6 +93,7 @@ struct TransactionsView: View {
             .padding(.bottom, 130)
         }
         .navigationTitle("Transactions")
+        .navigationBarItems(trailing: transactionNavigationBarItems)
         .searchable(text: $searchText, prompt: "Search notes, accounts, amounts")
         .keyboardDismissControls()
         .floatBackground()
@@ -102,22 +103,6 @@ struct TransactionsView: View {
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    isBulkEntrySheetPresented = true
-                } label: {
-                    Image(systemName: "square.stack.3d.up.fill")
-                }
-                .accessibilityLabel("Bulk add transactions")
-
-                Button {
-                    presentNewTransaction()
-                } label: {
-                    Image(systemName: "plus")
-                }
             }
         }
         .sheet(isPresented: $isEntrySheetPresented) {
@@ -166,7 +151,10 @@ struct TransactionsView: View {
             .presentationDragIndicator(.visible)
         }
         .task {
-            resetAndLoadFirstPage()
+            loadInitialState()
+        }
+        .onChange(of: appState.pendingSpotlightRequest?.id) { _, _ in
+            handleSpotlightRequestChange()
         }
         .onChange(of: searchText) { _, _ in resetAndLoadFirstPage() }
         .onChange(of: selectedCategoryID) { _, _ in resetAndLoadFirstPage() }
@@ -244,6 +232,23 @@ struct TransactionsView: View {
             return "Your transactions will appear here as you add them."
         }
         return "Try changing your search or filters."
+    }
+
+    private var transactionNavigationBarItems: some View {
+        HStack(spacing: 14) {
+            Button {
+                isBulkEntrySheetPresented = true
+            } label: {
+                Image(systemName: "square.stack.3d.up.fill")
+            }
+            .accessibilityLabel("Bulk add transactions")
+
+            Button {
+                presentNewTransaction()
+            } label: {
+                Image(systemName: "plus")
+            }
+        }
     }
 
     private func transactionSection(day: Date, items: [LedgerListItem]) -> some View {
@@ -812,6 +817,53 @@ struct TransactionsView: View {
         useDateRange = false
         minimumAmountText = ""
         maximumAmountText = ""
+    }
+
+    private func processSpotlightRequest(_ request: FloatSpotlightNavigationRequest?) {
+        guard let request else { return }
+
+        switch request.target.kind {
+        case .transaction:
+            if let transaction = fetchTransaction(id: request.target.id) {
+                presentEditTransaction(transaction)
+            }
+            appState.consumeSpotlightRequest(request)
+        case .transfer:
+            if let transfer = fetchTransfer(id: request.target.id) {
+                presentEditTransfer(transfer)
+            }
+            appState.consumeSpotlightRequest(request)
+        case .account, .category:
+            break
+        }
+    }
+
+    private func fetchTransaction(id: UUID) -> TransactionItem? {
+        let descriptor = FetchDescriptor<TransactionItem>(
+            predicate: #Predicate<TransactionItem> { transaction in
+                transaction.id == id
+            }
+        )
+        return try? modelContext.fetch(descriptor).first
+    }
+
+    private func fetchTransfer(id: UUID) -> TransferItem? {
+        let descriptor = FetchDescriptor<TransferItem>(
+            predicate: #Predicate<TransferItem> { transfer in
+                transfer.id == id
+            }
+        )
+        return try? modelContext.fetch(descriptor).first
+    }
+
+    private func loadInitialState() {
+        resetAndLoadFirstPage()
+        handleSpotlightRequestChange()
+    }
+
+    private func handleSpotlightRequestChange() {
+        let request = appState.pendingSpotlightRequest
+        processSpotlightRequest(request)
     }
 
     private func removeFilter(_ kind: TransactionFilterChip.Kind) {

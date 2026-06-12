@@ -3,6 +3,7 @@ import SwiftUI
 
 struct CategoryManagerView: View {
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var appState: AppState
     @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
     @State private var editorPresentation: CategoryEditorPresentation?
 
@@ -62,6 +63,12 @@ struct CategoryManagerView: View {
                 nextSortOrder: categories.count
             )
         }
+        .onAppear {
+            processSpotlightRequest(appState.pendingSpotlightRequest)
+        }
+        .onChange(of: appState.pendingSpotlightRequest?.id) { _, _ in
+            processSpotlightRequest(appState.pendingSpotlightRequest)
+        }
     }
 
     private func categoryRow(_ category: CategoryItem) -> some View {
@@ -105,6 +112,23 @@ struct CategoryManagerView: View {
     private func delete(_ category: CategoryItem) {
         try? CategoryRepository(modelContext: modelContext)
             .deleteIfUnused(category)
+    }
+
+    private func processSpotlightRequest(_ request: FloatSpotlightNavigationRequest?) {
+        guard let request, request.target.kind == .category else { return }
+        if let category = fetchCategory(id: request.target.id) {
+            editorPresentation = CategoryEditorPresentation(category: category)
+        }
+        appState.consumeSpotlightRequest(request)
+    }
+
+    private func fetchCategory(id: UUID) -> CategoryItem? {
+        let descriptor = FetchDescriptor<CategoryItem>(
+            predicate: #Predicate<CategoryItem> { category in
+                category.id == id
+            }
+        )
+        return try? modelContext.fetch(descriptor).first
     }
 }
 
@@ -269,7 +293,8 @@ private struct CategoryEditorView: View {
                 )
             )
         }
-        try? modelContext.save()
+        guard (try? modelContext.save()) != nil else { return }
+        FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
         dismiss()
     }
 }

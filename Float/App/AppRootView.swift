@@ -1,3 +1,4 @@
+import CoreSpotlight
 import LocalAuthentication
 import SwiftData
 import SwiftUI
@@ -40,6 +41,9 @@ struct AppRootView: View {
         }
         .preferredColorScheme(appState.colorScheme)
         .environment(\.locale, appState.selectedLanguage.locale)
+        .onContinueUserActivity(CSSearchableItemActionType) { activity in
+            handleSpotlightActivity(activity)
+        }
         .task {
             refreshAppData()
             try? await Task.sleep(for: .milliseconds(950))
@@ -58,6 +62,7 @@ struct AppRootView: View {
                     modelContext: modelContext
                 )
                 publishWidgetSnapshot()
+                FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
                 consumePendingSystemAction()
                 if appState.isAppLockEnabled && !isShowingSplash {
                     authenticate()
@@ -91,6 +96,7 @@ struct AppRootView: View {
         )
         MaterializeRecurringTransactionsUseCase.run(modelContext: modelContext)
         publishWidgetSnapshot()
+        FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
     }
 
     private func publishWidgetSnapshot() {
@@ -110,6 +116,20 @@ struct AppRootView: View {
         }
         pendingSystemAction = nil
         appState.handlePendingAction(action)
+    }
+
+    private func handleSpotlightActivity(_ activity: NSUserActivity) {
+        guard let identifier = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String
+        else {
+            return
+        }
+        let action = PendingFloatAction(
+            kind: .openSearchResult,
+            spotlightItemIdentifier: identifier
+        )
+        PendingFloatAction.save(action)
+        pendingSystemAction = action
+        consumePendingSystemAction()
     }
 
     private func authenticate() {

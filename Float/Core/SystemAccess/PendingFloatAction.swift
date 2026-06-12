@@ -5,6 +5,7 @@ enum PendingFloatActionKind: String, Codable {
     case addIncome
     case addTransfer
     case openDestination
+    case openSearchResult
 }
 
 enum FloatDestination: String, CaseIterable, Codable, Identifiable {
@@ -31,6 +32,7 @@ struct PendingFloatAction: Codable {
 
     let kind: PendingFloatActionKind
     var destination: FloatDestination?
+    var spotlightItemIdentifier: String?
     var createdAt = Date()
 
     static func save(_ action: PendingFloatAction) {

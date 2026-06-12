@@ -76,6 +76,12 @@ struct AccountManagerView: View {
                 defaultCurrencyCode: appState.selectedCurrencyCode
             )
         }
+        .onAppear {
+            processSpotlightRequest(appState.pendingSpotlightRequest)
+        }
+        .onChange(of: appState.pendingSpotlightRequest?.id) { _, _ in
+            processSpotlightRequest(appState.pendingSpotlightRequest)
+        }
         .onChange(of: editorPresentation?.id) { _, presentationID in
             if presentationID == nil {
                 balanceStates.removeAll()
@@ -173,6 +179,23 @@ struct AccountManagerView: View {
     private func delete(_ account: AccountItem) {
         try? AccountRepository(modelContext: modelContext)
             .deleteIfUnused(account)
+    }
+
+    private func processSpotlightRequest(_ request: FloatSpotlightNavigationRequest?) {
+        guard let request, request.target.kind == .account else { return }
+        if let account = fetchAccount(id: request.target.id) {
+            editorPresentation = AccountEditorPresentation(account: account)
+        }
+        appState.consumeSpotlightRequest(request)
+    }
+
+    private func fetchAccount(id: UUID) -> AccountItem? {
+        let descriptor = FetchDescriptor<AccountItem>(
+            predicate: #Predicate<AccountItem> { account in
+                account.id == id
+            }
+        )
+        return try? modelContext.fetch(descriptor).first
     }
 
     private func loadBalance(for account: AccountItem) {
@@ -341,7 +364,8 @@ private struct AccountEditorView: View {
                 )
             )
         }
-        try? modelContext.save()
+        guard (try? modelContext.save()) != nil else { return }
+        FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
         dismiss()
     }
 }

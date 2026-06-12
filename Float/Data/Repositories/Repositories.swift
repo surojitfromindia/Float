@@ -254,6 +254,7 @@ struct TransactionRepository {
     private func save() throws {
         do {
             try modelContext.save()
+            FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
         } catch {
             throw DataIntegrityError.saveFailed
         }
@@ -341,6 +342,7 @@ struct EventCategoryRepository {
     private func save() throws {
         do {
             try modelContext.save()
+            FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
         } catch {
             throw DataIntegrityError.saveFailed
         }
@@ -403,6 +405,7 @@ struct EventRepository {
     private func save() throws {
         do {
             try modelContext.save()
+            FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
         } catch {
             throw DataIntegrityError.saveFailed
         }
@@ -461,6 +464,7 @@ struct TransactionTemplateRepository {
     private func save() throws {
         do {
             try modelContext.save()
+            FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
         } catch {
             throw DataIntegrityError.saveFailed
         }
@@ -521,6 +525,7 @@ struct TransactionTemplateGroupRepository {
     private func save() throws {
         do {
             try modelContext.save()
+            FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
         } catch {
             throw DataIntegrityError.saveFailed
         }
@@ -576,6 +581,7 @@ struct TransferRepository {
     private func save() throws {
         do {
             try modelContext.save()
+            FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
         } catch {
             throw DataIntegrityError.saveFailed
         }
@@ -939,6 +945,7 @@ struct SettingsRepository {
         )
         do {
             try modelContext.save()
+            FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
         } catch {
             throw DataIntegrityError.saveFailed
         }

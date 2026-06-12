@@ -109,6 +109,7 @@ final class AppState: ObservableObject {
     @Published var isTransferSheetPresented = false
     @Published var editingTransfer: TransferItem?
     @Published var newTransferTimestamp: Date?
+    @Published var pendingSpotlightRequest: FloatSpotlightNavigationRequest?
 
     // Converts the stored appearance preference into the optional SwiftUI color scheme override.
     var colorScheme: ColorScheme? {
@@ -219,6 +220,32 @@ final class AppState: ObservableObject {
             presentNewTransfer()
         case .openDestination:
             route(to: action.destination ?? .home)
+        case .openSearchResult:
+            guard let identifier = action.spotlightItemIdentifier,
+                  let target = FloatSpotlightItemIdentifier.parse(identifier)
+            else {
+                return
+            }
+            presentSpotlightTarget(target)
+        }
+    }
+
+    func consumeSpotlightRequest(_ request: FloatSpotlightNavigationRequest) {
+        guard pendingSpotlightRequest?.id == request.id else { return }
+        pendingSpotlightRequest = nil
+    }
+
+    private func presentSpotlightTarget(_ target: FloatSpotlightTarget) {
+        pendingSpotlightRequest = FloatSpotlightNavigationRequest(target: target)
+        switch target.kind {
+        case .transaction, .transfer:
+            selectedTab = .transactions
+        case .account:
+            selectedTab = .settings
+            pendingSettingsDestination = .accounts
+        case .category:
+            selectedTab = .settings
+            pendingSettingsDestination = .categories
         }
     }
 }
