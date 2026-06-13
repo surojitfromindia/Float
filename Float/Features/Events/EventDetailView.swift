@@ -1,3 +1,4 @@
+import Foundation
 import Charts
 import SwiftData
 import SwiftUI
@@ -150,28 +151,35 @@ struct EventDetailView: View {
             SummaryMetricTile(
                 title: "Expenses",
                 value: money(totalExpenseMinor),
-                caption: expenseCount == 0 ? "No expense transactions" : "\(expenseCount) expense tx",
+                captionText: expenseCount == 0
+                    ? AppLocalization.string("No expense transactions")
+                    : AppLocalization.format("%lld expense tx", Int64(expenseCount)),
                 icon: "arrow.up.circle.fill",
                 tint: appState.themePalette.caution
             )
             SummaryMetricTile(
                 title: "Income",
                 value: money(totalIncomeMinor),
-                caption: "\(postedIncome.count) income tx",
+                captionText: AppLocalization.format(
+                    "%lld income tx",
+                    Int64(postedIncome.count)
+                ),
                 icon: "arrow.down.circle.fill",
                 tint: appState.themePalette.positive
             )
             SummaryMetricTile(
                 title: "Net",
                 value: money(abs(netMinor)),
-                caption: netMinor >= 0 ? "Positive flow" : "Negative flow",
+                caption: netMinor >= 0
+                    ? LocalizedStringResource("Positive flow")
+                    : LocalizedStringResource("Negative flow"),
                 icon: "chart.line.uptrend.xyaxis",
                 tint: netMinor >= 0 ? appState.themePalette.positive : appState.themePalette.caution
             )
             SummaryMetricTile(
                 title: "Average",
                 value: money(averageExpenseMinor),
-                caption: "\(durationDays) days",
+                captionText: AppLocalization.format("%lld days", Int64(durationDays)),
                 icon: "function",
                 tint: appState.themePalette.accent
             )
@@ -556,20 +564,20 @@ struct EventDetailView: View {
         }
     }
 
-    private var emptyStateTitle: String {
+    private var emptyStateTitle: LocalizedStringResource {
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !hasActiveFilters {
-            return "No transactions yet"
+            return LocalizedStringResource("No transactions yet")
         }
-        return "No matching transactions"
+        return LocalizedStringResource("No matching transactions")
     }
 
-    private var emptyStateMessage: String {
+    private var emptyStateMessage: LocalizedStringResource {
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !hasActiveFilters {
-            return "Add transactions to build event-level charts and metrics."
+            return LocalizedStringResource("Add transactions to build event-level charts and metrics.")
         }
-        return "Try a different search or filter."
+        return LocalizedStringResource("Try a different search or filter.")
     }
 
     @ViewBuilder
@@ -984,19 +992,19 @@ private enum EventChartMetric: String, CaseIterable, Identifiable {
         }
     }
 
-    var emptyTitle: String {
+    var emptyTitle: LocalizedStringResource {
         switch self {
-        case .spendByDay: "No spending yet"
-        case .transactionsByDay: "No transactions yet"
+        case .spendByDay: LocalizedStringResource("No spending yet")
+        case .transactionsByDay: LocalizedStringResource("No transactions yet")
         }
     }
 
-    var emptyMessage: String {
+    var emptyMessage: LocalizedStringResource {
         switch self {
         case .spendByDay:
-            "Add transactions to see the event spend trend."
+            LocalizedStringResource("Add transactions to see the event spend trend.")
         case .transactionsByDay:
-            "Add transactions to see daily activity."
+            LocalizedStringResource("Add transactions to see daily activity.")
         }
     }
 }

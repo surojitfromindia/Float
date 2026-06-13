@@ -1,3 +1,4 @@
+import Foundation
 import Charts
 import SwiftData
 import SwiftUI
@@ -701,8 +702,8 @@ struct InsightsView: View {
     }
 
     private func insightCard<Content: View>(
-        title: String,
-        subtitle: String,
+        title: LocalizedStringResource,
+        subtitle: LocalizedStringResource,
         @ViewBuilder content: () -> Content
     ) -> some View {
         GlassCard {
@@ -720,7 +721,7 @@ struct InsightsView: View {
     }
 
     private func reportMetric(
-        _ title: String,
+        _ title: LocalizedStringResource,
         amount: Int64,
         icon: String,
         tint: Color
@@ -729,7 +730,7 @@ struct InsightsView: View {
     }
 
     private func reportMetric(
-        _ title: String,
+        _ title: LocalizedStringResource,
         value: String,
         icon: String,
         tint: Color
@@ -743,7 +744,7 @@ struct InsightsView: View {
     }
 
     private func progressRow(
-        title: String,
+        title: LocalizedStringResource,
         detail: String,
         progress: Double,
         tint: Color
@@ -762,7 +763,7 @@ struct InsightsView: View {
         }
     }
 
-    private func insightFact(_ title: String, _ value: String) -> some View {
+    private func insightFact(_ title: LocalizedStringResource, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.caption)
@@ -1314,39 +1315,47 @@ private struct InsightReport {
     }
 
     var biggestTransactionLabel: String {
-        topTransactions.first?.categoryName ?? "None"
+        topTransactions.first?.categoryName ?? String(localized: "None")
     }
 
     var narrative: String {
         guard expenseTotalMinor > 0 || incomeTotalMinor > 0 else {
-            return "No activity in this range yet."
+            return String(localized: "No activity in this range yet.")
         }
 
         let direction: String
         if previousExpenseTotalMinor == 0 {
-            direction = "There is no comparable prior spending yet."
+            direction = String(localized: "There is no comparable prior spending yet.")
         } else if expenseTotalMinor < previousExpenseTotalMinor {
-            direction = "Spending is below the previous comparable range."
+            direction = String(localized: "Spending is below the previous comparable range.")
         } else if expenseTotalMinor > previousExpenseTotalMinor {
-            direction = "Spending is above the previous comparable range."
+            direction = String(localized: "Spending is above the previous comparable range.")
         } else {
-            direction = "Spending matches the previous comparable range."
+            direction = String(localized: "Spending matches the previous comparable range.")
         }
 
         if let topCategory {
-            return "\(topCategory.name) leads expenses. \(direction)"
+            return AppLocalization.format(
+                "%@ leads expenses. %@",
+                topCategory.name,
+                direction
+            )
         }
         return direction
     }
 
     var budgetHealthMessage: String {
         if safeToSpend.overAmountMinor > 0 {
-            return "This period is over budget. Reduce flexible spending or adjust the budget assumptions."
+            return String(
+                localized: "This period is over budget. Reduce flexible spending or adjust the budget assumptions."
+            )
         }
         if safeToSpend.spendingProgress > safeToSpend.periodProgress {
-            return "Spending is ahead of time elapsed, so the daily allowance is tightening."
+            return String(
+                localized: "Spending is ahead of time elapsed, so the daily allowance is tightening."
+            )
         }
-        return "Spending is tracking within the current period pace."
+        return String(localized: "Spending is tracking within the current period pace.")
     }
 
     var categoryBudgetInsights: [CategoryBudgetInsight] {
@@ -1576,8 +1585,8 @@ private struct InsightReport {
     }
 
     var weekTrendText: String {
-        guard weekExpenseDeltaMinor != 0 else { return "Flat" }
-        return weekExpenseDeltaMinor < 0 ? "Down" : "Up"
+        guard weekExpenseDeltaMinor != 0 else { return String(localized: "Flat") }
+        return weekExpenseDeltaMinor < 0 ? String(localized: "Down") : String(localized: "Up")
     }
 
     var activeRecurringCount: Int {
@@ -1596,8 +1605,15 @@ private struct InsightReport {
             .sorted { normalizedMonthlyAmount(for: $0) > normalizedMonthlyAmount(for: $1) }
             .map {
                 RecurringInsight(
-                    name: $0.note?.nilIfBlank ?? $0.category?.name ?? "Recurring",
-                    detail: "\($0.cadence.title) · next \($0.nextRunDate.formatted(date: .abbreviated, time: .omitted))",
+                    name: $0.note?.nilIfBlank ?? $0.category?.name ?? String(localized: "Recurring"),
+                    detail: AppLocalization.format(
+                        "%@ · next %@",
+                        $0.cadence.title,
+                        $0.nextRunDate.formatted(
+                            Date.FormatStyle(date: .abbreviated, time: .omitted)
+                                .locale(AppLocalization.locale)
+                        )
+                    ),
                     amountMinor: $0.amountMinor,
                     monthlyAmountMinor: normalizedMonthlyAmount(for: $0),
                     icon: $0.category?.iconKey ?? "repeat"
@@ -1613,7 +1629,7 @@ private struct InsightReport {
             let remaining = max(0, $0.targetMinor - $0.savedMinor)
             let progress = Double($0.savedMinor) / Double(max($0.targetMinor, 1))
             let date = $0.targetDate?.formatted(date: .abbreviated, time: .omitted)
-                ?? "No target date"
+                ?? String(localized: "No target date")
             return GoalInsight(
                 name: $0.name,
                 savedMinor: $0.savedMinor,
@@ -1733,9 +1749,13 @@ private struct CategoryBudgetInsight: Identifiable {
 
     func statusText(currencyCode: String) -> String {
         if isOverBudget {
-            return "Over by \(MoneyFormatter.string(minorUnits: overMinor, currencyCode: currencyCode))"
+            return String(
+                localized: "Over by \(MoneyFormatter.string(minorUnits: overMinor, currencyCode: currencyCode))"
+            )
         }
-        return "\(MoneyFormatter.string(minorUnits: remainingMinor, currencyCode: currencyCode)) left"
+        return String(
+            localized: "\(MoneyFormatter.string(minorUnits: remainingMinor, currencyCode: currencyCode)) left"
+        )
     }
 }
 
@@ -1824,7 +1844,7 @@ private struct CalendarExpenseInsight: Identifiable {
     let transactionCount: Int
 
     var countText: String {
-        "\(transactionCount) txns"
+        AppLocalization.format("%lld txns", Int64(transactionCount))
     }
 
     func summaryText(currencyCode: String) -> String {
@@ -1832,7 +1852,16 @@ private struct CalendarExpenseInsight: Identifiable {
             minorUnits: expenseMinor,
             currencyCode: currencyCode
         )
-        return "\(date.formatted(.dateTime.month(.abbreviated).day())) · \(amount)"
+        return AppLocalization.format(
+            "%@ • %@",
+            date.formatted(
+                Date.FormatStyle()
+                    .month(.abbreviated)
+                    .day()
+                    .locale(AppLocalization.locale)
+            ),
+            amount
+        )
     }
 }
 
@@ -1862,18 +1891,18 @@ private enum SpendActivityMode: String, CaseIterable, Identifiable {
     var title: String {
         switch self {
         case .daily:
-            return "Daily"
+            return String(localized: "Daily")
         case .weekly:
-            return "Weekly"
+            return String(localized: "Weekly")
         case .cumulative:
-            return "Cumulative"
+            return String(localized: "Cumulative")
         case .year:
-            return "Year"
+            return String(localized: "Year")
         }
     }
 
     var accessibilityLabel: String {
-        "\(title) spend activity"
+        AppLocalization.format("%@ spend activity", title)
     }
 }
 
@@ -1908,11 +1937,11 @@ private enum InsightRange: String, CaseIterable, Identifiable, Hashable {
 
     var title: String {
         switch self {
-        case .currentPeriod: "Current period"
-        case .lastPeriod: "Last period"
-        case .lastThreePeriods: "Last 3 periods"
-        case .thisYear: "This year"
-        case .custom: "Custom range"
+        case .currentPeriod: String(localized: "Current period")
+        case .lastPeriod: String(localized: "Last period")
+        case .lastThreePeriods: String(localized: "Last 3 periods")
+        case .thisYear: String(localized: "This year")
+        case .custom: String(localized: "Custom range")
         }
     }
 }

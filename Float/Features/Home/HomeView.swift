@@ -1,3 +1,4 @@
+import Foundation
 import SwiftData
 import SwiftUI
 
@@ -89,13 +90,16 @@ struct HomeView: View {
 
     private var todayTrendCaption: String {
         if yesterdayExpenses == 0 {
-            return "spent so far"
+            return AppLocalization.string("spent so far")
         }
         let difference = todayExpenses - yesterdayExpenses
         if difference == 0 {
-            return "same as yesterday"
+            return AppLocalization.string("same as yesterday")
         }
-        return "\(money(abs(difference))) \(difference > 0 ? "over" : "under") yesterday"
+        if difference > 0 {
+            return localizedFormat("%@ over yesterday", money(abs(difference)))
+        }
+        return localizedFormat("%@ under yesterday", money(abs(difference)))
     }
 
     private func money(_ amount: Int64) -> String {
@@ -139,14 +143,14 @@ struct HomeView: View {
                 } label: {
                     Image(systemName: "square.stack.3d.up.fill")
                 }
-                .accessibilityLabel("Bulk add transactions")
+                .accessibilityLabel(LocalizedStringResource("Bulk add transactions"))
 
                 Button {
                     presentNewTransaction()
                 } label: {
                     Image(systemName: "plus")
                 }
-                .accessibilityLabel("Add transaction")
+                .accessibilityLabel(LocalizedStringResource("Add transaction"))
             }
         }
         .toolbarBackground(.hidden, for: .navigationBar)
@@ -158,7 +162,7 @@ struct HomeView: View {
             RecurringEditorView(rule: rule)
         }
         .alert(
-            "Pay recurring?",
+            LocalizedStringResource("Pay recurring?"),
             isPresented: Binding(
                 get: { recurringRulePendingPayment != nil },
                 set: { isPresented in
@@ -169,16 +173,19 @@ struct HomeView: View {
             ),
             presenting: recurringRulePendingPayment
         ) { rule in
-            Button("Mark paid", role: .destructive) {
+            Button(LocalizedStringResource("Mark paid"), role: .destructive) {
                 markUpcomingRecurringPaid(rule)
                 recurringRulePendingPayment = nil
             }
-            Button("Cancel", role: .cancel) {
+            Button(LocalizedStringResource("Cancel"), role: .cancel) {
                 recurringRulePendingPayment = nil
             }
         } message: { rule in
             Text(
-                "This will create a posted transaction and advance the next recurring date.\n\n\(recurringTitle(for: rule))"
+                AppLocalization.string(
+                    "This will create a posted transaction and advance the next recurring date."
+                )
+                    + "\n\n" + recurringTitle(for: rule)
             )
         }
         .sheet(item: $contributionGoal) { goal in
@@ -228,21 +235,21 @@ struct HomeView: View {
     private var quickActions: some View {
         HStack(spacing: 10) {
             HomeActionButton(
-                title: "Expense",
+                title: LocalizedStringResource("Expense"),
                 icon: "minus.circle.fill",
                 tint: appState.themePalette.caution
             ) {
                 presentNewTransaction(isExpense: true)
             }
             HomeActionButton(
-                title: "Income",
+                title: LocalizedStringResource("Income"),
                 icon: "plus.circle.fill",
                 tint: appState.themePalette.positive
             ) {
                 presentNewTransaction(isExpense: false)
             }
             HomeActionButton(
-                title: "Transfer",
+                title: LocalizedStringResource("Transfer"),
                 icon: "arrow.left.arrow.right.circle.fill",
                 tint: appState.themePalette.accent,
                 isEnabled: accounts.filter { !$0.archived }.count >= 2
@@ -250,7 +257,7 @@ struct HomeView: View {
                 appState.presentNewTransfer()
             }
             HomeActionButton(
-                title: "Add to goal",
+                title: LocalizedStringResource("Add to goal"),
                 icon: "target",
                 tint: Color(hex: "#8B5CF6"),
                 isEnabled: nearestOpenGoal != nil
@@ -258,7 +265,7 @@ struct HomeView: View {
                 contributionGoal = nearestOpenGoal
             }
             HomeActionButton(
-                title: "Pay recurring",
+                title: LocalizedStringResource("Pay recurring"),
                 icon: "checkmark.circle.fill",
                 tint: appState.themePalette.caution,
                 isEnabled: upcomingRecurringExpense != nil
@@ -271,7 +278,7 @@ struct HomeView: View {
 
     private var cashFlowForecast: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "Forecast")
+            SectionHeader(title: LocalizedStringResource("Forecast"))
             ForecastStripCard(
                 items: Array(forecastItems.prefix(3)),
                 currencyCode: appState.selectedCurrencyCode,
@@ -289,17 +296,23 @@ struct HomeView: View {
 
     private var pendingQueueSubtitle: String {
         guard !pendingMetrics.isEmpty else {
-            return "Convert expected transactions when they post."
+            return AppLocalization.string(
+                "Convert expected transactions when they post."
+            )
         }
         let count = pendingMetrics.overdueCount
             + pendingMetrics.dueTodayCount
             + pendingMetrics.upcomingCount
-        return "\(count) transaction\(count == 1 ? "" : "s") need attention."
+        return localizedFormat(
+            "%lld transaction%@ need attention.",
+            Int64(count),
+            count == 1 ? "" : "s"
+        )
     }
 
     private var budgetOverview: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "Budget overview")
+            SectionHeader(title: LocalizedStringResource("Budget overview"))
             BudgetStatusChart(
                 result: result,
                 currencyCode: appState.selectedCurrencyCode
@@ -309,13 +322,13 @@ struct HomeView: View {
 
     private var recentTransactionsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "Recent")
+            SectionHeader(title: LocalizedStringResource("Recent"))
             HomeGlassPanel(padding: 18, tint: appState.themePalette.accent) {
                 if dashboardSnapshot.recentTransactions.isEmpty {
                     EmptyStateView(
                         icon: "sparkles",
-                        title: "No transactions yet",
-                        message: "Add your first expense when you are ready."
+                        title: LocalizedStringResource("No transactions yet"),
+                        message: LocalizedStringResource("Add your first expense when you are ready.")
                     )
                 } else {
                     VStack(spacing: 8) {
@@ -338,7 +351,7 @@ struct HomeView: View {
     @ViewBuilder private var budgetAlertsSection: some View {
         if !budgetAlerts.isEmpty || !pendingMetrics.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: "Budget alerts")
+                SectionHeader(title: LocalizedStringResource("Budget alerts"))
                 GlassCard {
                     VStack(spacing: 12) {
                         if !pendingMetrics.isEmpty {
@@ -369,7 +382,7 @@ struct HomeView: View {
     @ViewBuilder private var pinnedEventsSection: some View {
         if appState.showPinnedEventsInHomeView && !pinnedEvents.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: "Pinned events")
+                SectionHeader(title: LocalizedStringResource("Pinned events"))
                 VStack(spacing: 12) {
                     ForEach(pinnedEvents.prefix(3)) { event in
                         NavigationLink {
@@ -386,14 +399,14 @@ struct HomeView: View {
 
     private var queueLinksSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            SectionHeader(title: "Action center")
+            SectionHeader(title: LocalizedStringResource("Action center"))
             HomeGlassPanel(padding: 18, tint: appState.themePalette.accent) {
                 VStack(spacing: 11) {
                     NavigationLink {
                         PendingTransactionsView()
                     } label: {
                         QueueLinkRow(
-                            title: "Pending queue",
+                            title: LocalizedStringResource("Pending queue"),
                             subtitle: pendingQueueSubtitle,
                             icon: "clock.badge.exclamationmark.fill",
                             tint: appState.themePalette.accent,
@@ -408,8 +421,10 @@ struct HomeView: View {
                         ReviewQueueView()
                     } label: {
                         QueueLinkRow(
-                            title: "Review queue",
-                            subtitle: "Missing details, duplicates, and large transactions.",
+                            title: LocalizedStringResource("Review queue"),
+                            subtitle: AppLocalization.string(
+                                "Missing details, duplicates, and large transactions."
+                            ),
                             icon: "checklist",
                             tint: appState.themePalette.accent
                         )
@@ -422,8 +437,10 @@ struct HomeView: View {
                         EventsView()
                     } label: {
                         QueueLinkRow(
-                            title: "View events",
-                            subtitle: "Timelines, charts, and linked transactions.",
+                            title: LocalizedStringResource("View events"),
+                            subtitle: AppLocalization.string(
+                                "Timelines, charts, and linked transactions."
+                            ),
                             icon: "calendar.badge.plus",
                             tint: appState.themePalette.accent
                         )
@@ -437,7 +454,7 @@ struct HomeView: View {
                             recurringRuleToEdit = rule
                         } label: {
                             QueueLinkRow(
-                                title: "Upcoming recurring",
+                                title: LocalizedStringResource("Upcoming recurring"),
                                 subtitle: recurringSubtitle(for: rule),
                                 icon: rule.category?.iconKey ?? "repeat",
                                 tint: appState.themePalette.accent,
@@ -448,7 +465,7 @@ struct HomeView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Edit upcoming recurring rule")
+                        .accessibilityLabel(LocalizedStringResource("Edit upcoming recurring rule"))
                     }
 
                     if let goal = nearestOpenGoal {
@@ -458,7 +475,7 @@ struct HomeView: View {
                             contributionGoal = goal
                         } label: {
                             QueueLinkRow(
-                                title: "Nearest goal",
+                                title: LocalizedStringResource("Nearest goal"),
                                 subtitle: goalSubtitle(for: goal),
                                 icon: "target",
                                 tint: appState.themePalette.accent,
@@ -466,7 +483,7 @@ struct HomeView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .accessibilityLabel("Add to nearest goal")
+                        .accessibilityLabel(LocalizedStringResource("Add to nearest goal"))
                     }
                 }
             }
@@ -474,17 +491,14 @@ struct HomeView: View {
     }
 
     private func recurringSubtitle(for rule: RecurringRuleItem) -> String {
-        let date = rule.nextRunDate.formatted(
-            date: .abbreviated,
-            time: .omitted
-        )
-        return "\(recurringTitle(for: rule)) - \(date)"
+        let date = localizedAbbreviatedDate(rule.nextRunDate)
+        return localizedFormat("%@ - %@", recurringTitle(for: rule), date)
     }
 
     private func recurringTitle(for rule: RecurringRuleItem) -> String {
         rule.note?.isEmpty == false
             ? rule.note ?? ""
-            : rule.category?.name ?? "Unknown Category"
+            : rule.category?.name ?? AppLocalization.string("Unknown Category")
     }
 
     private func goalSubtitle(for goal: GoalItem) -> String {
@@ -496,7 +510,7 @@ struct HomeView: View {
             minorUnits: goal.targetMinor,
             currencyCode: appState.selectedCurrencyCode
         )
-        return "\(goal.name) - \(saved) of \(target)"
+        return localizedFormat("%@ - %@ of %@", goal.name, saved, target)
     }
 
     private func goalProgressText(for goal: GoalItem) -> String {
@@ -802,6 +816,17 @@ struct HomeView: View {
     }
 }
 
+private func localizedFormat(_ key: String, _ arguments: CVarArg...) -> String {
+    AppLocalization.format(key, arguments: arguments)
+}
+
+private func localizedAbbreviatedDate(_ date: Date) -> String {
+    date.formatted(
+        Date.FormatStyle(date: .abbreviated, time: .omitted)
+            .locale(AppLocalization.locale)
+    )
+}
+
 private struct HomeDashboardLoadKey: Equatable {
     let currencyCode: String
     let budgetID: UUID?
@@ -869,9 +894,9 @@ private struct PendingTransactionMetrics: Equatable {
 }
 
 private struct HomeSummaryTile: View {
-    let title: String
+    let title: LocalizedStringResource
     let amountMinor: Int64
-    let caption: String
+    let caption: LocalizedStringResource
     let icon: String
     let tint: Color
     let currencyCode: String
@@ -941,7 +966,7 @@ private struct HomeGlassPanel<Content: View>: View {
 private struct HomeActionButton: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    let title: String
+    let title: LocalizedStringResource
     let icon: String
     let tint: Color
     var isEnabled = true
@@ -993,8 +1018,8 @@ private struct ForecastStripCard: View {
             if items.isEmpty {
                 EmptyStateView(
                     icon: "calendar.badge.clock",
-                    title: "No forecast yet",
-                    message: "Add a budget to see the next cash-flow windows."
+                    title: LocalizedStringResource("No forecast yet"),
+                    message: LocalizedStringResource("Add a budget to see the next cash-flow windows.")
                 )
             } else {
                 HStack(spacing: 0) {
@@ -1029,7 +1054,7 @@ private struct ForecastStripItem: View {
                 Image(systemName: "calendar.badge.clock")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(tint)
-                Text("\(item.horizonDays)d")
+                Text(localizedFormat("%lldd", Int64(item.horizonDays)))
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.secondary)
             }
@@ -1037,7 +1062,7 @@ private struct ForecastStripItem: View {
                 .moneyStyle(size: 15, weight: .bold)
                 .lineLimit(1)
                 .minimumScaleFactor(0.68)
-            Text("safe")
+            Text(LocalizedStringResource("safe"))
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(tint)
         }
@@ -1065,7 +1090,7 @@ private struct BudgetAlertRow: View {
                 Text(alert.title)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
-                Text("\(money(alert.spentMinor)) of \(money(alert.budgetMinor))")
+                Text(localizedFormat("%@ of %@", money(alert.spentMinor), money(alert.budgetMinor)))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -1100,7 +1125,7 @@ private struct PendingMetricsRows: View {
         VStack(spacing: 10) {
             if metrics.overdueCount > 0 {
                 row(
-                    title: "Pending overdue",
+                    title: LocalizedStringResource("Pending overdue"),
                     count: metrics.overdueCount,
                     amountMinor: metrics.overdueMinor,
                     icon: "exclamationmark.triangle.fill",
@@ -1109,7 +1134,7 @@ private struct PendingMetricsRows: View {
             }
             if metrics.dueTodayCount > 0 {
                 row(
-                    title: "Pending due today",
+                    title: LocalizedStringResource("Pending due today"),
                     count: metrics.dueTodayCount,
                     amountMinor: metrics.dueTodayMinor,
                     icon: "calendar.badge.exclamationmark",
@@ -1118,7 +1143,7 @@ private struct PendingMetricsRows: View {
             }
             if metrics.upcomingCount > 0 {
                 row(
-                    title: "Pending upcoming",
+                    title: LocalizedStringResource("Pending upcoming"),
                     count: metrics.upcomingCount,
                     amountMinor: metrics.upcomingMinor,
                     icon: "calendar.badge.clock",
@@ -1129,7 +1154,7 @@ private struct PendingMetricsRows: View {
     }
 
     private func row(
-        title: String,
+        title: LocalizedStringResource,
         count: Int,
         amountMinor: Int64,
         icon: String,
@@ -1140,7 +1165,7 @@ private struct PendingMetricsRows: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
                     .font(.subheadline.weight(.semibold))
-                Text("\(count) pending")
+                Text(localizedFormat("%lld pending", Int64(count)))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -1158,7 +1183,7 @@ private struct PendingMetricsRows: View {
 }
 
 private struct QueueLinkRow: View {
-    let title: String
+    let title: LocalizedStringResource
     let subtitle: String
     let icon: String
     let tint: Color
@@ -1217,7 +1242,7 @@ struct SafeToSpendHeroCard: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text("Spendable")
+                    Text(LocalizedStringResource("Spendable"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                     Text(
@@ -1248,17 +1273,20 @@ struct SafeToSpendHeroCard: View {
 
             HStack(spacing: 0) {
                 HeroMetricPill(
-                    title: "Daily",
+                    title: LocalizedStringResource("Daily"),
                     value: MoneyFormatter.string(
                         minorUnits: result.dailyAllowanceMinor,
                         currencyCode: currencyCode
                     )
                 )
                 Divider().padding(.vertical, 4)
-                HeroMetricPill(title: "Left", value: "\(result.daysRemaining)d")
+                HeroMetricPill(
+                    title: LocalizedStringResource("Left"),
+                    value: localizedFormat("%lldd", Int64(result.daysRemaining))
+                )
                 Divider().padding(.vertical, 4)
                 HeroMetricPill(
-                    title: "Spent",
+                    title: LocalizedStringResource("Spent"),
                     value: MoneyFormatter.string(
                         minorUnits: result.variableSpentMinor,
                         currencyCode: currencyCode
@@ -1291,8 +1319,8 @@ struct SafeToSpendHeroCard: View {
     private var statusPill: some View {
         Text(
             result.overAmountMinor > 0
-                ? "Over budget"
-                : "Safe"
+                ? LocalizedStringResource("Over budget")
+                : LocalizedStringResource("Safe")
         )
         .font(.caption.weight(.semibold))
         .foregroundStyle(statusTint)
@@ -1309,9 +1337,17 @@ struct SafeToSpendHeroCard: View {
 
     private var statusCaption: String {
         if result.overAmountMinor > 0 {
-            return "\(MoneyFormatter.string(minorUnits: result.overAmountMinor, currencyCode: currencyCode)) over this period after recurring and goals."
+            return localizedFormat(
+                "%@ over this period after recurring and goals.",
+                MoneyFormatter.string(
+                    minorUnits: result.overAmountMinor,
+                    currencyCode: currencyCode
+                )
+            )
         }
-        return "After recurring, goals, and spending recorded this period."
+        return AppLocalization.string(
+            "After recurring, goals, and spending recorded this period."
+        )
     }
 }
 
@@ -1369,7 +1405,7 @@ private extension View {
 }
 
 private struct HeroMetricPill: View {
-    let title: String
+    let title: LocalizedStringResource
     let value: String
 
     var body: some View {
@@ -1455,16 +1491,22 @@ private struct BudgetStatusChart: View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 14) {
                 chartMetric(
-                    title: "Period",
-                    detail: "\(progressPercent(value: result.periodProgress)) elapsed",
+                    title: LocalizedStringResource("Period"),
+                    detail: localizedFormat(
+                        "%@ elapsed",
+                        progressPercent(value: result.periodProgress)
+                    ),
                     note: periodSummary,
                     amount: nil,
                     progress: result.periodProgress,
                     tint: palette.accent
                 )
                 chartMetric(
-                    title: "Spending",
-                    detail: "\(progressPercent(value:result.spendingProgress)) used",
+                    title: LocalizedStringResource("Spending"),
+                    detail: localizedFormat(
+                        "%@ used",
+                        progressPercent(value: result.spendingProgress)
+                    ),
                     note: spendingSummary,
                     amount: result.variableSpentMinor,
                     progress: result.spendingProgress,
@@ -1475,7 +1517,7 @@ private struct BudgetStatusChart: View {
             Divider().opacity(0.45)
 
             VStack(alignment: .leading, spacing: 12) {
-                Text("Allocation")
+                Text(LocalizedStringResource("Allocation"))
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
 
@@ -1491,19 +1533,19 @@ private struct BudgetStatusChart: View {
 
                 VStack(spacing: 9) {
                     legendItem(
-                        "Safe",
+                        LocalizedStringResource("Safe"),
                         amount: result.safeToSpendMinor,
                         total: chartTotal,
                         color: palette.positive
                     )
                     legendItem(
-                        "Spent",
+                        LocalizedStringResource("Spent"),
                         amount: result.variableSpentMinor,
                         total: chartTotal,
                         color: palette.accent
                     )
                     legendItem(
-                        "Committed",
+                        LocalizedStringResource("Committed"),
                         amount: committedMinor,
                         total: chartTotal,
                         color: palette.caution
@@ -1519,23 +1561,26 @@ private struct BudgetStatusChart: View {
     }
 
     private var periodSummary: String {
-        let start = result.periodStart.formatted(
-            date: .abbreviated,
-            time: .omitted
+        let start = localizedAbbreviatedDate(result.periodStart)
+        let end = localizedAbbreviatedDate(result.periodEnd)
+        return localizedFormat(
+            "%@ - %@ · %lld days left",
+            start,
+            end,
+            Int64(result.daysRemaining)
         )
-        let end = result.periodEnd.formatted(
-            date: .abbreviated,
-            time: .omitted
-        )
-        return "\(start) - \(end) · \(result.daysRemaining) days left"
     }
 
     private var spendingSummary: String {
-        "\(money(result.variableSpentMinor)) of \(money(spendableBaseMinor)) used"
+        localizedFormat(
+            "%@ of %@ used",
+            money(result.variableSpentMinor),
+            money(spendableBaseMinor)
+        )
     }
 
     private func chartMetric(
-        title: String,
+        title: LocalizedStringResource,
         detail: String,
         note: String?,
         amount: Int64?,
@@ -1599,7 +1644,7 @@ private struct BudgetStatusChart: View {
     }
 
     private func legendItem(
-        _ title: String,
+        _ title: LocalizedStringResource,
         amount: Int64,
         total: Int64,
         color: Color

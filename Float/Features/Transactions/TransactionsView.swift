@@ -1,3 +1,4 @@
+import Foundation
 import SwiftData
 import SwiftUI
 
@@ -218,20 +219,20 @@ struct TransactionsView: View {
         }
     }
 
-    private var emptyStateTitle: String {
+    private var emptyStateTitle: LocalizedStringResource {
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !hasActiveFilters {
-            return "No transactions yet"
+            return LocalizedStringResource("No transactions yet")
         }
-        return "No matching transactions"
+        return LocalizedStringResource("No matching transactions")
     }
 
-    private var emptyStateMessage: String {
+    private var emptyStateMessage: LocalizedStringResource {
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !hasActiveFilters {
-            return "Your transactions will appear here as you add them."
+            return LocalizedStringResource("Your transactions will appear here as you add them.")
         }
-        return "Try changing your search or filters."
+        return LocalizedStringResource("Try changing your search or filters.")
     }
 
     private var transactionNavigationBarItems: some View {

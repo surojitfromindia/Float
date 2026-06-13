@@ -2,7 +2,126 @@
   "sourceLanguage" : "en",
   "strings" : {
     "" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ""
+          }
+        }
+      }
+    },
+    "%@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@"
+          }
+        }
+      }
+    },
+    "%@ - %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ - %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ - %2$@"
+          }
+        }
+      }
+    },
+    "%@ - %@ · %lld days left" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ - %2$@ · %3$lld দিন বাকি"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ - %2$@ · %3$lld days left"
+          }
+        }
+      }
+    },
+    "%@ - %@ of %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ - %2$@ এর মধ্যে %3$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ - %2$@ of %3$@"
+          }
+        }
+      }
+    },
+    "%@ -> %@ • %@" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ -> %2$@ • %3$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ -> %2$@ • %3$@"
+          }
+        }
+      }
+    },
+    "%@ · %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "%@ · next %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · পরের %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · next %2$@"
+          }
+        }
+      }
     },
     "%@ %@" : {
       "localizations" : {
@@ -16,6 +135,23 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ %2$@"
+          }
+        }
+      }
+    },
+    "%@ %@ yesterday" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ %2$@ গতকাল"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ yesterday"
           }
         }
       }
@@ -36,12 +172,166 @@
         }
       }
     },
-    "%@ • Next %@" : {
+    "%@ • %@ account • %@" : {
       "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ • %2$@ অ্যাকাউন্ট • %3$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ • %2$@ account • %3$@"
+          }
+        }
+      }
+    },
+    "%@ • Next %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ • পরবর্তী %2$@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ • Next %2$@"
+          }
+        }
+      }
+    },
+    "%@ category • %lld posted transactions" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ বিভাগ • %2$lld পোস্ট করা লেনদেন"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ category • %2$lld posted transactions"
+          }
+        }
+      }
+    },
+    "%@ category • No posted transactions yet" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ বিভাগ • এখনো কোনো পোস্ট করা লেনদেন নেই"
+          }
+        }
+      }
+    },
+    "%@ elapsed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ অতিক্রান্ত"
+          }
+        }
+      }
+    },
+    "%@ has %@ remaining." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@-এ %2$@ বাকি।"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ has %2$@ remaining."
+          }
+        }
+      }
+    },
+    "%@ is close" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ কাছাকাছি"
+          }
+        }
+      }
+    },
+    "%@ is due today for %@." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ আজ %@-এর জন্য বকেয়া।"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is due today for %2$@."
+          }
+        }
+      }
+    },
+    "%@ is moving fast" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ দ্রুত এগোচ্ছে"
+          }
+        }
+      }
+    },
+    "%@ is over budget" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ বাজেট অতিক্রম করেছে"
+          }
+        }
+      }
+    },
+    "%@ leads expenses. %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ খরচে এগিয়ে। %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ leads expenses. %2$@"
+          }
+        }
+      }
+    },
+    "%@ left" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ বাকি"
           }
         }
       }
@@ -62,6 +352,39 @@
         }
       }
     },
+    "%@ of %@ used" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ এর মধ্যে %2$@ ব্যবহৃত"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@ used"
+          }
+        }
+      }
+    },
+    "%@ of %@ used." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ এর মধ্যে %2$@ ব্যবহৃত।"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@ used."
+          }
+        }
+      }
+    },
     "%@ of report expenses" : {
       "localizations" : {
         "bn" : {
@@ -72,23 +395,192 @@
         }
       }
     },
+    "%@ over this period after recurring and goals." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরাবৃত্তি ও লক্ষ্য বাদ দিয়ে এই সময়ে %@ বেশি।"
+          }
+        }
+      }
+    },
+    "%@ over yesterday" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গতকালের তুলনায় %@ বেশি"
+          }
+        }
+      }
+    },
+    "%@ safe to spend, %@ per day, %lld days left. %@." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ খরচযোগ্য, দিনে %2$@, %3$lld দিন বাকি। %4$@।"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ safe to spend, %2$@ per day, %3$lld days left. %4$@."
+          }
+        }
+      }
+    },
+    "%@ spend activity" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ব্যয়ের কার্যকলাপ"
+          }
+        }
+      }
+    },
+    "%@ under yesterday" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গতকালের তুলনায় %@ কম"
+          }
+        }
+      }
+    },
+    "%@ used" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ ব্যবহৃত"
+          }
+        }
+      }
+    },
     "%lld" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld"
+          }
+        }
+      }
+    },
+    "%lld days" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld দিন"
+          }
+        }
+      }
+    },
+    "%lld expense tx" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldটি খরচ লেনদেন"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%lld expense tx"
+          }
+        }
+      }
+    },
+    "%lld income tx" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld আয় লেনদেন"
+          }
+        }
+      }
     },
     "%lld pending" : {
-
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldটি অপেক্ষমাণ"
+          }
+        }
+      }
     },
     "%lld spending days" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldটি খরচের দিন"
+          }
+        }
+      }
     },
     "%lld templates" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldটি টেমপ্লেট"
+          }
+        }
+      }
+    },
+    "%lld transaction%@ need attention." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld লেনদেন%@ মনোযোগ দরকার।"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld transaction%2$@ need attention."
+          }
+        }
+      }
     },
     "%lld transactions" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldটি লেনদেন"
+          }
+        }
+      }
     },
     "%lld transactions, %lld transfers" : {
       "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lldটি লেনদেন, %2$lldটি ট্রান্সফার"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
@@ -99,6 +591,12 @@
     },
     "%lld transactions, %lld transfers, %lld projected" : {
       "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lldটি লেনদেন, %2$lldটি ট্রান্সফার, %3$lldটি পূর্বাভাস"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "new",
@@ -108,16 +606,106 @@
       }
     },
     "%lld tx" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldটি লেনদেন"
+          }
+        }
+      }
+    },
+    "%lld txns" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld লেনদেন"
+          }
+        }
+      }
     },
     "%lld%%" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld%%"
+          }
+        }
+      }
+    },
+    "%lld%% of budget used." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাজেটের %lld%% ব্যবহৃত।"
+          }
+        }
+      }
+    },
+    "%lld%% used with %lld%% of the period elapsed." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সময়ের %lld%% পার হয়েছে, বাজেটের %lld%% ব্যবহৃত।"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld%% used with %2$lld%% of the period elapsed."
+          }
+        }
+      }
     },
     "%lldd" : {
-
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld দিন"
+          }
+        }
+      }
+    },
+    "<1%" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "<1%"
+          }
+        }
+      }
+    },
+    "0%" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "0%"
+          }
+        }
+      }
     },
     "1" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "1"
+          }
+        }
+      }
     },
     "About" : {
       "localizations" : {
@@ -163,6 +751,16 @@
         }
       }
     },
+    "Account breakdown" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাকাউন্ট বিভাজন"
+          }
+        }
+      }
+    },
     "Accounts" : {
       "localizations" : {
         "bn" : {
@@ -181,6 +779,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "खाते"
+          }
+        }
+      }
+    },
+    "Action center" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাকশন কেন্দ্র"
           }
         }
       }
@@ -239,6 +847,16 @@
         }
       }
     },
+    "Add a budget to see the next cash-flow windows." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরবর্তী নগদ-প্রবাহের উইন্ডো দেখতে একটি বাজেট যোগ করুন।"
+          }
+        }
+      }
+    },
     "Add account" : {
       "localizations" : {
         "bn" : {
@@ -283,38 +901,155 @@
         }
       }
     },
+    "Add dated income and expenses to build a trend." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ট্রেন্ড তৈরি করতে তারিখসহ আয় ও খরচ যোগ করুন।"
+          }
+        }
+      }
+    },
     "Add event" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট যোগ করুন"
+          }
+        }
+      }
     },
     "Add Event" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট যোগ করুন"
+          }
+        }
+      }
     },
     "Add event category" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট বিভাগ যোগ করুন"
+          }
+        }
+      }
     },
     "Add Expense" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচ যোগ করুন"
+          }
+        }
+      }
     },
     "Add expense categories before setting category budgets." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভাগের বাজেট নির্ধারণের আগে খরচের বিভাগ যোগ করুন।"
+          }
+        }
+      }
     },
     "Add Income" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আয় যোগ করুন"
+          }
+        }
+      }
+    },
+    "Add income or spending for this day." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই দিনের জন্য আয় বা খরচ যোগ করুন।"
+          }
+        }
+      }
     },
     "Add pending row" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অপেক্ষমাণ সারি যোগ করুন"
+          }
+        }
+      }
+    },
+    "Add predictable bills or income to keep Safe-to-Spend current." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Safe-to-Spend আপডেট রাখতে নিয়মিত বিল বা আয় যোগ করুন।"
+          }
+        }
+      }
     },
     "Add split row" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভক্ত সারি যোগ করুন"
+          }
+        }
+      }
     },
     "Add template group" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "টেমপ্লেট গ্রুপ যোগ করুন"
+          }
+        }
+      }
     },
     "Add templates to this group." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই গ্রুপে টেমপ্লেট যোগ করুন।"
+          }
+        }
+      }
+    },
+    "Add to goal" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লক্ষ্যে যোগ করুন"
+          }
+        }
+      }
     },
     "Add to nearest goal" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নিকটতম লক্ষ্যে যোগ করুন"
+          }
+        }
+      }
     },
     "Add transaction" : {
       "localizations" : {
@@ -338,11 +1073,76 @@
         }
       }
     },
+    "Add transactions to build event-level charts and metrics." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট-স্তরের চার্ট ও মেট্রিক তৈরি করতে লেনদেন যোগ করুন।"
+          }
+        }
+      }
+    },
+    "Add transactions to see daily activity." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দৈনিক কার্যকলাপ দেখতে লেনদেন যোগ করুন।"
+          }
+        }
+      }
+    },
+    "Add transactions to see the event spend trend." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্টের ব্যয় ট্রেন্ড দেখতে লেনদেন যোগ করুন।"
+          }
+        }
+      }
+    },
     "Add Transfer" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ট্রান্সফার যোগ করুন"
+          }
+        }
+      }
+    },
+    "Add your first expense when you are ready." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রস্তুত হলে আপনার প্রথম খরচ যোগ করুন।"
+          }
+        }
+      }
     },
     "Adds realistic expenses, income, and transfers for pagination testing." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পৃষ্ঠা পরীক্ষা করার জন্য বাস্তবসম্মত খরচ, আয়, এবং ট্রান্সফার যোগ করে।"
+          }
+        }
+      }
+    },
+    "After recurring, goals, and spending recorded this period." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই সময়ে পুনরাবৃত্তি, লক্ষ্য এবং ব্যয় নথিভুক্ত করার পরে।"
+          }
+        }
+      }
     },
     "All accounts" : {
       "localizations" : {
@@ -362,6 +1162,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "सभी खाते"
+          }
+        }
+      }
+    },
+    "All alerts" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সব সতর্কতা"
           }
         }
       }
@@ -389,16 +1200,54 @@
       }
     },
     "All events" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সব ইভেন্ট"
+          }
+        }
+      }
     },
     "All transactions" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সব লেনদেন"
+          }
+        }
+      }
+    },
+    "Allocated" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বরাদ্দ"
+          }
+        }
+      }
     },
     "Allocation" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বণ্টন"
+          }
+        }
+      }
     },
     "Allocation share" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বরাদ্দের অংশ"
+          }
+        }
+      }
     },
     "Amount" : {
       "localizations" : {
@@ -496,11 +1345,55 @@
         }
       }
     },
+    "Authentication was not completed." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রমাণীকরণ সম্পন্ন হয়নি।"
+          }
+        }
+      }
+    },
     "Available" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "উপলব্ধ"
+          }
+        }
+      }
+    },
+    "Average" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গড়"
+          }
+        }
+      }
     },
     "Avg %@ / day" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গড় %@ / দিন"
+          }
+        }
+      }
+    },
+    "Bank" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যাংক"
+          }
+        }
+      }
     },
     "Bengali" : {
       "localizations" : {
@@ -520,6 +1413,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "बंगाली"
+          }
+        }
+      }
+    },
+    "Biggest" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সবচেয়ে বড়"
           }
         }
       }
@@ -547,28 +1450,114 @@
       }
     },
     "Budget alerts" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাজেট সতর্কতা"
+          }
+        }
+      }
     },
     "Budget amount" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাজেটের পরিমাণ"
+          }
+        }
+      }
+    },
+    "Budget health" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাজেটের স্বাস্থ্য"
+          }
+        }
+      }
+    },
+    "Budget overview" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাজেটের সারাংশ"
+          }
+        }
+      }
     },
     "Budget pace" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাজেটের গতি"
+          }
+        }
+      }
     },
     "Budget sensitivity" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাজেট সংবেদনশীলতা"
+          }
+        }
+      }
     },
     "Budgeted categories" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাজেট করা বিভাগ"
+          }
+        }
+      }
     },
     "Bulk Add" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "একসাথে যোগ"
+          }
+        }
+      }
     },
     "Bulk add transactions" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "একাধিক লেনদেন যোগ করুন"
+          }
+        }
+      }
     },
     "Bulk mode" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাল্ক মোড"
+          }
+        }
+      }
+    },
+    "Busiest day" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সবচেয়ে ব্যস্ত দিন"
+          }
+        }
+      }
     },
     "Cadence" : {
       "localizations" : {
@@ -581,7 +1570,24 @@
       }
     },
     "Calendar" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্যালেন্ডার"
+          }
+        }
+      }
+    },
+    "Calendar insights" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ক্যালেন্ডার অন্তর্দৃষ্টি"
+          }
+        }
+      }
     },
     "Cancel" : {
       "localizations" : {
@@ -601,6 +1607,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "रद्द करें"
+          }
+        }
+      }
+    },
+    "Card" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কার্ড"
+          }
+        }
+      }
+    },
+    "Cash" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নগদ"
+          }
+        }
+      }
+    },
+    "Cash flow trend" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নগদ প্রবাহের ট্রেন্ড"
           }
         }
       }
@@ -649,14 +1685,45 @@
         }
       }
     },
+    "Category breakdown" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভাগভিত্তিক বিভাজন"
+          }
+        }
+      }
+    },
     "Category Budget" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভাগের বাজেট"
+          }
+        }
+      }
     },
     "Category budget summary" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভাগ বাজেট সারাংশ"
+          }
+        }
+      }
     },
     "Category budgets" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভাগ বাজেট"
+          }
+        }
+      }
     },
     "Category report" : {
       "localizations" : {
@@ -680,14 +1747,76 @@
         }
       }
     },
+    "Category reports update after transactions are added." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লেনদেন যোগ হলে বিভাগভিত্তিক রিপোর্ট আপডেট হবে।"
+          }
+        }
+      }
+    },
+    "Chart metrics" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "চার্ট মেট্রিক"
+          }
+        }
+      }
+    },
     "Check balance" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যালেন্স দেখুন"
+          }
+        }
+      }
+    },
+    "Choose a report range to build the spend activity map." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যয় কার্যকলাপ মানচিত্র তৈরি করতে একটি রিপোর্ট রেঞ্জ বাছুন।"
+          }
+        }
+      }
     },
     "Clear" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সাফ করুন"
+          }
+        }
+      }
     },
     "Clear budget" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাজেট সাফ করুন"
+          }
+        }
+      }
+    },
+    "Close and over" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নিকট ও অতিক্রম"
+          }
+        }
+      }
     },
     "Color" : {
       "localizations" : {
@@ -707,6 +1836,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "रंग"
+          }
+        }
+      }
+    },
+    "Committed" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অঙ্গীকারবদ্ধ"
+          }
+        }
+      }
+    },
+    "Completed goals are hidden for now." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সম্পন্ন লক্ষ্যগুলো আপাতত লুকানো আছে।"
           }
         }
       }
@@ -765,14 +1914,86 @@
         }
       }
     },
+    "Convert expected transactions when they post." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রত্যাশিত লেনদেন পোস্ট হলে রূপান্তর করুন।"
+          }
+        }
+      }
+    },
     "Convert to expense" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচে রূপান্তর করুন"
+          }
+        }
+      }
     },
     "Convert to income" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আয়ে রূপান্তর করুন"
+          }
+        }
+      }
     },
     "Copy" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কপি করুন"
+          }
+        }
+      }
+    },
+    "Create a daily set from your transaction templates." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার লেনদেন টেমপ্লেট থেকে একটি দৈনিক সেট তৈরি করুন।"
+          }
+        }
+      }
+    },
+    "Create a goal to include it in reports." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রিপোর্টে অন্তর্ভুক্ত করতে একটি লক্ষ্য তৈরি করুন।"
+          }
+        }
+      }
+    },
+    "Create a goal to reserve money before spending." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচের আগে টাকা সংরক্ষণ করতে একটি লক্ষ্য তৈরি করুন।"
+          }
+        }
+      }
+    },
+    "Create an event to group transactions, metrics, and charts." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লেনদেন, মেট্রিক ও চার্ট একত্র করতে একটি ইভেন্ট তৈরি করুন।"
+          }
+        }
+      }
     },
     "Create backup" : {
       "localizations" : {
@@ -792,6 +2013,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "बैकअप बनाएँ"
+          }
+        }
+      }
+    },
+    "Create reusable entries for coffee, groceries, bills, salary, or transfers." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কফি, বাজার, বিল, বেতন বা ট্রান্সফারের পুনর্ব্যবহারযোগ্য এন্ট্রি তৈরি করুন।"
+          }
+        }
+      }
+    },
+    "Create template groups from Settings." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সেটিংস থেকে টেমপ্লেট গ্রুপ তৈরি করুন।"
+          }
+        }
+      }
+    },
+    "Create templates before using bulk entry." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাল্ক এন্ট্রি ব্যবহারের আগে টেমপ্লেট তৈরি করুন।"
+          }
+        }
+      }
+    },
+    "Cumulative" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সঞ্চিত"
           }
         }
       }
@@ -850,6 +2111,56 @@
         }
       }
     },
+    "Current period" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বর্তমান সময়কাল"
+          }
+        }
+      }
+    },
+    "Custom range" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কাস্টম রেঞ্জ"
+          }
+        }
+      }
+    },
+    "Daily" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দৈনিক"
+          }
+        }
+      }
+    },
+    "Daily average" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দৈনিক গড়"
+          }
+        }
+      }
+    },
+    "Daily limit" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দৈনিক সীমা"
+          }
+        }
+      }
+    },
     "Dark" : {
       "localizations" : {
         "bn" : {
@@ -904,10 +2215,45 @@
       }
     },
     "Dates" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "তারিখ"
+          }
+        }
+      }
     },
     "Day" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দিন"
+          }
+        }
+      }
+    },
+    "Day and week patterns from this report range" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই রিপোর্ট রেঞ্জের দিন ও সপ্তাহের ধারা"
+          }
+        }
+      }
+    },
+    "days left" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দিন বাকি"
+          }
+        }
+      }
     },
     "Deactivate" : {
       "localizations" : {
@@ -920,7 +2266,14 @@
       }
     },
     "Default account" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ডিফল্ট অ্যাকাউন্ট"
+          }
+        }
+      }
     },
     "Delete" : {
       "localizations" : {
@@ -945,22 +2298,64 @@
       }
     },
     "Delete %@ from this event?" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই ইভেন্ট থেকে %@ মুছবেন?"
+          }
+        }
+      }
     },
     "Delete event" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট মুছুন"
+          }
+        }
+      }
     },
     "Delete event category" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট বিভাগ মুছুন"
+          }
+        }
+      }
     },
     "Delete event?" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট মুছবেন?"
+          }
+        }
+      }
     },
     "Delete pending row" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অপেক্ষমাণ সারি মুছুন"
+          }
+        }
+      }
     },
     "Delete pending transaction" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অপেক্ষমাণ লেনদেন মুছুন"
+          }
+        }
+      }
     },
     "Delete recurring rule?" : {
       "localizations" : {
@@ -983,7 +2378,14 @@
       }
     },
     "Delete Template" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "টেমপ্লেট মুছুন"
+          }
+        }
+      }
     },
     "Delete transaction" : {
       "localizations" : {
@@ -996,19 +2398,54 @@
       }
     },
     "Delete transaction?" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লেনদেন মুছবেন?"
+          }
+        }
+      }
     },
     "Delete transfer" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ট্রান্সফার মুছুন"
+          }
+        }
+      }
     },
     "Deleting %@ will remove the event from Float, but its transactions will stay in your ledger." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float থেকে %@ মুছে দিলে ইভেন্টটি সরবে, তবে এর লেনদেনগুলো আপনার লেজারে থাকবে।"
+          }
+        }
+      }
     },
     "Description" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিবরণ"
+          }
+        }
+      }
     },
     "Destination" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গন্তব্য"
+          }
+        }
+      }
     },
     "Details" : {
       "localizations" : {
@@ -1032,8 +2469,35 @@
         }
       }
     },
+    "Device authentication is not available." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ডিভাইস প্রমাণীকরণ উপলভ্য নয়।"
+          }
+        }
+      }
+    },
     "Done" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সম্পন্ন"
+          }
+        }
+      }
+    },
+    "Down" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নিচে"
+          }
+        }
+      }
     },
     "Edit" : {
       "localizations" : {
@@ -1066,10 +2530,24 @@
       }
     },
     "Edit event" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট সম্পাদনা করুন"
+          }
+        }
+      }
     },
     "Edit Event" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট সম্পাদনা করুন"
+          }
+        }
+      }
     },
     "Edit Goal" : {
       "localizations" : {
@@ -1082,13 +2560,34 @@
       }
     },
     "Edit Group" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গ্রুপ সম্পাদনা করুন"
+          }
+        }
+      }
     },
     "Edit note" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোট সম্পাদনা করুন"
+          }
+        }
+      }
     },
     "Edit pending transaction" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অপেক্ষমাণ লেনদেন সম্পাদনা করুন"
+          }
+        }
+      }
     },
     "Edit Rule" : {
       "localizations" : {
@@ -1101,17 +2600,42 @@
       }
     },
     "Edit Template" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "টেমপ্লেট সম্পাদনা করুন"
+          }
+        }
+      }
     },
     "Edit Transfer" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ট্রান্সফার সম্পাদনা করুন"
+          }
+        }
+      }
     },
     "Edit upcoming recurring rule" : {
       "localizations" : {
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "আসন্ন পুনরাবৃত্তির নিয়ম সম্পাদনা"
+            "value" : "আসন্ন পুনরাবৃত্ত নিয়ম সম্পাদনা করুন"
+          }
+        }
+      }
+    },
+    "elapsed" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অতিক্রান্ত"
           }
         }
       }
@@ -1122,6 +2646,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "শেষ তারিখ"
+          }
+        }
+      }
+    },
+    "Ended" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শেষ"
           }
         }
       }
@@ -1143,17 +2677,15 @@
             "state" : "translated",
             "value" : "ইংরেজি"
           }
-        },
-        "es" : {
+        }
+      }
+    },
+    "Enter an amount greater than zero." : {
+      "localizations" : {
+        "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Inglés"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "अंग्रेज़ी"
+            "value" : "শূন্যের চেয়ে বড় পরিমাণ লিখুন।"
           }
         }
       }
@@ -1169,27 +2701,77 @@
       }
     },
     "Enter the normal currency amount for this category." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই বিভাগের জন্য সাধারণ মুদ্রার পরিমাণ লিখুন।"
+          }
+        }
+      }
     },
     "Event categories" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট বিভাগ"
+          }
+        }
+      }
     },
     "Event Categories" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট বিভাগ"
+          }
+        }
+      }
     },
     "Event name" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্টের নাম"
+          }
+        }
+      }
     },
     "Event settings" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট সেটিংস"
+          }
+        }
+      }
     },
     "Event Settings" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট সেটিংস"
+          }
+        }
+      }
     },
     "Events" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট"
+          }
+        }
+      }
     },
     "Every %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -1226,7 +2808,14 @@
       }
     },
     "Expected due date" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রত্যাশিত শেষ তারিখ"
+          }
+        }
+      }
     },
     "Expected income" : {
       "localizations" : {
@@ -1246,6 +2835,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "अपेक्षित आय"
+          }
+        }
+      }
+    },
+    "Expected income or expenses will appear here until they are converted." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রূপান্তর না হওয়া পর্যন্ত প্রত্যাশিত আয় বা খরচ এখানে দেখাবে।"
           }
         }
       }
@@ -1273,10 +2872,67 @@
       }
     },
     "Expense category" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচের বিভাগ"
+          }
+        }
+      }
+    },
+    "Expense Category" : {
 
     },
+    "Expense concentration by category" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভাগ অনুযায়ী ব্যয়ের ঘনত্ব"
+          }
+        }
+      }
+    },
+    "Expense intensity by day across %@" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ জুড়ে দিনে ব্যয়ের তীব্রতা"
+          }
+        }
+      }
+    },
+    "Expense intensity by day across this report range" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই রিপোর্ট রেঞ্জ জুড়ে দিনে ব্যয়ের তীব্রতা"
+          }
+        }
+      }
+    },
     "Expense mix" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচের মিশ্রণ"
+          }
+        }
+      }
+    },
+    "Expense transactions will appear here when added." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচের লেনদেন যোগ হলে এখানে দেখাবে।"
+          }
+        }
+      }
     },
     "Expenses" : {
       "localizations" : {
@@ -1323,10 +2979,34 @@
       }
     },
     "Filters" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফিল্টার"
+          }
+        }
+      }
     },
     "Filters active" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ফিল্টার সক্রিয়"
+          }
+        }
+      }
+    },
+    "Flat" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সমতল"
+          }
+        }
+      }
     },
     "Float" : {
       "localizations" : {
@@ -1349,10 +3029,34 @@
       }
     },
     "Float Destination" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float গন্তব্য"
+          }
+        }
+      }
     },
     "Float is locked" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float লক করা আছে"
+          }
+        }
+      }
+    },
+    "Forecast" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পূর্বাভাস"
+          }
+        }
+      }
     },
     "Formatted amount" : {
       "localizations" : {
@@ -1386,24 +3090,65 @@
         }
       }
     },
+    "Funding pressure from open targets" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "চলমান লক্ষ্য থেকে অর্থায়নের চাপ"
+          }
+        }
+      }
+    },
     "Future transactions will no longer be created from this rule." : {
       "localizations" : {
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "এই নিয়ম থেকে ভবিষ্যৎ লেনদেন আর তৈরি হবে না।"
+            "value" : "এই নিয়ম থেকে আর ভবিষ্যৎ লেনদেন তৈরি হবে না।"
           }
         }
       }
     },
     "Get Safe to Spend" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচযোগ্য পরিমাণ পান"
+          }
+        }
+      }
     },
     "Goal target reminders" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লক্ষ্য স্মারক"
+          }
+        }
+      }
+    },
+    "Goal target today" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আজ লক্ষ্যের দিন"
+          }
+        }
+      }
     },
     "Goal time" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লক্ষ্যের সময়"
+          }
+        }
+      }
     },
     "Goals" : {
       "localizations" : {
@@ -1427,11 +3172,65 @@
         }
       }
     },
+    "Goals needed" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রয়োজনীয় লক্ষ্য"
+          }
+        }
+      }
+    },
+    "Goals progress" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লক্ষ্যের অগ্রগতি"
+          }
+        }
+      }
+    },
+    "Graphs" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গ্রাফ"
+          }
+        }
+      }
+    },
+    "Group" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গ্রুপ"
+          }
+        }
+      }
+    },
     "Group name" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গ্রুপের নাম"
+          }
+        }
+      }
     },
     "Groups" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গ্রুপ"
+          }
+        }
+      }
     },
     "Hex color" : {
       "localizations" : {
@@ -1444,7 +3243,24 @@
       }
     },
     "Hide note" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নোট লুকান"
+          }
+        }
+      }
+    },
+    "Highest day" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সর্বোচ্চ দিন"
+          }
+        }
+      }
     },
     "Hindi" : {
       "localizations" : {
@@ -1511,7 +3327,14 @@
       }
     },
     "Hour" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ঘণ্টা"
+          }
+        }
+      }
     },
     "Icon" : {
       "localizations" : {
@@ -1524,7 +3347,14 @@
       }
     },
     "In use" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যবহৃত"
+          }
+        }
+      }
     },
     "Inactive" : {
       "localizations" : {
@@ -1537,7 +3367,14 @@
       }
     },
     "Included" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অন্তর্ভুক্ত"
+          }
+        }
+      }
     },
     "Income" : {
       "localizations" : {
@@ -1571,11 +3408,38 @@
         }
       }
     },
-    "Income vs expenses" : {
+    "Income Category" : {
 
     },
+    "Income vs expenses" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আয় বনাম খরচ"
+          }
+        }
+      }
+    },
+    "Income, expenses, and net movement over time" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সময়ের সাথে আয়, খরচ ও নিট চলাচল"
+          }
+        }
+      }
+    },
     "Jump to month" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মাসে যান"
+          }
+        }
+      }
     },
     "Language" : {
       "localizations" : {
@@ -1599,8 +3463,65 @@
         }
       }
     },
+    "Large expenses will appear here." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বড় খরচ এখানে দেখাবে।"
+          }
+        }
+      }
+    },
+    "Largest expenses in this report range" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই রিপোর্ট রেঞ্জের সবচেয়ে বড় খরচ"
+          }
+        }
+      }
+    },
+    "Last 3 periods" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শেষ ৩ সময়কাল"
+          }
+        }
+      }
+    },
+    "Last period" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শেষ সময়কাল"
+          }
+        }
+      }
+    },
+    "Left" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাকি"
+          }
+        }
+      }
+    },
     "Less" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কম"
+          }
+        }
+      }
     },
     "Light" : {
       "localizations" : {
@@ -1620,6 +3541,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "हल्का"
+          }
+        }
+      }
+    },
+    "Lightest day" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সবচেয়ে হালকা দিন"
           }
         }
       }
@@ -1647,19 +3578,54 @@
       }
     },
     "Load older data" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুরনো ডেটা লোড করুন"
+          }
+        }
+      }
     },
     "Load older events" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুরনো ইভেন্ট লোড করুন"
+          }
+        }
+      }
     },
     "Loading older data" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুরনো ডেটা লোড হচ্ছে"
+          }
+        }
+      }
     },
     "Loading older events" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুরনো ইভেন্ট লোড হচ্ছে"
+          }
+        }
+      }
     },
     "Loading report" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রিপোর্ট লোড হচ্ছে"
+          }
+        }
+      }
     },
     "Manage" : {
       "localizations" : {
@@ -1684,10 +3650,35 @@
       }
     },
     "Mark paid" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরিশোধিত করুন"
+          }
+        }
+      }
     },
     "Metric" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মেট্রিক"
+          }
+        }
+      }
+    },
+    "Missing details, duplicates, and large transactions." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুপস্থিত তথ্য, ডুপ্লিকেট, এবং বড় লেনদেন।"
+          }
+        }
+      }
     },
     "Mode" : {
       "localizations" : {
@@ -1700,7 +3691,34 @@
       }
     },
     "Month" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মাস"
+          }
+        }
+      }
+    },
+    "Monthly" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মাসিক"
+          }
+        }
+      }
+    },
+    "Monthly load" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মাসিক লোড"
+          }
+        }
+      }
     },
     "More" : {
       "localizations" : {
@@ -1724,6 +3742,16 @@
         }
       }
     },
+    "Move money between accounts for this day." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই দিনের জন্য অ্যাকাউন্টের মধ্যে টাকা স্থানান্তর করুন।"
+          }
+        }
+      }
+    },
     "Name" : {
       "localizations" : {
         "bn" : {
@@ -1742,6 +3770,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "नाम"
+          }
+        }
+      }
+    },
+    "Nearest goal" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নিকটতম লক্ষ্য"
           }
         }
       }
@@ -1809,7 +3847,14 @@
       }
     },
     "New Group" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নতুন গ্রুপ"
+          }
+        }
+      }
     },
     "New Rule" : {
       "localizations" : {
@@ -1822,13 +3867,34 @@
       }
     },
     "New Template" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নতুন টেমপ্লেট"
+          }
+        }
+      }
     },
     "Next day" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরের দিন"
+          }
+        }
+      }
     },
     "Next month" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরের মাস"
+          }
+        }
+      }
     },
     "Next run" : {
       "localizations" : {
@@ -1840,11 +3906,266 @@
         }
       }
     },
+    "No active recurring expenses" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো সক্রিয় পুনরাবৃত্ত খরচ নেই"
+          }
+        }
+      }
+    },
+    "No activity in this range yet." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই রেঞ্জে এখনো কোনো কার্যকলাপ নেই।"
+          }
+        }
+      }
+    },
+    "No categories" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো বিভাগ নেই"
+          }
+        }
+      }
+    },
     "No category" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো বিভাগ নেই"
+          }
+        }
+      }
+    },
+    "No category budgets" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো বিভাগের বাজেট নেই"
+          }
+        }
+      }
+    },
+    "No events yet" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখনও কোনো ইভেন্ট নেই"
+          }
+        }
+      }
+    },
+    "No expense categories yet" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখনও কোনো খরচের বিভাগ নেই"
+          }
+        }
+      }
+    },
+    "No expense transactions" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো খরচের লেনদেন নেই"
+          }
+        }
+      }
+    },
+    "No expenses yet" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখনও কোনো খরচ নেই"
+          }
+        }
+      }
+    },
+    "No forecast yet" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখনও কোনো পূর্বাভাস নেই"
+          }
+        }
+      }
+    },
+    "No goals yet" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখনও কোনো লক্ষ্য নেই"
+          }
+        }
+      }
+    },
+    "No groups" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো গ্রুপ নেই"
+          }
+        }
+      }
+    },
+    "No matching events" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মিলে যাওয়া কোনো ইভেন্ট নেই"
+          }
+        }
+      }
+    },
+    "No matching transactions" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মিলে যাওয়া কোনো লেনদেন নেই"
+          }
+        }
+      }
+    },
+    "No pending transactions" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো মুলতুবি লেনদেন নেই"
+          }
+        }
+      }
+    },
+    "No range selected" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো রেঞ্জ নির্বাচিত নয়"
+          }
+        }
+      }
+    },
+    "No recurring rules" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো পুনরাবৃত্ত নিয়ম নেই"
+          }
+        }
+      }
+    },
+    "No spending yet" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখনও কোনো ব্যয় নেই"
+          }
+        }
+      }
+    },
+    "No target date" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো লক্ষ্য তারিখ নেই"
+          }
+        }
+      }
+    },
+    "No templates" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো টেমপ্লেট নেই"
+          }
+        }
+      }
     },
     "No templates available." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো টেমপ্লেট নেই।"
+          }
+        }
+      }
+    },
+    "No transactions" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো লেনদেন নেই"
+          }
+        }
+      }
+    },
+    "No transactions yet" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখনও কোনো লেনদেন নেই"
+          }
+        }
+      }
+    },
+    "No transfers" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "কোনো ট্রান্সফার নেই"
+          }
+        }
+      }
+    },
+    "No trend yet" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখনও কোনো ট্রেন্ড নেই"
+          }
+        }
+      }
+    },
+    "No visible goals" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দেখানোর মতো কোনো লক্ষ্য নেই"
+          }
+        }
+      }
     },
     "None" : {
       "localizations" : {
@@ -1852,6 +4173,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "কোনোটিই নয়"
+          }
+        }
+      }
+    },
+    "Not posted" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পোস্ট করা হয়নি"
           }
         }
       }
@@ -1878,26 +4209,127 @@
         }
       }
     },
+    "Nothing to review" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পর্যালোচনার কিছু নেই"
+          }
+        }
+      }
+    },
+    "Off" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বন্ধ"
+          }
+        }
+      }
+    },
+    "On track" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সঠিক পথে"
+          }
+        }
+      }
+    },
     "Open a specific area of Float." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float-এর নির্দিষ্ট অংশ খুলুন।"
+          }
+        }
+      }
     },
     "Open Float" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float খুলুন"
+          }
+        }
+      }
     },
     "Open Float ready to add an expense." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচ যোগ করতে Float খুলুন।"
+          }
+        }
+      }
     },
     "Open Float ready to add income." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আয় যোগ করতে Float খুলুন।"
+          }
+        }
+      }
     },
     "Open Float ready to move money between accounts." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অ্যাকাউন্টের মধ্যে টাকা স্থানান্তর করতে Float খুলুন।"
+          }
+        }
+      }
+    },
+    "Open Float to update" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float আপডেট করতে খুলুন"
+          }
+        }
+      }
+    },
+    "Open Float to update safe to spend." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচযোগ্য পরিমাণ আপডেট করতে Float খুলুন।"
+          }
+        }
+      }
     },
     "Open today" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আজ খুলুন"
+          }
+        }
+      }
     },
     "Opening %@ in Float." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float-এ %@ খোলা হচ্ছে।"
+          }
+        }
+      }
     },
     "Opening balance minor units" : {
       "localizations" : {
@@ -1910,25 +4342,198 @@
       }
     },
     "Opening Float to add a transfer." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ট্রান্সফার যোগ করতে Float খোলা হচ্ছে।"
+          }
+        }
+      }
     },
     "Opening Float to add an expense." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচ যোগ করতে Float খোলা হচ্ছে।"
+          }
+        }
+      }
     },
     "Opening Float to add income." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আয় যোগ করতে Float খোলা হচ্ছে।"
+          }
+        }
+      }
     },
     "Over budget" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বাজেট অতিক্রম"
+          }
+        }
+      }
+    },
+    "Over budget only" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শুধু বাজেট অতিক্রম"
+          }
+        }
+      }
+    },
+    "Over by %@" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ বেশি"
+          }
+        }
+      }
+    },
+    "Over by %lld minor units." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld ক্ষুদ্র একক বেশি।"
+          }
+        }
+      }
     },
     "Over daily allowance" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দৈনিক সীমা ছাড়িয়েছে"
+          }
+        }
+      }
+    },
+    "Overview" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সারাংশ"
+          }
+        }
+      }
+    },
+    "Pay recurring" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরাবৃত্ত পরিশোধ"
+          }
+        }
+      }
     },
     "Pay recurring?" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরাবৃত্ত পরিশোধ করবেন?"
+          }
+        }
+      }
+    },
+    "pending" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মুলতুবি"
+          }
+        }
+      }
     },
     "Pending" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অপেক্ষমাণ"
+          }
+        }
+      }
+    },
+    "Pending • Due %@" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মুলতুবি • বকেয়া %@"
+          }
+        }
+      }
+    },
+    "Pending due today" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আজ বকেয়া মুলতুবি"
+          }
+        }
+      }
+    },
+    "Pending overdue" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মেয়াদোত্তীর্ণ মুলতুবি"
+          }
+        }
+      }
+    },
+    "Pending queue" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মুলতুবি সারি"
+          }
+        }
+      }
+    },
+    "Pending transactions" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মুলতুবি লেনদেন"
+          }
+        }
+      }
+    },
+    "Pending upcoming" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আসন্ন মুলতুবি"
+          }
+        }
+      }
     },
     "Period" : {
       "localizations" : {
@@ -1952,8 +4557,35 @@
         }
       }
     },
+    "Period elapsed" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সময় অতিক্রান্ত"
+          }
+        }
+      }
+    },
     "Pin event" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট পিন করুন"
+          }
+        }
+      }
+    },
+    "Pinned events" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পিন করা ইভেন্ট"
+          }
+        }
+      }
     },
     "Portable data" : {
       "localizations" : {
@@ -1987,6 +4619,26 @@
         }
       }
     },
+    "Positive flow" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইতিবাচক প্রবাহ"
+          }
+        }
+      }
+    },
+    "Predictable bills and subscriptions" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পূর্বানুমেয় বিল ও সাবস্ক্রিপশন"
+          }
+        }
+      }
+    },
     "Preferences" : {
       "localizations" : {
         "bn" : {
@@ -2010,10 +4662,24 @@
       }
     },
     "Previous day" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পূর্বের দিন"
+          }
+        }
+      }
     },
     "Previous month" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পূর্বের মাস"
+          }
+        }
+      }
     },
     "Privacy" : {
       "localizations" : {
@@ -2038,10 +4704,34 @@
       }
     },
     "Privacy Lock" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গোপনীয়তা লক"
+          }
+        }
+      }
+    },
+    "Projected recurring" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "প্রক্ষেপিত পুনরাবৃত্ত"
+          }
+        }
+      }
     },
     "Qty %lld" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পরিমাণ %lld"
+          }
+        }
+      }
     },
     "Range" : {
       "localizations" : {
@@ -2054,10 +4744,44 @@
       }
     },
     "Ratio" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুপাত"
+          }
+        }
+      }
+    },
+    "Ratios" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুপাত"
+          }
+        }
+      }
     },
     "Read the latest safe-to-spend amount from Float." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Float থেকে সর্বশেষ খরচযোগ্য পরিমাণ পড়ুন।"
+          }
+        }
+      }
+    },
+    "Recent" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সাম্প্রতিক"
+          }
+        }
+      }
     },
     "Recurring" : {
       "localizations" : {
@@ -2081,17 +4805,85 @@
         }
       }
     },
+    "Recurring commitments" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরাবৃত্ত প্রতিশ্রুতি"
+          }
+        }
+      }
+    },
+    "Recurring commitments appear here once added." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "যোগ করা হলে পুনরাবৃত্ত প্রতিশ্রুতিগুলো এখানে দেখাবে।"
+          }
+        }
+      }
+    },
+    "Recurring due" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরাবৃত্ত বকেয়া"
+          }
+        }
+      }
+    },
     "Recurring due reminders" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরাবৃত্তি বকেয়া স্মারক"
+          }
+        }
+      }
+    },
+    "Recurring item" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরাবৃত্ত আইটেম"
+          }
+        }
+      }
     },
     "Recurring time" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরাবৃত্তির সময়"
+          }
+        }
+      }
     },
     "Refresh balance" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যালেন্স রিফ্রেশ করুন"
+          }
+        }
+      }
     },
     "Reload transactions" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লেনদেন পুনরায় লোড করুন"
+          }
+        }
+      }
     },
     "remaining" : {
       "localizations" : {
@@ -2103,11 +4895,35 @@
         }
       }
     },
+    "Remaining" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবশিষ্ট"
+          }
+        }
+      }
+    },
     "Reminders" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "স্মারক"
+          }
+        }
+      }
     },
     "Report could not load" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "রিপোর্ট লোড করা যায়নি"
+          }
+        }
+      }
     },
     "Reports" : {
       "localizations" : {
@@ -2186,22 +5002,105 @@
       }
     },
     "Retry" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পুনরায় চেষ্টা করুন"
+          }
+        }
+      }
+    },
+    "Review queue" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পর্যালোচনা সারি"
+          }
+        }
+      }
     },
     "Review Queue" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "পর্যালোচনা সারি"
+          }
+        }
+      }
     },
     "safe" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নিরাপদ"
+          }
+        }
+      }
     },
     "Safe" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নিরাপদ"
+          }
+        }
+      }
+    },
+    "Safe to spend" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচযোগ্য"
+          }
+        }
+      }
     },
     "Safe to Spend" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচযোগ্য পরিমাণ"
+          }
+        }
+      }
+    },
+    "Safe-to-spend position against period timing" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সময়ের তুলনায় safe-to-spend অবস্থান"
+          }
+        }
+      }
+    },
+    "same as yesterday" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "গতকালের মতোই"
+          }
+        }
+      }
     },
     "Sample data" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নমুনা ডেটা"
+          }
+        }
+      }
     },
     "Save" : {
       "localizations" : {
@@ -2226,13 +5125,44 @@
       }
     },
     "Save %@ for quick reuse." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দ্রুত পুনঃব্যবহারের জন্য %@ সংরক্ষণ করুন।"
+          }
+        }
+      }
     },
     "Save and add another" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সংরক্ষণ করে আরেকটি যোগ করুন"
+          }
+        }
+      }
     },
     "Save Split Template" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভক্ত টেমপ্লেট সংরক্ষণ করুন"
+          }
+        }
+      }
+    },
+    "Saved" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সংরক্ষিত"
+          }
+        }
+      }
     },
     "Saved minor units" : {
       "localizations" : {
@@ -2245,13 +5175,34 @@
       }
     },
     "Search categories" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভাগ খুঁজুন"
+          }
+        }
+      }
     },
     "Search event transactions" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট লেনদেন খুঁজুন"
+          }
+        }
+      }
     },
     "Search events" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট খুঁজুন"
+          }
+        }
+      }
     },
     "Search notes, accounts, amounts" : {
       "localizations" : {
@@ -2264,22 +5215,74 @@
       }
     },
     "Seed data" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ডেটা পূরণ করুন"
+          }
+        }
+      }
     },
     "Seed sample data?" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নমুনা ডেটা যোগ করবেন?"
+          }
+        }
+      }
     },
     "Seeding two years of data." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দুই বছরের ডেটা যোগ করা হচ্ছে।"
+          }
+        }
+      }
     },
     "Select" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "নির্বাচন করুন"
+          }
+        }
+      }
     },
     "Set a budget for one budget period." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "একটি বাজেট পিরিয়ডের জন্য বাজেট নির্ধারণ করুন।"
+          }
+        }
+      }
     },
     "Set an amount for each expense category in one budget period. Leave a category blank or enter 0 to remove its budget." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "একটি বাজেট পিরিয়ডে প্রতিটি খরচের বিভাগের জন্য একটি পরিমাণ নির্ধারণ করুন। কোনো বিভাগের বাজেট সরাতে সেটি ফাঁকা রাখুন বা 0 লিখুন।"
+          }
+        }
+      }
+    },
+    "Set category limits in Budget settings to track them here." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখানে ট্র্যাক করতে বাজেট সেটিংসে বিভাগ সীমা নির্ধারণ করুন।"
+          }
+        }
+      }
     },
     "Settings" : {
       "localizations" : {
@@ -2314,7 +5317,14 @@
       }
     },
     "Show pinned events in home view" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "হোম ভিউতে পিন করা ইভেন্ট দেখান"
+          }
+        }
+      }
     },
     "Sort" : {
       "localizations" : {
@@ -2345,44 +5355,209 @@
             "state" : "translated",
             "value" : "স্প্যানিশ"
           }
-        },
-        "es" : {
+        }
+      }
+    },
+    "Spend activity" : {
+      "localizations" : {
+        "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Español"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "स्पेनिश"
+            "value" : "ব্যয় কার্যকলাপ"
           }
         }
       }
     },
     "Spend activity heatmap" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচ কার্যকলাপ হিটম্যাপ"
+          }
+        }
+      }
     },
     "Spend with clarity" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "স্বচ্ছভাবে খরচ করুন"
+          }
+        }
+      }
     },
     "Spendable" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচযোগ্য"
+          }
+        }
+      }
+    },
+    "Spending" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যয়"
+          }
+        }
+      }
+    },
+    "Spending against category limits for this range" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই রেঞ্জে বিভাগ সীমার তুলনায় ব্যয়"
+          }
+        }
+      }
+    },
+    "Spending fast" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দ্রুত খরচ হচ্ছে"
+          }
+        }
+      }
+    },
+    "Spending is above the previous comparable range." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যয় আগের তুলনীয় রেঞ্জের চেয়ে বেশি।"
+          }
+        }
+      }
+    },
+    "Spending is ahead of time elapsed, so the daily allowance is tightening." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যয় অতিক্রান্ত সময়ের চেয়ে বেশি, তাই দৈনিক বরাদ্দ কমছে।"
+          }
+        }
+      }
+    },
+    "Spending is below the previous comparable range." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যয় আগের তুলনীয় রেঞ্জের চেয়ে কম।"
+          }
+        }
+      }
+    },
+    "Spending is tracking within the current period pace." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যয় বর্তমান সময়কালের গতির মধ্যে রয়েছে।"
+          }
+        }
+      }
+    },
+    "Spending matches the previous comparable range." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যয় আগের তুলনীয় রেঞ্জের সঙ্গে মিলে যাচ্ছে।"
+          }
+        }
+      }
+    },
+    "Spending used" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যবহৃত ব্যয়"
+          }
+        }
+      }
+    },
+    "Spent" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যয়িত"
+          }
+        }
+      }
+    },
+    "spent so far" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এ পর্যন্ত ব্যয়"
+          }
+        }
+      }
     },
     "Split" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভক্ত"
+          }
+        }
+      }
     },
     "Split amount" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভক্ত পরিমাণ"
+          }
+        }
+      }
     },
     "Split row actions" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বিভক্ত সারির কাজ"
+          }
+        }
+      }
     },
     "Split transaction" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "লেনদেন বিভক্ত করুন"
+          }
+        }
+      }
     },
     "Start date" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শুরুর তারিখ"
+          }
+        }
+      }
     },
     "Start using Float" : {
       "localizations" : {
@@ -2437,10 +5612,24 @@
       }
     },
     "Status" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবস্থা"
+          }
+        }
+      }
     },
     "Swap" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বদলান"
+          }
+        }
+      }
     },
     "System" : {
       "localizations" : {
@@ -2465,7 +5654,15 @@
       }
     },
     "Tap to browse %lld categories" : {
-
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldটি বিভাগ দেখতে চাপুন"
+          }
+        }
+      }
     },
     "Target %@" : {
       "localizations" : {
@@ -2498,16 +5695,44 @@
       }
     },
     "Template" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "টেমপ্লেট"
+          }
+        }
+      }
     },
     "Template Groups" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "টেমপ্লেট গ্রুপ"
+          }
+        }
+      }
     },
     "Template name" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "টেমপ্লেটের নাম"
+          }
+        }
+      }
     },
     "Templates" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "টেমপ্লেট"
+          }
+        }
+      }
     },
     "Theme" : {
       "localizations" : {
@@ -2542,14 +5767,45 @@
         }
       }
     },
+    "There is no comparable prior spending yet." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এখনও তুলনীয় আগের ব্যয় নেই।"
+          }
+        }
+      }
+    },
     "This adds two years of varied sample transactions and transfers to your current data." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এটি আপনার বর্তমান ডেটায় দুই বছরের বিভিন্ন নমুনা লেনদেন ও ট্রান্সফার যোগ করবে।"
+          }
+        }
+      }
     },
     "This day is above the current daily allowance." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই দিনটি বর্তমান দৈনিক সীমার উপরে।"
+          }
+        }
+      }
     },
     "This day is inside the current daily allowance." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই দিনটি বর্তমান দৈনিক সীমার মধ্যে।"
+          }
+        }
+      }
     },
     "This period" : {
       "localizations" : {
@@ -2573,6 +5829,16 @@
         }
       }
     },
+    "This period is over budget. Reduce flexible spending or adjust the budget assumptions." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই সময়কাল বাজেটের বাইরে। নমনীয় ব্যয় কমান বা বাজেট অনুমান সমন্বয় করুন।"
+          }
+        }
+      }
+    },
     "This permanently deletes your accounts, categories, budgets, goals, recurring rules, and transactions. This action cannot be undone." : {
       "localizations" : {
         "bn" : {
@@ -2583,11 +5849,58 @@
         }
       }
     },
+    "This will create a posted transaction and advance the next recurring date." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এটি একটি পোস্ট করা লেনদেন তৈরি করবে এবং পরবর্তী পুনরাবৃত্ত তারিখ এগিয়ে দেবে।"
+          }
+        }
+      }
+    },
     "This will create a posted transaction and advance the next recurring date.\n\n%@" : {
-
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এটি একটি পোস্টেড লেনদেন তৈরি করবে এবং পরবর্তী পুনরাবৃত্তির তারিখ এগিয়ে দেবে.\n\n%@"
+          }
+        }
+      }
+    },
+    "This year" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "এই বছর"
+          }
+        }
+      }
     },
     "Time of day" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দিনের সময়"
+          }
+        }
+      }
+    },
+    "Timelines, charts, and linked transactions." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "টাইমলাইন, চার্ট, এবং সংযুক্ত লেনদেন।"
+          }
+        }
+      }
     },
     "To" : {
       "localizations" : {
@@ -2621,6 +5934,26 @@
         }
       }
     },
+    "Top category" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শীর্ষ বিভাগ"
+          }
+        }
+      }
+    },
+    "Top transactions" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "শীর্ষ লেনদেন"
+          }
+        }
+      }
+    },
     "Total" : {
       "localizations" : {
         "bn" : {
@@ -2632,7 +5965,14 @@
       }
     },
     "Total amount" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "মোট পরিমাণ"
+          }
+        }
+      }
     },
     "Transaction deleted" : {
       "localizations" : {
@@ -2666,8 +6006,76 @@
         }
       }
     },
+    "transactions need attention." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "টি লেনদেন মনোযোগ প্রয়োজন।"
+          }
+        }
+      }
+    },
+    "Transactions with missing details, likely duplicates, or unusually high amounts will appear here." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অনুপস্থিত তথ্য, সম্ভাব্য ডুপ্লিকেট বা অস্বাভাবিক বড় পরিমাণের লেনদেন এখানে দেখাবে।"
+          }
+        }
+      }
+    },
     "Transfer" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ট্রান্সফার"
+          }
+        }
+      }
+    },
+    "Transfers" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ট্রান্সফার"
+          }
+        }
+      }
+    },
+    "Try a different search or filter." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ভিন্ন অনুসন্ধান বা ফিল্টার চেষ্টা করুন।"
+          }
+        }
+      }
+    },
+    "Try a different search." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ভিন্ন অনুসন্ধান চেষ্টা করুন।"
+          }
+        }
+      }
+    },
+    "Try changing your search or filters." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার অনুসন্ধান বা ফিল্টার পরিবর্তন করুন।"
+          }
+        }
+      }
     },
     "Type" : {
       "localizations" : {
@@ -2692,7 +6100,14 @@
       }
     },
     "Unbudgeted" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অবাজেটেড"
+          }
+        }
+      }
     },
     "Undo" : {
       "localizations" : {
@@ -2716,25 +6131,112 @@
         }
       }
     },
-    "Unlock" : {
-
-    },
-    "Unlocking" : {
-
-    },
-    "Unpin event" : {
-
-    },
-    "Unused" : {
-
-    },
-    "Upcoming recurring" : {
-      "extractionState" : "stale",
+    "Unknown Account" : {
       "localizations" : {
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "আসন্ন পুনরাবৃত্তি"
+            "value" : "অজানা অ্যাকাউন্ট"
+          }
+        }
+      }
+    },
+    "Unknown Category" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অজানা বিভাগ"
+          }
+        }
+      }
+    },
+    "Unlock" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আনলক"
+          }
+        }
+      }
+    },
+    "Unlock Float to view your finances." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনার অর্থ দেখতে Float আনলক করুন।"
+          }
+        }
+      }
+    },
+    "Unlocking" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আনলক করা হচ্ছে"
+          }
+        }
+      }
+    },
+    "Unpin event" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট আনপিন করুন"
+          }
+        }
+      }
+    },
+    "Unused" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "অব্যবহৃত"
+          }
+        }
+      }
+    },
+    "Up" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "উপরে"
+          }
+        }
+      }
+    },
+    "Upcoming bill" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আগামী বিল"
+          }
+        }
+      }
+    },
+    "Upcoming income" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আগামী আয়"
+          }
+        }
+      }
+    },
+    "Upcoming recurring" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আসন্ন পুনরাবৃত্ত"
           }
         }
       }
@@ -2762,13 +6264,95 @@
       }
     },
     "Use Face ID, Touch ID, or your passcode to continue." : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "চালিয়ে যেতে Face ID, Touch ID, অথবা আপনার পাসকোড ব্যবহার করুন।"
+          }
+        }
+      }
+    },
+    "used" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ব্যবহৃত"
+          }
+        }
+      }
     },
     "View" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "দেখুন"
+          }
+        }
+      }
+    },
+    "View events" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ইভেন্ট দেখুন"
+          }
+        }
+      }
+    },
+    "Wallet" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ওয়ালেট"
+          }
+        }
+      }
+    },
+    "Week trend" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সপ্তাহের ট্রেন্ড"
+          }
+        }
+      }
+    },
+    "Weekly" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "সাপ্তাহিক"
+          }
+        }
+      }
     },
     "Will create" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "তৈরি হবে"
+          }
+        }
+      }
+    },
+    "Year" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "বছর"
+          }
+        }
+      }
     },
     "You can spend" : {
       "extractionState" : "stale",
@@ -2789,6 +6373,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "आप खर्च कर सकते हैं"
+          }
+        }
+      }
+    },
+    "Your transactions will appear here as you add them." : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আপনি যোগ করলে আপনার লেনদেন এখানে দেখাবে।"
           }
         }
       }

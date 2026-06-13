@@ -110,7 +110,9 @@ struct RecurringView: View {
     private func cadenceText(for rule: RecurringRuleItem) -> String {
         rule.intervalCount == 1
             ? rule.cadence.title
-            : "Every \(rule.intervalCount) \(rule.cadence.title.lowercased())s"
+            : String(
+                localized: "Every \(rule.intervalCount) \(rule.cadence.title.lowercased())s"
+            )
     }
 
     private func deletePendingRule() {
@@ -154,7 +156,14 @@ private struct RecurringRuleRow: View {
                         .foregroundStyle(rule.active ? .primary : .secondary)
                         .lineLimit(1)
                     Text(
-                        "\(rule.account?.name ?? "Unknown Account") • Next \(rule.nextRunDate.formatted(date: .abbreviated, time: .omitted))"
+                        AppLocalization.format(
+                            "%@ • Next %@",
+                            rule.account?.name ?? AppLocalization.string("Unknown Account"),
+                            rule.nextRunDate.formatted(
+                                Date.FormatStyle(date: .abbreviated, time: .omitted)
+                                    .locale(AppLocalization.locale)
+                            )
+                        )
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -216,8 +225,8 @@ private struct RecurringRuleRow: View {
 
     private var title: String {
         rule.note?.isEmpty == false
-            ? rule.note ?? "Recurring"
-            : rule.category?.name ?? "Unknown Category"
+            ? rule.note ?? String(localized: "Recurring")
+            : rule.category?.name ?? String(localized: "Unknown Category")
     }
 
     private var amount: String {
@@ -228,7 +237,11 @@ private struct RecurringRuleRow: View {
     }
 
     private var statusBadge: some View {
-        Text(rule.active ? "Active" : "Inactive")
+        Text(
+            rule.active
+                ? String(localized: "Active")
+                : String(localized: "Inactive")
+        )
             .font(.caption2.weight(.semibold))
             .foregroundStyle(tint)
             .padding(.horizontal, 9)
@@ -285,8 +298,12 @@ struct RecurringEditorView: View {
                 }
                 Stepper(
                     intervalCount == 1
-                        ? "Every \(cadence.title.lowercased())"
-                        : "Every \(intervalCount) \(cadence.title.lowercased())s",
+                        ? AppLocalization.format("Every %@", cadence.title.lowercased())
+                        : AppLocalization.format(
+                            "Every %lld %@s",
+                            Int64(intervalCount),
+                            cadence.title.lowercased()
+                        ),
                     value: $intervalCount,
                     in: 1...24
                 )
@@ -379,7 +396,7 @@ struct RecurringEditorView: View {
     private func save() {
         let amount = amountMinor
         guard amount > 0 else {
-            validationMessage = "Enter an amount greater than zero."
+            validationMessage = String(localized: "Enter an amount greater than zero.")
             return
         }
         let category = selectedCategory ?? DefaultCategoryResolver.resolve(

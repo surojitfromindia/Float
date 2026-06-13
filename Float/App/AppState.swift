@@ -30,6 +30,52 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     }
 }
 
+enum AppLocalization {
+    private static let selectedLanguageDefaultsKey = "selectedLanguageCode"
+
+    static var selectedLanguage: AppLanguage {
+        let rawValue = UserDefaults.standard.string(
+            forKey: selectedLanguageDefaultsKey
+        ) ?? AppLanguage.system.rawValue
+        return AppLanguage(rawValue: rawValue) ?? .system
+    }
+
+    static var locale: Locale {
+        selectedLanguage.locale
+    }
+
+    static var bundle: Bundle {
+        switch selectedLanguage {
+        case .system:
+            return .main
+        default:
+            guard
+                let path = Bundle.main.path(
+                    forResource: selectedLanguage.rawValue,
+                    ofType: "lproj"
+                ),
+                let localizedBundle = Bundle(path: path)
+            else {
+                return .main
+            }
+            return localizedBundle
+        }
+    }
+
+    static func string(_ key: String) -> String {
+        bundle.localizedString(forKey: key, value: nil, table: nil)
+    }
+
+    static func format(_ key: String, _ arguments: CVarArg...) -> String {
+        format(key, arguments: arguments)
+    }
+
+    static func format(_ key: String, arguments: [CVarArg]) -> String {
+        let format = string(key)
+        return String(format: format, locale: locale, arguments: arguments)
+    }
+}
+
 enum FloatTab: Hashable {
     case home
     case transactions

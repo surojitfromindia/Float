@@ -138,17 +138,17 @@ struct AppRootView: View {
         lockMessage = nil
 
         let context = LAContext()
-        context.localizedCancelTitle = "Cancel"
+        context.localizedCancelTitle = String(localized: "Cancel")
         var error: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
             isAuthenticating = false
-            lockMessage = "Device authentication is not available."
+            lockMessage = String(localized: "Device authentication is not available.")
             return
         }
 
         context.evaluatePolicy(
             .deviceOwnerAuthentication,
-            localizedReason: "Unlock Float to view your finances."
+            localizedReason: String(localized: "Unlock Float to view your finances.")
         ) { success, error in
             Task { @MainActor in
                 isAuthenticating = false
@@ -159,7 +159,7 @@ struct AppRootView: View {
                 } else {
                     isUnlocked = false
                     lockMessage = error?.localizedDescription
-                        ?? "Authentication was not completed."
+                        ?? String(localized: "Authentication was not completed.")
                 }
             }
         }
@@ -227,15 +227,15 @@ private struct LaunchSplashView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    palette.backgroundTop,
-                    palette.backgroundBottom,
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+//            LinearGradient(
+//                colors: [
+//                    palette.backgroundTop,
+//                    palette.backgroundBottom,
+//                ],
+//                startPoint: .topLeading,
+//                endPoint: .bottomTrailing
+//            )
+//            .ignoresSafeArea()
 
             VStack(spacing: 18) {
                 Image("SplashIcon")

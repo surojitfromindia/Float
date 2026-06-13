@@ -80,12 +80,12 @@ enum WidgetSnapshotPublisher {
 
     private static func statusText(for result: SafeToSpendResult) -> String {
         if result.overAmountMinor > 0 {
-            return "Over budget"
+            return String(localized: "Over budget")
         }
         if result.spendingProgress > result.periodProgress + 0.12 {
-            return "Spending fast"
+            return String(localized: "Spending fast")
         }
-        return "On track"
+        return String(localized: "On track")
     }
 
     private static func todayExpensesMinor(_ transactions: [TransactionItem]) -> Int64 {

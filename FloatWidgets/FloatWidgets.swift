@@ -1,3 +1,4 @@
+import Foundation
 import AppIntents
 import SwiftUI
 import WidgetKit
@@ -21,7 +22,7 @@ private struct FloatWidgetSnapshot: Codable {
         dailyAllowanceMinor: 0,
         daysRemaining: 0,
         periodProgress: 0,
-        statusText: "Open Float to update",
+        statusText: String(localized: "Open Float to update"),
         currencyCode: Locale.current.currency?.identifier ?? "USD",
         updatedAt: Date(),
         todayExpensesMinor: nil,
@@ -49,7 +50,7 @@ private struct SafeToSpendProvider: TimelineProvider {
                 dailyAllowanceMinor: 60_300,
                 daysRemaining: 7,
                 periodProgress: 0.45,
-                statusText: "On track",
+                statusText: String(localized: "On track"),
                 currencyCode: Locale.current.currency?.identifier ?? "USD",
                 updatedAt: Date(),
                 todayExpensesMinor: 18_700,
@@ -229,11 +230,19 @@ private struct SafeToSpendWidgetView: View {
         ZStack {
             progressRing
             VStack(spacing: 0) {
-                Text(hasData ? shortCompactMoney(entry.snapshot.safeToSpendMinor) : "Open")
+                Text(
+                    hasData
+                        ? shortCompactMoney(entry.snapshot.safeToSpendMinor)
+                        : String(localized: "Open")
+                )
                     .font(.system(size: 12, weight: .bold, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
-                Text(hasData ? "safe" : "Float")
+                Text(
+                    hasData
+                        ? String(localized: "safe")
+                        : String(localized: "Float")
+                )
                     .font(.system(size: 8, weight: .semibold, design: .rounded))
                     .foregroundStyle(.secondary)
             }
@@ -267,7 +276,7 @@ private struct SafeToSpendWidgetView: View {
         .buttonStyle(.plain)
     }
 
-    private func widgetMetric(title: String, value: String) -> some View {
+    private func widgetMetric(title: LocalizedStringResource, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.caption2.weight(.semibold))
@@ -283,36 +292,38 @@ private struct SafeToSpendWidgetView: View {
         if !hasData {
             return entry.snapshot.statusText
         }
-        return "Safe \(shortMoney(entry.snapshot.safeToSpendMinor)) left"
+        return String(localized: "Safe \(shortMoney(entry.snapshot.safeToSpendMinor)) left")
     }
 
     private var headlineText: String {
-        hasData ? shortMoney(entry.snapshot.safeToSpendMinor) : "Open Float"
+        hasData ? shortMoney(entry.snapshot.safeToSpendMinor) : String(localized: "Open Float")
     }
 
     private var detailText: String {
         guard hasData else {
-            return "to update"
+            return String(localized: "to update")
         }
-        return "\(entry.snapshot.daysRemaining)d left - \(entry.snapshot.statusText)"
+        return String(
+            localized: "\(entry.snapshot.daysRemaining)d left - \(entry.snapshot.statusText)"
+        )
     }
 
     private var nextRecurringText: String {
         guard let title = entry.snapshot.nextRecurringTitle, !title.isEmpty else {
-            return "None"
+            return String(localized: "None")
         }
         if let amount = entry.snapshot.nextRecurringAmountMinor {
-            return "\(title) \(shortMoney(amount))"
+            return String(localized: "\(title) \(shortMoney(amount))")
         }
         return title
     }
 
     private var budgetAlertText: String {
         guard let title = entry.snapshot.topBudgetAlertTitle, !title.isEmpty else {
-            return "Clear"
+            return String(localized: "Clear")
         }
         if let progress = entry.snapshot.topBudgetAlertProgress {
-            return "\(Int((progress * 100).rounded()))% \(title)"
+            return String(localized: "\(Int((progress * 100).rounded()))% \(title)")
         }
         return title
     }

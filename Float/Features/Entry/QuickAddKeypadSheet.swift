@@ -1,3 +1,4 @@
+import Foundation
 import SwiftData
 import SwiftUI
 
@@ -8,7 +9,7 @@ private enum QuickTransactionKind: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var title: String {
+    var title: LocalizedStringResource {
         switch self {
         case .expense: "Expense"
         case .income: "Income"
@@ -214,7 +215,11 @@ struct QuickAddKeypadSheet: View {
                 .padding(20)
                 .padding(.bottom, 24)
             }
-            .navigationTitle(transactionToEdit == nil ? "Add" : "Edit")
+            .navigationTitle(
+                transactionToEdit == nil
+                    ? LocalizedStringResource("Add")
+                    : LocalizedStringResource("Edit")
+            )
             .navigationBarTitleDisplayMode(.inline)
             .keyboardDismissControls()
             .toolbarBackground(Color(.systemGroupedBackground), for: .navigationBar)
@@ -224,7 +229,12 @@ struct QuickAddKeypadSheet: View {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(transactionToEdit == nil ? "Save" : "Done", action: save)
+                    Button(
+                        transactionToEdit == nil
+                            ? LocalizedStringResource("Save")
+                            : LocalizedStringResource("Done"),
+                        action: save
+                    )
                         .disabled(amountMinor == 0)
                 }
             }
@@ -249,7 +259,9 @@ struct QuickAddKeypadSheet: View {
             }
             .sheet(isPresented: $showingCategoryPicker) {
                 CategoryPickerSheet(
-                    title: isExpense ? "Expense Category" : "Income Category",
+                    title: isExpense
+                        ? LocalizedStringResource("Expense Category")
+                        : LocalizedStringResource("Income Category"),
                     categories: visibleCategories,
                     selectedCategory: $selectedCategory
                 )
@@ -276,7 +288,11 @@ struct QuickAddKeypadSheet: View {
                 HStack(spacing: 10) {
                     Image(systemName: "divide.circle.fill")
                         .font(.headline)
-                    Text(transactionToEdit == nil ? "Split amount" : "Split transaction")
+                    Text(
+                        transactionToEdit == nil
+                            ? LocalizedStringResource("Split amount")
+                            : LocalizedStringResource("Split transaction")
+                    )
                         .font(.subheadline.weight(.semibold))
                     Spacer()
                     Image(systemName: "chevron.right")
@@ -390,9 +406,14 @@ struct QuickAddKeypadSheet: View {
                     HStack(spacing: 12) {
                         categorySelectorIcon
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(selectedCategory?.name ?? "Choose category")
+                            Text(selectedCategory?.name ?? AppLocalization.string("Choose category"))
                                 .font(.subheadline.weight(.semibold))
-                            Text("Tap to browse \(visibleCategories.count) categories")
+                            Text(
+                                AppLocalization.format(
+                                    "Tap to browse %lld categories",
+                                    Int64(visibleCategories.count)
+                                )
+                            )
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -420,7 +441,7 @@ struct QuickAddKeypadSheet: View {
 
     @ViewBuilder
     private func categoryChips(
-        title: String,
+        title: LocalizedStringResource,
         categories: [CategoryItem]
     ) -> some View {
         if !categories.isEmpty {
@@ -600,11 +621,11 @@ struct QuickAddKeypadSheet: View {
 
     private func save(keepOpen: Bool) {
         guard amountMinor > 0 else {
-            validationMessage = "Enter an amount greater than zero."
+            validationMessage = AppLocalization.string("Enter an amount greater than zero.")
             return
         }
         if transactionToEdit == nil, event?.isEnded == true {
-            validationMessage = "Ended events cannot add transactions."
+            validationMessage = AppLocalization.string("Ended events cannot add transactions.")
             return
         }
 
@@ -756,7 +777,7 @@ struct QuickAddKeypadSheet: View {
 
 private struct CategoryPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
-    let title: String
+    let title: LocalizedStringResource
     let categories: [CategoryItem]
     @Binding var selectedCategory: CategoryItem?
     @State private var searchText = ""

@@ -1,3 +1,4 @@
+import Foundation
 import Charts
 import SwiftData
 import SwiftUI
@@ -1112,7 +1113,10 @@ private struct DailyDetailView: View {
     }
 
     @ViewBuilder
-    private func breakdownSection(title: String, rows: [CalendarAmountBreakdown]) -> some View {
+    private func breakdownSection(
+        title: LocalizedStringResource,
+        rows: [CalendarAmountBreakdown]
+    ) -> some View {
         if !rows.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: title)

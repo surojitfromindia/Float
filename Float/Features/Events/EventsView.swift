@@ -1,3 +1,4 @@
+import Foundation
 import SwiftData
 import SwiftUI
 
@@ -160,20 +161,20 @@ struct EventsView: View {
         }
     }
 
-    private var emptyStateTitle: String {
+    private var emptyStateTitle: LocalizedStringResource {
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !hasActiveFilters {
-            return "No events yet"
+            return LocalizedStringResource("No events yet")
         }
-        return "No matching events"
+        return LocalizedStringResource("No matching events")
     }
 
-    private var emptyStateMessage: String {
+    private var emptyStateMessage: LocalizedStringResource {
         if searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && !hasActiveFilters {
-            return "Create an event to group transactions, metrics, and charts."
+            return LocalizedStringResource("Create an event to group transactions, metrics, and charts.")
         }
-        return "Try a different search or filter."
+        return LocalizedStringResource("Try a different search or filter.")
     }
 
     private func eventSection(day: Date, items: [EventItem]) -> some View {

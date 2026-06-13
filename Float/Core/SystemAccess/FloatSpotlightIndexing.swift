@@ -176,7 +176,9 @@ enum FloatSpotlightIndexer {
             minorUnits: transaction.amountMinor,
             currencyCode: transaction.account?.currencyCode ?? "USD"
         )
-        let direction = transaction.isExpense ? "Expense" : "Income"
+        let direction = transaction.isExpense
+            ? String(localized: "Expense")
+            : String(localized: "Income")
         let detail = [
             direction,
             amount,
@@ -186,11 +188,9 @@ enum FloatSpotlightIndexer {
         .joined(separator: " • ")
 
         attributeSet.title = note?.isEmpty == false ? note : transaction.categoryName
-        attributeSet.contentDescription = [
-            detail,
-            transaction.timestamp.formatted(date: .abbreviated, time: .shortened),
-        ]
-        .joined(separator: " • ")
+        attributeSet.contentDescription = String(
+            localized: "\(detail) • \(transaction.timestamp.formatted(date: .abbreviated, time: .shortened))"
+        )
         attributeSet.contentCreationDate = transaction.timestamp
         attributeSet.keywords = sanitizedKeywords([
             transaction.categoryName,
@@ -221,19 +221,17 @@ enum FloatSpotlightIndexer {
         let title = transfer.note?.trimmingCharacters(in: .whitespacesAndNewlines)
         let route = "\(transfer.fromAccountName) -> \(transfer.toAccountName)"
 
-        attributeSet.title = title?.isEmpty == false ? title : "Transfer"
-        attributeSet.contentDescription = [
-            route,
-            transfer.timestamp.formatted(date: .abbreviated, time: .shortened),
-        ]
-        .joined(separator: " • ")
+        attributeSet.title = title?.isEmpty == false ? title : String(localized: "Transfer")
+        attributeSet.contentDescription = String(
+            localized: "\(route) • \(transfer.timestamp.formatted(date: .abbreviated, time: .shortened))"
+        )
         attributeSet.contentCreationDate = transfer.timestamp
         attributeSet.keywords = sanitizedKeywords([
             transfer.fromAccountName,
             transfer.toAccountName,
             title,
             amount,
-            "Transfer",
+            String(localized: "Transfer"),
         ])
 
         return CSSearchableItem(
@@ -259,7 +257,9 @@ enum FloatSpotlightIndexer {
         )
 
         attributeSet.title = account.name
-        attributeSet.contentDescription = "\(balance) • \(account.type.title) account • \(account.currencyCode)"
+        attributeSet.contentDescription = String(
+            localized: "\(balance) • \(account.type.title) account • \(account.currencyCode)"
+        )
         attributeSet.keywords = [
             account.name,
             account.type.title,
@@ -284,12 +284,21 @@ enum FloatSpotlightIndexer {
         let attributeSet = CSSearchableItemAttributeSet(
             itemContentType: UTType.item.identifier
         )
-        let kindTitle = category.isIncome ? "Income" : "Expense"
+        let kindTitle = category.isIncome
+            ? String(localized: "Income")
+            : String(localized: "Expense")
 
         attributeSet.title = category.name
         attributeSet.contentDescription = transactionCount > 0
-            ? "\(kindTitle) category • \(transactionCount) posted transactions"
-            : "\(kindTitle) category • No posted transactions yet"
+            ? AppLocalization.format(
+                "%@ category • %lld posted transactions",
+                kindTitle,
+                Int64(transactionCount)
+            )
+            : AppLocalization.format(
+                "%@ category • No posted transactions yet",
+                kindTitle
+            )
         attributeSet.keywords = [
             category.name,
             kindTitle,

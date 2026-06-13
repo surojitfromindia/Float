@@ -240,8 +240,11 @@ enum BudgetAlertsUseCase {
             if spent > budget.amountMinor {
                 return BudgetAlertItem(
                     id: category.id,
-                    title: "\(category.name) is over budget",
-                    message: "Over by \(spent - budget.amountMinor) minor units.",
+                    title: AppLocalization.format("%@ is over budget", category.name),
+                    message: AppLocalization.format(
+                        "Over by %lld minor units.",
+                        spent - budget.amountMinor
+                    ),
                     icon: category.iconKey,
                     colorHex: category.colorHex,
                     spentMinor: spent,
@@ -254,8 +257,11 @@ enum BudgetAlertsUseCase {
             if progress >= 0.85 {
                 return BudgetAlertItem(
                     id: category.id,
-                    title: "\(category.name) is close",
-                    message: "\(Int((progress * 100).rounded()))% of budget used.",
+                    title: AppLocalization.format("%@ is close", category.name),
+                    message: AppLocalization.format(
+                        "%lld%% of budget used.",
+                        Int64((progress * 100).rounded())
+                    ),
                     icon: category.iconKey,
                     colorHex: category.colorHex,
                     spentMinor: spent,
@@ -268,8 +274,12 @@ enum BudgetAlertsUseCase {
             if progress > periodProgress + 0.15 && progress > 0.25 {
                 return BudgetAlertItem(
                     id: category.id,
-                    title: "\(category.name) is moving fast",
-                    message: "\(Int((progress * 100).rounded()))% used with \(Int((periodProgress * 100).rounded()))% of the period elapsed.",
+                    title: AppLocalization.format("%@ is moving fast", category.name),
+                    message: AppLocalization.format(
+                        "%lld%% used with %lld%% of the period elapsed.",
+                        Int64((progress * 100).rounded()),
+                        Int64((periodProgress * 100).rounded())
+                    ),
                     icon: category.iconKey,
                     colorHex: category.colorHex,
                     spentMinor: spent,

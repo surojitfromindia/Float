@@ -183,7 +183,7 @@ private enum WidgetSnapshotReader {
             let data = defaults.data(forKey: "float.safeToSpend.widgetSnapshot"),
             let snapshot = try? JSONDecoder().decode(Snapshot.self, from: data)
         else {
-            return "Open Float to update safe to spend."
+            return String(localized: "Open Float to update safe to spend.")
         }
 
         let safe = MoneyFormatter.string(
@@ -194,6 +194,8 @@ private enum WidgetSnapshotReader {
             minorUnits: snapshot.dailyAllowanceMinor,
             currencyCode: snapshot.currencyCode
         )
-        return "\(safe) safe to spend, \(daily) per day, \(snapshot.daysRemaining) days left. \(snapshot.statusText)."
+        return String(
+            localized: "\(safe) safe to spend, \(daily) per day, \(snapshot.daysRemaining) days left. \(snapshot.statusText)."
+        )
     }
 }

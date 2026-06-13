@@ -11,7 +11,14 @@ enum AccountType: String, Codable, CaseIterable, Identifiable {
 
     // also enum can have variables or functional expression.
     var id: String { rawValue }
-    var title: String { rawValue.capitalized }
+    var title: String {
+        switch self {
+        case .cash: String(localized: "Cash")
+        case .bank: String(localized: "Bank")
+        case .card: String(localized: "Card")
+        case .wallet: String(localized: "Wallet")
+        }
+    }
     var icon: String {
         switch self {
         case .cash: "banknote.fill"
@@ -28,7 +35,13 @@ enum RecurringCadence: String, Codable, CaseIterable, Identifiable {
     case monthly
 
     var id: String { rawValue }
-    var title: String { rawValue.capitalized }
+    var title: String {
+        switch self {
+        case .daily: String(localized: "Daily")
+        case .weekly: String(localized: "Weekly")
+        case .monthly: String(localized: "Monthly")
+        }
+    }
 }
 
 enum BudgetCadence: String, Codable, CaseIterable, Identifiable {
@@ -36,7 +49,12 @@ enum BudgetCadence: String, Codable, CaseIterable, Identifiable {
     case monthly
 
     var id: String { rawValue }
-    var title: String { rawValue.capitalized }
+    var title: String {
+        switch self {
+        case .weekly: String(localized: "Weekly")
+        case .monthly: String(localized: "Monthly")
+        }
+    }
 }
 
 enum TransactionStatus: String, Codable, CaseIterable, Identifiable {
@@ -54,8 +72,8 @@ enum EventStatus: String, Codable, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .active: "Active"
-        case .ended: "Ended"
+        case .active: String(localized: "Active")
+        case .ended: String(localized: "Ended")
         }
     }
 }
@@ -374,13 +392,16 @@ final class EventItem {
 
 extension TransactionTemplateItem {
     var displayTitle: String {
-        title.nilIfBlank ?? note?.nilIfBlank ?? category?.name ?? "Template"
+        title.nilIfBlank
+            ?? note?.nilIfBlank
+            ?? category?.name
+            ?? String(localized: "Template")
     }
 }
 
 extension TransactionTemplateGroupItem {
     var displayName: String {
-        name.nilIfBlank ?? "Group"
+        name.nilIfBlank ?? String(localized: "Group")
     }
 
     var sortedEntries: [TransactionTemplateGroupEntryItem] {
@@ -570,13 +591,13 @@ extension TransactionItem {
     }
 
     var categoryName: String {
-        if isPending { return "Pending" }
-        return category?.name.nilIfBlank ?? "Unknown Category"
+        if isPending { return String(localized: "Pending") }
+        return category?.name.nilIfBlank ?? String(localized: "Unknown Category")
     }
 
     var accountName: String {
-        if isPending { return "Not posted" }
-        return account?.name.nilIfBlank ?? "Unknown Account"
+        if isPending { return String(localized: "Not posted") }
+        return account?.name.nilIfBlank ?? String(localized: "Unknown Account")
     }
 
     var categoryIconKey: String {
@@ -628,11 +649,11 @@ extension EventItem {
 
 extension TransferItem {
     var fromAccountName: String {
-        fromAccount?.name.nilIfBlank ?? "Unknown Account"
+        fromAccount?.name.nilIfBlank ?? String(localized: "Unknown Account")
     }
 
     var toAccountName: String {
-        toAccount?.name.nilIfBlank ?? "Unknown Account"
+        toAccount?.name.nilIfBlank ?? String(localized: "Unknown Account")
     }
 
     var currencyCode: String {

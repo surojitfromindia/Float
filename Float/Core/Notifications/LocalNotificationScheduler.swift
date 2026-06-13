@@ -96,8 +96,12 @@ enum LocalNotificationScheduler {
         guard reminderDate > now else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = rule.isExpense ? "Upcoming bill" : "Upcoming income"
-        content.body = "\(ruleTitle(rule)) is due today for \(money(rule.amountMinor, currencyCode))."
+        content.title = rule.isExpense
+            ? String(localized: "Upcoming bill")
+            : String(localized: "Upcoming income")
+        content.body = String(
+            localized: "\(ruleTitle(rule)) is due today for \(money(rule.amountMinor, currencyCode))."
+        )
         content.sound = .default
 
         schedule(
@@ -118,7 +122,9 @@ enum LocalNotificationScheduler {
         let fireDate = now.addingTimeInterval(90)
         let content = UNMutableNotificationContent()
         content.title = alert.title
-        content.body = "\(money(alert.spentMinor, currencyCode)) of \(money(alert.budgetMinor, currencyCode)) used."
+        content.body = String(
+            localized: "\(money(alert.spentMinor, currencyCode)) of \(money(alert.budgetMinor, currencyCode)) used."
+        )
         content.sound = .default
         schedule(
             id: "float.budget.\(alert.id.uuidString)",
@@ -143,8 +149,10 @@ enum LocalNotificationScheduler {
         guard reminderDate > now else { return }
 
         let content = UNMutableNotificationContent()
-        content.title = "Goal target today"
-        content.body = "\(goal.name) has \(money(max(0, goal.targetMinor - goal.savedMinor), currencyCode)) remaining."
+        content.title = String(localized: "Goal target today")
+        content.body = String(
+            localized: "\(goal.name) has \(money(max(0, goal.targetMinor - goal.savedMinor), currencyCode)) remaining."
+        )
         content.sound = .default
 
         schedule(
@@ -176,8 +184,8 @@ enum LocalNotificationScheduler {
 
     private static func ruleTitle(_ rule: RecurringRuleItem) -> String {
         rule.note?.isEmpty == false
-            ? rule.note ?? "Recurring item"
-            : rule.category?.name ?? "Recurring item"
+            ? rule.note ?? String(localized: "Recurring item")
+            : rule.category?.name ?? String(localized: "Recurring item")
     }
 
     private static func shouldSchedule(

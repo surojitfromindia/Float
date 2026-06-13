@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 extension View {
@@ -194,8 +195,8 @@ struct FloatProgressRing: View {
 }
 
 struct SectionHeader: View {
-    let title: String
-    var actionTitle: String?
+    let title: LocalizedStringResource
+    var actionTitle: LocalizedStringResource?
     var action: (() -> Void)?
 
     var body: some View {
@@ -229,22 +230,39 @@ struct FloatIconBadge: View {
 struct SummaryMetricTile: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    let title: String
+    let title: LocalizedStringResource
     let value: String
-    let caption: String?
+    let caption: LocalizedStringResource?
+    let captionText: String?
     let icon: String
     let tint: Color
 
     init(
-        title: String,
+        title: LocalizedStringResource,
         value: String,
-        caption: String? = nil,
+        caption: LocalizedStringResource? = nil,
         icon: String,
         tint: Color
     ) {
         self.title = title
         self.value = value
         self.caption = caption
+        self.captionText = nil
+        self.icon = icon
+        self.tint = tint
+    }
+
+    init(
+        title: LocalizedStringResource,
+        value: String,
+        captionText: String?,
+        icon: String,
+        tint: Color
+    ) {
+        self.title = title
+        self.value = value
+        self.caption = nil
+        self.captionText = captionText
         self.icon = icon
         self.tint = tint
     }
@@ -279,6 +297,12 @@ struct SummaryMetricTile: View {
                     .minimumScaleFactor(0.72)
                 if let caption {
                     Text(caption)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
+                } else if let captionText {
+                    Text(captionText)
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -324,8 +348,8 @@ struct CurrencyAmountPreview: View {
 
 struct EmptyStateView: View {
     let icon: String
-    let title: String
-    let message: String
+    let title: LocalizedStringResource
+    let message: LocalizedStringResource
 
     var body: some View {
         VStack(spacing: 12) {
@@ -418,10 +442,10 @@ struct TransactionRowView: View {
     private var accountAndTimeText: String {
         if transaction.isPending {
             let dueDate = transaction.displayDate.formatted(date: .abbreviated, time: .omitted)
-            return "Pending • Due \(dueDate)"
+            return AppLocalization.format("Pending • Due %@", dueDate)
         }
         let timestamp = transaction.timestamp.formatted(date: .abbreviated, time: .shortened)
-        return "\(transaction.accountName) • \(timestamp)"
+        return AppLocalization.format("%@ • %@", transaction.accountName, timestamp)
     }
 
     var body: some View {
@@ -499,7 +523,9 @@ struct TransferRowView: View {
 
     private var accountAndTimeText: String {
         let timestamp = transfer.timestamp.formatted(date: .abbreviated, time: .shortened)
-        return "\(transfer.fromAccountName) -> \(transfer.toAccountName) • \(timestamp)"
+        return String(
+            localized: "\(transfer.fromAccountName) -> \(transfer.toAccountName) • \(timestamp)"
+        )
     }
 
     var body: some View {
