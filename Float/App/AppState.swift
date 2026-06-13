@@ -85,7 +85,9 @@ final class AppState: ObservableObject {
     @AppStorage("selectedCurrencyCode") var selectedCurrencyCode =
         MoneyFormatter.currencyCodeFromLocale()
     @AppStorage("selectedAppearance") var selectedAppearance = "system"
-    @AppStorage("selectedThemeMode") var selectedThemeMode = "float"
+    @AppStorage("selectedThemeMode") var selectedThemeMode = "float" {
+        didSet { objectWillChange.send() }
+    }
     @AppStorage("selectedLanguageCode") var selectedLanguageCode = "system"
     @AppStorage("lastUsedCategoryID") var lastUsedCategoryID = ""
     @AppStorage("lastUsedAccountID") var lastUsedAccountID = ""

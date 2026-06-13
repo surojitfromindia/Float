@@ -380,7 +380,8 @@ struct TransactionsView: View {
                 } label: {
                     FilterControlLabel(
                         title: selectedSort.title,
-                        icon: "arrow.up.arrow.down"
+                        icon: "arrow.up.arrow.down",
+                        tint: appState.themePalette.accent
                     )
                 }
 
@@ -393,7 +394,8 @@ struct TransactionsView: View {
                 } label: {
                     FilterControlLabel(
                         title: selectedType.title,
-                        icon: "tray.full"
+                        icon: "tray.full",
+                        tint: appState.themePalette.accent
                     )
                 }
 
@@ -406,7 +408,8 @@ struct TransactionsView: View {
                         title: "Filters",
                         icon: hasActiveFilters
                             ? "line.3.horizontal.decrease.circle.fill"
-                            : "line.3.horizontal.decrease.circle"
+                            : "line.3.horizontal.decrease.circle",
+                        tint: appState.themePalette.accent
                     )
                 }
                 .buttonStyle(.plain)
@@ -897,10 +900,12 @@ struct TransactionsView: View {
 private struct FilterControlLabel: View {
     let title: String
     let icon: String
+    let tint: Color
 
     var body: some View {
         Label(title, systemImage: icon)
             .font(.subheadline.weight(.semibold))
+            .foregroundStyle(tint)
             .lineLimit(1)
             .minimumScaleFactor(0.75)
             .padding(.horizontal, 2)
@@ -1183,7 +1188,7 @@ private struct TransactionFilterSheet: View {
                 FloatIconBadge(icon: icon, tint: appState.themePalette.accent, size: 30)
                 Text(title)
                     .font(.headline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(appState.themePalette.accent)
             }
             content()
                 .padding(.vertical, 2)

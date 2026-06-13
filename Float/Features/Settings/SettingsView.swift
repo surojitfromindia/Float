@@ -95,7 +95,6 @@ struct SettingsView: View {
                     }
                 }
                 Toggle("Privacy Lock", isOn: $appState.isAppLockEnabled)
-                ThemePreviewCard(palette: appState.themePalette)
             }
             Section("Reminders") {
                 Toggle("Recurring due reminders", isOn: $appState.recurringRemindersEnabled)
@@ -185,6 +184,7 @@ struct SettingsView: View {
         .keyboardDismissControls()
         .scrollContentBackground(.hidden)
         .floatBackground()
+        .id(appState.selectedThemeMode)
     }
 
     private var filePresentationHost: some View {
@@ -376,8 +376,38 @@ private struct ThemeOptionRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
-            Text(theme.title)
+        HStack(spacing: 12) {
+            ZStack(alignment: .bottomLeading) {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                palette.backgroundTop,
+                                palette.backgroundBottom
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 42, height: 42)
+                HStack(spacing: 3) {
+                    ForEach(Array(palette.chartColors.prefix(3).enumerated()), id: \.offset) {
+                        _, color in
+                        Circle()
+                            .fill(color)
+                            .frame(width: 8, height: 8)
+                    }
+                }
+                .padding(8)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(theme.title)
+                    .font(.body.weight(.semibold))
+                Text(theme.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             Spacer()
             HStack(spacing: 4) {
                 Circle()
@@ -394,38 +424,3 @@ private struct ThemeOptionRow: View {
     }
 }
 
-private struct ThemePreviewCard: View {
-    let palette: FloatThemePalette
-
-    var body: some View {
-        HStack(spacing: 10) {
-            Capsule()
-                .fill(
-                    LinearGradient(
-                        colors: [palette.backgroundTop, palette.backgroundBottom],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 44, height: 28)
-                .overlay(
-                    Capsule()
-                        .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-                )
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Theme preview")
-                    .font(.subheadline.weight(.medium))
-                HStack(spacing: 5) {
-                    ForEach(Array(palette.chartColors.prefix(6).enumerated()), id: \.offset) {
-                        _, color in
-                        Circle()
-                            .fill(color)
-                            .frame(width: 11, height: 11)
-                    }
-                }
-            }
-            Spacer()
-        }
-        .padding(.vertical, 4)
-    }
-}

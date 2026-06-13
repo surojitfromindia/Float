@@ -2532,6 +2532,7 @@
       }
     },
     "Theme preview" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {

@@ -110,7 +110,8 @@ struct HomeView: View {
             VStack(spacing: 16) {
                 SafeToSpendHeroCard(
                     result: result,
-                    currencyCode: appState.selectedCurrencyCode
+                    currencyCode: appState.selectedCurrencyCode,
+                    palette: appState.themePalette.hero
                 )
 
                 quickActions
@@ -1210,6 +1211,7 @@ struct SafeToSpendHeroCard: View {
     @Environment(\.colorScheme) private var colorScheme
     let result: SafeToSpendResult
     let currencyCode: String
+    let palette: FloatHeroPalette
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -1238,7 +1240,11 @@ struct SafeToSpendHeroCard: View {
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
 
-            HeroProgressRail(progress: result.spendingProgress, tint: statusTint)
+            HeroProgressRail(
+                progress: result.spendingProgress,
+                tint: statusTint,
+                track: palette.railTrack
+            )
 
             HStack(spacing: 0) {
                 HeroMetricPill(
@@ -1263,19 +1269,19 @@ struct SafeToSpendHeroCard: View {
             .padding(.horizontal, 4)
         }
         .padding(20)
-        .heroSurface(accent: accentTint, status: statusTint, isDark: colorScheme == .dark)
-    }
-
-    private var accentTint: Color {
-        Color(lightHex: "#0E7C7B", darkHex: "#3FC1BE")
+        .heroSurface(
+            palette: palette,
+            status: statusTint,
+            isDark: colorScheme == .dark
+        )
     }
 
     private var positiveTint: Color {
-        Color(lightHex: "#1B8A5A", darkHex: "#57C98C")
+        palette.positive
     }
 
     private var cautionTint: Color {
-        Color(lightHex: "#B4613B", darkHex: "#D08A62")
+        palette.caution
     }
 
     private var statusTint: Color {
@@ -1311,7 +1317,11 @@ struct SafeToSpendHeroCard: View {
 
 private extension View {
     @ViewBuilder
-    func heroSurface(accent: Color, status: Color, isDark: Bool) -> some View {
+    func heroSurface(
+        palette: FloatHeroPalette,
+        status: Color,
+        isDark: Bool
+    ) -> some View {
         let shape = RoundedRectangle(
             cornerRadius: 30,
             style: .continuous
@@ -1320,15 +1330,10 @@ private extension View {
         self
             .background(
                 LinearGradient(
-                    colors: isDark
-                        ? [
-                            Color(.secondarySystemGroupedBackground),
-                            accent.opacity(0.18),
-                        ]
-                        : [
-                            Color(.systemBackground),
-                            accent.opacity(0.055),
-                        ],
+                    colors: [
+                        palette.backgroundTop,
+                        palette.backgroundBottom,
+                    ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 ),
@@ -1336,14 +1341,23 @@ private extension View {
             )
             .overlay(alignment: .topTrailing) {
                 Circle()
-                    .fill(status.opacity(isDark ? 0.18 : 0.10))
+                    .fill(palette.glow.opacity(isDark ? 0.24 : 0.12))
                     .frame(width: 112, height: 112)
                     .blur(radius: 28)
                     .offset(x: 26, y: -34)
                     .allowsHitTesting(false)
+                Circle()
+                    .fill(status.opacity(isDark ? 0.14 : 0.08))
+                    .frame(width: 78, height: 78)
+                    .blur(radius: 20)
+                    .offset(x: -2, y: -10)
+                    .allowsHitTesting(false)
             }
             .overlay(
-                shape.strokeBorder(Color.primary.opacity(isDark ? 0.10 : 0.055), lineWidth: 1)
+                shape.strokeBorder(
+                    palette.accent.opacity(isDark ? 0.22 : 0.12),
+                    lineWidth: 1
+                )
             )
             .shadow(
                 color: .black.opacity(isDark ? 0.26 : 0.075),
@@ -1376,6 +1390,7 @@ private struct HeroProgressRail: View {
     @Environment(\.colorScheme) private var colorScheme
     let progress: Double
     let tint: Color
+    let track: Color
 
     private var clampedProgress: Double {
         min(max(progress, 0), 1)
@@ -1385,7 +1400,7 @@ private struct HeroProgressRail: View {
         GeometryReader { proxy in
             ZStack(alignment: .leading) {
                 Capsule()
-                    .fill(Color.primary.opacity(colorScheme == .dark ? 0.13 : 0.08))
+                    .fill(track.opacity(colorScheme == .dark ? 0.65 : 0.52))
                 Capsule()
                     .fill(tint.gradient)
                     .frame(
@@ -1403,7 +1418,7 @@ private struct HeroProgressRail: View {
         }
         .frame(height: 7)
         .padding(2)
-        .background(.white.opacity(colorScheme == .dark ? 0.04 : 0.26), in: Capsule())
+        .background(track.opacity(colorScheme == .dark ? 0.22 : 0.34), in: Capsule())
     }
 }
 

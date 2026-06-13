@@ -174,21 +174,34 @@ struct TransferEditorSheet: View {
             Text(title)
                 .font(.subheadline.weight(.semibold))
             Spacer()
-            Picker(
-                title,
-                selection: Binding(
-                    get: { account.wrappedValue?.id },
-                    set: { id in
-                        account.wrappedValue = accounts.first { $0.id == id }
+            Menu {
+                Picker(
+                    title,
+                    selection: Binding(
+                        get: { account.wrappedValue?.id },
+                        set: { id in
+                            account.wrappedValue = accounts.first { $0.id == id }
+                        }
+                    )
+                ) {
+                    Text("Select").tag(UUID?.none)
+                    ForEach(accounts) { item in
+                        Text(item.name).tag(Optional(item.id))
                     }
-                )
-            ) {
-                Text("Select").tag(UUID?.none)
-                ForEach(accounts) { item in
-                    Text(item.name).tag(Optional(item.id))
                 }
+                .labelsHidden()
+            } label: {
+                HStack(spacing: 4) {
+                    Text(account.wrappedValue?.name ?? "Select")
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2.weight(.semibold))
+                }
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: 170, alignment: .trailing)
+                .contentShape(Rectangle())
             }
-            .pickerStyle(.menu)
         }
     }
 
