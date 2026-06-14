@@ -50,6 +50,10 @@ enum MaterializeRecurringTransactionsUseCase {
                     recurringRule: rule
                 )
                 modelContext.insert(transaction)
+                transaction.replacePeople(
+                    rule.personTags.compactMap(\.person),
+                    in: modelContext
+                )
             }
             guard
                 let next = SafeToSpendUseCase.advance(

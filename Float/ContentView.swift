@@ -11,10 +11,10 @@ struct ContentView: View {
     ContentView()
         .modelContainer(
             for: [
-                AccountItem.self, CategoryItem.self, TransactionItem.self,
-                TransactionTemplateItem.self, TransactionTemplateGroupItem.self,
+                AccountItem.self, CategoryItem.self, PersonItem.self, TransactionItem.self,
+                TransactionPersonTagItem.self, TransactionTemplateItem.self, TransactionTemplateGroupItem.self,
                 TransactionTemplateGroupEntryItem.self, RecurringRuleItem.self,
-                GoalItem.self, BudgetPeriodItem.self,
+                RecurringRulePersonTagItem.self, GoalItem.self, BudgetPeriodItem.self,
             ],
             inMemory: true
         )

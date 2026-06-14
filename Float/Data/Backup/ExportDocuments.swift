@@ -23,14 +23,17 @@ struct BackupDocument: FileDocument {
 struct FloatBackupDTO: Codable {
     var accounts: [AccountDTO]
     var categories: [CategoryDTO]
+    var people: [PersonDTO]
     var eventCategories: [EventCategoryDTO]
     var events: [EventDTO]
     var transactions: [TransactionDTO]
+    var transactionPersonTags: [TransactionPersonTagDTO]
     var transactionTemplates: [TransactionTemplateDTO]
     var transactionTemplateGroups: [TransactionTemplateGroupDTO]
     var transfers: [TransferDTO]
     var goals: [GoalDTO]
     var recurringRules: [RecurringRuleDTO]
+    var recurringRulePersonTags: [RecurringRulePersonTagDTO]
     var budgets: [BudgetDTO]
     var categoryBudgets: [CategoryBudgetDTO]
     var settings: SettingsDTO
@@ -38,14 +41,17 @@ struct FloatBackupDTO: Codable {
     enum CodingKeys: String, CodingKey {
         case accounts
         case categories
+        case people
         case eventCategories
         case events
         case transactions
+        case transactionPersonTags
         case transactionTemplates
         case transactionTemplateGroups
         case transfers
         case goals
         case recurringRules
+        case recurringRulePersonTags
         case budgets
         case categoryBudgets
         case settings
@@ -54,28 +60,34 @@ struct FloatBackupDTO: Codable {
     init(
         accounts: [AccountDTO],
         categories: [CategoryDTO],
+        people: [PersonDTO] = [],
         eventCategories: [EventCategoryDTO] = [],
         events: [EventDTO] = [],
         transactions: [TransactionDTO],
+        transactionPersonTags: [TransactionPersonTagDTO] = [],
         transactionTemplates: [TransactionTemplateDTO] = [],
         transactionTemplateGroups: [TransactionTemplateGroupDTO] = [],
         transfers: [TransferDTO] = [],
         goals: [GoalDTO],
         recurringRules: [RecurringRuleDTO],
+        recurringRulePersonTags: [RecurringRulePersonTagDTO] = [],
         budgets: [BudgetDTO],
         categoryBudgets: [CategoryBudgetDTO] = [],
         settings: SettingsDTO
     ) {
         self.accounts = accounts
         self.categories = categories
+        self.people = people
         self.eventCategories = eventCategories
         self.events = events
         self.transactions = transactions
+        self.transactionPersonTags = transactionPersonTags
         self.transactionTemplates = transactionTemplates
         self.transactionTemplateGroups = transactionTemplateGroups
         self.transfers = transfers
         self.goals = goals
         self.recurringRules = recurringRules
+        self.recurringRulePersonTags = recurringRulePersonTags
         self.budgets = budgets
         self.categoryBudgets = categoryBudgets
         self.settings = settings
@@ -85,14 +97,17 @@ struct FloatBackupDTO: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         accounts = try container.decode([AccountDTO].self, forKey: .accounts)
         categories = try container.decode([CategoryDTO].self, forKey: .categories)
+        people = try container.decodeIfPresent([PersonDTO].self, forKey: .people) ?? []
         eventCategories = try container.decodeIfPresent([EventCategoryDTO].self, forKey: .eventCategories) ?? []
         events = try container.decodeIfPresent([EventDTO].self, forKey: .events) ?? []
         transactions = try container.decode([TransactionDTO].self, forKey: .transactions)
+        transactionPersonTags = try container.decodeIfPresent([TransactionPersonTagDTO].self, forKey: .transactionPersonTags) ?? []
         transactionTemplates = try container.decodeIfPresent([TransactionTemplateDTO].self, forKey: .transactionTemplates) ?? []
         transactionTemplateGroups = try container.decodeIfPresent([TransactionTemplateGroupDTO].self, forKey: .transactionTemplateGroups) ?? []
         transfers = try container.decodeIfPresent([TransferDTO].self, forKey: .transfers) ?? []
         goals = try container.decode([GoalDTO].self, forKey: .goals)
         recurringRules = try container.decode([RecurringRuleDTO].self, forKey: .recurringRules)
+        recurringRulePersonTags = try container.decodeIfPresent([RecurringRulePersonTagDTO].self, forKey: .recurringRulePersonTags) ?? []
         budgets = try container.decode([BudgetDTO].self, forKey: .budgets)
         categoryBudgets = try container.decodeIfPresent([CategoryBudgetDTO].self, forKey: .categoryBudgets) ?? []
         settings = try container.decode(SettingsDTO.self, forKey: .settings)
@@ -120,6 +135,69 @@ struct CategoryDTO: Codable {
     var isDefault: Bool
     var createdAt: Date?
     var updatedAt: Date?
+}
+struct PersonDTO: Codable {
+    var id: UUID
+    var name: String
+    var alias: String?
+    var note: String?
+    var colorHex: String
+    var archived: Bool
+    var transactionCount: Int
+    var recurringRuleCount: Int
+    var createdAt: Date
+    var updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case alias
+        case note
+        case colorHex
+        case archived
+        case transactionCount
+        case recurringRuleCount
+        case createdAt
+        case updatedAt
+    }
+
+    init(
+        id: UUID,
+        name: String,
+        alias: String?,
+        note: String?,
+        colorHex: String,
+        archived: Bool,
+        transactionCount: Int = 0,
+        recurringRuleCount: Int = 0,
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.name = name
+        self.alias = alias
+        self.note = note
+        self.colorHex = colorHex
+        self.archived = archived
+        self.transactionCount = transactionCount
+        self.recurringRuleCount = recurringRuleCount
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        alias = try container.decodeIfPresent(String.self, forKey: .alias)
+        note = try container.decodeIfPresent(String.self, forKey: .note)
+        colorHex = try container.decode(String.self, forKey: .colorHex)
+        archived = try container.decode(Bool.self, forKey: .archived)
+        transactionCount = try container.decodeIfPresent(Int.self, forKey: .transactionCount) ?? 0
+        recurringRuleCount = try container.decodeIfPresent(Int.self, forKey: .recurringRuleCount) ?? 0
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+    }
 }
 struct EventCategoryDTO: Codable {
     var id: UUID
@@ -221,6 +299,16 @@ struct TransactionDTO: Codable {
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
 }
+struct TransactionPersonTagDTO: Codable {
+    var id: UUID
+    var sortOrder: Int
+    var allocatedMinor: Int64?
+    var settledMinor: Int64
+    var personID: UUID?
+    var transactionID: UUID?
+    var createdAt: Date
+    var updatedAt: Date
+}
 struct TransactionTemplateDTO: Codable {
     var id: UUID
     var title: String
@@ -279,6 +367,14 @@ struct RecurringRuleDTO: Codable {
     var nextRunDate: Date
     var endDate: Date?
     var active: Bool
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct RecurringRulePersonTagDTO: Codable {
+    var id: UUID
+    var sortOrder: Int
+    var personID: UUID?
+    var recurringRuleID: UUID?
     var createdAt: Date
     var updatedAt: Date
 }

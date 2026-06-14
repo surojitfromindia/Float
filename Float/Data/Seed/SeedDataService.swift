@@ -199,111 +199,85 @@ enum SeedDataService {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
         let startDate = calendar.date(byAdding: .year, value: -2, to: today) ?? today
-        var currentDate = startDate
+        let firstMonth = calendar.date(
+            from: calendar.dateComponents([.year, .month], from: startDate)
+        ) ?? startDate
         var rng = SeededRandomNumberGenerator(seed: UInt64(today.timeIntervalSince1970))
         var insertedTransactions = 0
         var insertedTransfers = 0
 
-        while currentDate <= today {
-            let day = calendar.component(.day, from: currentDate)
-            let weekday = calendar.component(.weekday, from: currentDate)
-            let month = calendar.component(.month, from: currentDate)
-            let dailyCount = 10 + Int.random(in: 0...4, using: &rng)
-
-            for index in 0..<dailyCount {
-                guard let item = expensePlans.randomElement(using: &rng) else { continue }
-                let account = spendingAccounts.randomElement(using: &rng) ?? checking
-                let amount = item.0.randomAmount(using: &rng)
-                let timestamp = timestamp(
-                    on: currentDate,
-                    hour: item.0.hour + index,
-                    minute: Int.random(in: 0...54, using: &rng)
-                )
-                modelContext.insert(
-                    TransactionItem(
-                        amountMinor: amount,
-                        isExpense: true,
-                        timestamp: timestamp,
-                        category: item.1,
-                        account: account,
-                        note: item.0.randomNote(using: &rng)
-                    )
-                )
-                insertedTransactions += 1
+        for monthOffset in 0..<24 {
+            guard let monthDate = calendar.date(byAdding: .month, value: monthOffset, to: firstMonth) else {
+                continue
             }
 
-            if day == 1 {
-                modelContext.insert(
-                    TransactionItem(
-                        amountMinor: 420_000 + Int64.random(in: 0...85_000, using: &rng),
-                        isExpense: false,
-                        timestamp: timestamp(on: currentDate, hour: 9, minute: 15),
-                        category: salaryCategory,
-                        account: checking,
-                        note: "Monthly salary"
-                    )
-                )
-                insertedTransactions += 1
-            }
+            let seedDays = randomSeedDays(
+                in: monthDate,
+                calendar: calendar,
+                rng: &rng
+            )
 
-            if day == 15 && month % 2 == 0 {
-                modelContext.insert(
-                    TransactionItem(
-                        amountMinor: 55_000 + Int64.random(in: 0...45_000, using: &rng),
-                        isExpense: false,
-                        timestamp: timestamp(on: currentDate, hour: 14, minute: 10),
-                        category: freelanceCategory,
-                        account: checking,
-                        note: "Freelance project"
-                    )
-                )
-                insertedTransactions += 1
-            }
+            for (dayIndex, day) in seedDays.enumerated() {
+                guard let currentDate = calendar.date(bySetting: .day, value: day, of: monthDate) else {
+                    continue
+                }
 
-            if day == 20 && month % 3 == 0 {
-                modelContext.insert(
-                    TransactionItem(
-                        amountMinor: 25_000 + Int64.random(in: 0...120_000, using: &rng),
-                        isExpense: false,
-                        timestamp: timestamp(on: currentDate, hour: 10, minute: 35),
-                        category: bonusCategory,
-                        account: savings,
-                        note: "Quarterly bonus"
-                    )
-                )
-                insertedTransactions += 1
-            }
+                let dailyCount = 5 + Int.random(in: 0...1, using: &rng)
 
-            if weekday == 6 && day % 2 == 0 {
-                let from = transferAccounts.randomElement(using: &rng) ?? checking
-                let to = transferAccounts.first { $0.id != from.id } ?? savings
-                modelContext.insert(
-                    TransferItem(
-                        amountMinor: 10_000 + Int64.random(in: 0...65_000, using: &rng),
-                        fromAccount: from,
-                        toAccount: to,
-                        timestamp: timestamp(on: currentDate, hour: 18, minute: 30),
-                        note: "Account transfer"
-                    )
-                )
-                insertedTransfers += 1
-            }
+                for index in 0..<dailyCount {
+                    if index == 0 {
+                        let primaryTransaction = monthlyPrimaryTransaction(
+                            monthOffset: monthOffset,
+                            dayIndex: dayIndex,
+                            currentDate: currentDate,
+                            checking: checking,
+                            savings: savings,
+                            expensePlans: expensePlans,
+                            salaryCategory: salaryCategory,
+                            freelanceCategory: freelanceCategory,
+                            bonusCategory: bonusCategory,
+                            refundCategory: refundCategory,
+                            rng: &rng
+                        )
+                        modelContext.insert(primaryTransaction)
+                    } else {
+                        guard let item = expensePlans.randomElement(using: &rng) else { continue }
+                        let account = spendingAccounts.randomElement(using: &rng) ?? checking
+                        let amount = item.0.randomAmount(using: &rng)
+                        let timestamp = timestamp(
+                            on: currentDate,
+                            hour: min(item.0.hour + index, 23),
+                            minute: Int.random(in: 0...54, using: &rng)
+                        )
+                        modelContext.insert(
+                            TransactionItem(
+                                amountMinor: amount,
+                                isExpense: true,
+                                timestamp: timestamp,
+                                category: item.1,
+                                account: account,
+                                note: item.0.randomNote(using: &rng)
+                            )
+                        )
+                    }
+                    insertedTransactions += 1
+                }
 
-            if day % 19 == 0 {
-                modelContext.insert(
-                    TransactionItem(
-                        amountMinor: 1_500 + Int64.random(in: 0...18_500, using: &rng),
-                        isExpense: false,
-                        timestamp: timestamp(on: currentDate, hour: 16, minute: 5),
-                        category: refundCategory,
-                        account: card,
-                        note: "Refund"
+                if dayIndex == 1 && monthOffset % 3 == 0 {
+                    let from = transferAccounts.randomElement(using: &rng) ?? checking
+                    let to = transferAccounts.first { $0.id != from.id } ?? savings
+                    modelContext.insert(
+                        TransferItem(
+                            amountMinor: 10_000 + Int64.random(in: 0...30_000, using: &rng),
+                            fromAccount: from,
+                            toAccount: to,
+                            timestamp: timestamp(on: currentDate, hour: 18, minute: 30),
+                            note: "Account transfer"
+                        )
                     )
-                )
-                insertedTransactions += 1
+                    insertedTransfers += 1
+                }
             }
-
-            currentDate = calendar.date(byAdding: .day, value: 1, to: currentDate) ?? today
         }
 
         try modelContext.save()
@@ -386,6 +360,99 @@ enum SeedDataService {
         }
     }
 
+    private static func randomSeedDays(
+        in monthDate: Date,
+        calendar: Calendar,
+        rng: inout SeededRandomNumberGenerator
+    ) -> [Int] {
+        guard let dayRange = calendar.range(of: .day, in: .month, for: monthDate) else {
+            return [1, 8, 15, 22]
+        }
+
+        var selected = Set<Int>()
+        while selected.count < 4 {
+            selected.insert(Int.random(in: dayRange, using: &rng))
+        }
+
+        return selected.sorted()
+    }
+
+    private static func monthlyPrimaryTransaction(
+        monthOffset: Int,
+        dayIndex: Int,
+        currentDate: Date,
+        checking: AccountItem,
+        savings: AccountItem,
+        expensePlans: [(SeedExpensePlan, CategoryItem)],
+        salaryCategory: CategoryItem?,
+        freelanceCategory: CategoryItem?,
+        bonusCategory: CategoryItem?,
+        refundCategory: CategoryItem?,
+        rng: inout SeededRandomNumberGenerator
+    ) -> TransactionItem {
+        switch dayIndex {
+        case 0:
+            return TransactionItem(
+                amountMinor: 420_000 + Int64.random(in: 0...85_000, using: &rng),
+                isExpense: false,
+                timestamp: timestamp(on: currentDate, hour: 9, minute: 15),
+                category: salaryCategory,
+                account: checking,
+                note: "Monthly salary"
+            )
+        case 1 where monthOffset % 2 == 0:
+            return TransactionItem(
+                amountMinor: 55_000 + Int64.random(in: 0...35_000, using: &rng),
+                isExpense: false,
+                timestamp: timestamp(on: currentDate, hour: 14, minute: 10),
+                category: freelanceCategory,
+                account: checking,
+                note: "Freelance project"
+            )
+        case 2 where monthOffset % 3 == 0:
+            return TransactionItem(
+                amountMinor: 25_000 + Int64.random(in: 0...75_000, using: &rng),
+                isExpense: false,
+                timestamp: timestamp(on: currentDate, hour: 10, minute: 35),
+                category: bonusCategory,
+                account: savings,
+                note: "Bonus"
+            )
+        case 3 where monthOffset % 4 == 0:
+            return TransactionItem(
+                amountMinor: 1_500 + Int64.random(in: 0...12_000, using: &rng),
+                isExpense: false,
+                timestamp: timestamp(on: currentDate, hour: 16, minute: 5),
+                category: refundCategory,
+                account: checking,
+                note: "Refund"
+            )
+        default:
+            guard let item = expensePlans.randomElement(using: &rng) else {
+                return TransactionItem(
+                    amountMinor: 1_000,
+                    isExpense: true,
+                    timestamp: timestamp(on: currentDate, hour: 12, minute: 0),
+                    category: nil,
+                    account: checking,
+                    note: "Expense"
+                )
+            }
+            return TransactionItem(
+                amountMinor: item.0.randomAmount(using: &rng),
+                isExpense: true,
+                timestamp: timestamp(
+                    on: currentDate,
+                    hour: item.0.hour,
+                    minute: Int.random(in: 0...54, using: &rng)
+                ),
+                category: item.1,
+                account: checking,
+                note: item.0.randomNote(using: &rng)
+            )
+        }
+    }
+
     private static func timestamp(on date: Date, hour: Int, minute: Int) -> Date {
         Calendar.current.date(
             bySettingHour: min(hour, 23),
@@ -457,6 +524,8 @@ private struct SeededRandomNumberGenerator: RandomNumberGenerator {
 }
 
 enum DataIntegrityService {
+    private static let personCountsBackfilledKey = "personCountsBackfilledV1"
+
     @MainActor
     static func repair(modelContext: ModelContext, currencyCode: String) {
         let now = Date()
@@ -483,7 +552,11 @@ enum DataIntegrityService {
         }
 
         repairAmountsAndDates(modelContext: modelContext, now: now)
-        try? modelContext.save()
+        let didBackfillPersonCounts = backfillPersonCountsIfNeeded(modelContext: modelContext)
+
+        if (try? modelContext.save()) != nil, didBackfillPersonCounts {
+            UserDefaults.standard.set(true, forKey: personCountsBackfilledKey)
+        }
     }
 
     @MainActor
@@ -568,6 +641,39 @@ enum DataIntegrityService {
                 budget.updatedAt = budget.createdAt
             }
         }
+    }
+
+    @MainActor
+    private static func backfillPersonCountsIfNeeded(modelContext: ModelContext) -> Bool {
+        guard !UserDefaults.standard.bool(forKey: personCountsBackfilledKey) else {
+            return false
+        }
+
+        let people = (try? modelContext.fetch(FetchDescriptor<PersonItem>())) ?? []
+        guard !people.isEmpty else { return true }
+
+        let transactionTags = (try? modelContext.fetch(FetchDescriptor<TransactionPersonTagItem>())) ?? []
+        let recurringTags = (try? modelContext.fetch(FetchDescriptor<RecurringRulePersonTagItem>())) ?? []
+
+        var transactionCounts: [UUID: Int] = [:]
+        for tag in transactionTags {
+            guard let personID = tag.person?.id else { continue }
+            transactionCounts[personID, default: 0] += 1
+        }
+
+        var recurringCounts: [UUID: Int] = [:]
+        for tag in recurringTags {
+            guard let personID = tag.person?.id else { continue }
+            recurringCounts[personID, default: 0] += 1
+        }
+
+        for person in people {
+            person.transactionCount = transactionCounts[person.id] ?? 0
+            person.recurringRuleCount = recurringCounts[person.id] ?? 0
+            person.updatedAt = max(person.updatedAt, person.createdAt)
+        }
+
+        return true
     }
 
     private static func normalizedMoney(_ value: Int64) -> Int64 {

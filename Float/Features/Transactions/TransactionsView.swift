@@ -7,6 +7,7 @@ struct TransactionsView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query(sort: \PersonItem.createdAt) private var people: [PersonItem]
     @Query(sort: \EventItem.startDate, order: .reverse) private var events: [EventItem]
     @State private var ledgerItems: [LedgerListItem] = []
     @State private var nextPageEndDate: Date?
@@ -16,6 +17,7 @@ struct TransactionsView: View {
     @State private var searchText = ""
     @State private var selectedCategoryID: UUID?
     @State private var selectedAccountID: UUID?
+    @State private var selectedPersonID: UUID?
     @State private var selectedType = TransactionTypeFilter.all
     @State private var selectedSort = TransactionSortOption.newestFirst
     @State private var useDateRange = false
@@ -66,33 +68,13 @@ struct TransactionsView: View {
     }
 
     private var hasActiveFilters: Bool {
-        selectedCategoryID != nil || selectedAccountID != nil
+        selectedCategoryID != nil || selectedAccountID != nil || selectedPersonID != nil
             || selectedType != .all || useDateRange
             || minimumAmountMinor != nil || maximumAmountMinor != nil
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 18) {
-                compactFilterSection
-
-                if filtered.isEmpty && !isLoadingPage {
-                    EmptyStateView(
-                        icon: "list.bullet.rectangle",
-                        title: emptyStateTitle,
-                        message: emptyStateMessage
-                    )
-                    .transactionPlainSurface(cornerRadius: FloatTheme.controlRadius)
-                } else {
-                    ForEach(grouped, id: \.0) { day, items in
-                        transactionSection(day: day, items: items)
-                    }
-                    paginationFooter
-                }
-            }
-            .padding(20)
-            .padding(.bottom, 130)
-        }
+        transactionsScrollContent
         .navigationTitle("Transactions")
         .navigationBarItems(trailing: transactionNavigationBarItems)
         .searchable(text: $searchText, prompt: "Search notes, accounts, amounts")
@@ -106,51 +88,11 @@ struct TransactionsView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .sheet(isPresented: $isEntrySheetPresented) {
-            QuickAddKeypadSheet(
-                transactionToEdit: editingTransaction,
-                initialIsExpense: editingTransactionInitialIsExpense
-            )
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
-        .sheet(item: $splittingTransaction) { transaction in
-            BulkTransactionEntrySheet(
-                transactionToReplace: transaction,
-                onCreate: { resetAndLoadFirstPage() }
-            )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $isTransferSheetPresented) {
-            TransferEditorSheet(transferToEdit: editingTransfer)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $isBulkEntrySheetPresented) {
-            BulkTransactionEntrySheet()
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $showingFilters) {
-            TransactionFilterSheet(
-                categories: categories,
-                accounts: accounts,
-                selectedCategoryID: $selectedCategoryID,
-                selectedAccountID: $selectedAccountID,
-                selectedType: $selectedType,
-                useDateRange: $useDateRange,
-                startDate: $startDate,
-                endDate: $endDate,
-                minimumAmountText: $minimumAmountText,
-                maximumAmountText: $maximumAmountText,
-                hasActiveFilters: hasActiveFilters,
-                clearFilters: clearFilters,
-                currencyCode: appState.selectedCurrencyCode
-            )
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-        }
+        .background(transactionFilterSheetHost)
+        .sheet(isPresented: $isEntrySheetPresented, content: entrySheet)
+        .sheet(item: $splittingTransaction, content: splittingTransactionSheet)
+        .sheet(isPresented: $isTransferSheetPresented, content: transferSheet)
+        .sheet(isPresented: $isBulkEntrySheetPresented, content: bulkEntrySheet)
         .task {
             loadInitialState()
         }
@@ -160,6 +102,7 @@ struct TransactionsView: View {
         .onChange(of: searchText) { _, _ in resetAndLoadFirstPage() }
         .onChange(of: selectedCategoryID) { _, _ in resetAndLoadFirstPage() }
         .onChange(of: selectedAccountID) { _, _ in resetAndLoadFirstPage() }
+        .onChange(of: selectedPersonID) { _, _ in resetAndLoadFirstPage() }
         .onChange(of: selectedType) { _, _ in resetAndLoadFirstPage() }
         .onChange(of: selectedSort) { _, _ in resetAndLoadFirstPage() }
         .onChange(of: useDateRange) { _, _ in resetAndLoadFirstPage() }
@@ -189,6 +132,60 @@ struct TransactionsView: View {
                 resetAndLoadFirstPage()
             }
         }
+    }
+
+    private var transactionsScrollContent: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 18) {
+                compactFilterSection
+
+                if filtered.isEmpty && !isLoadingPage {
+                    EmptyStateView(
+                        icon: "list.bullet.rectangle",
+                        title: emptyStateTitle,
+                        message: emptyStateMessage
+                    )
+                    .transactionPlainSurface(cornerRadius: FloatTheme.controlRadius)
+                } else {
+                    ForEach(grouped, id: \.0) { day, items in
+                        transactionSection(day: day, items: items)
+                    }
+                    paginationFooter
+                }
+            }
+            .padding(20)
+            .padding(.bottom, 130)
+        }
+    }
+
+    private func entrySheet() -> some View {
+        QuickAddKeypadSheet(
+            transactionToEdit: editingTransaction,
+            initialIsExpense: editingTransactionInitialIsExpense
+        )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+    }
+
+    private func splittingTransactionSheet(_ transaction: TransactionItem) -> some View {
+        BulkTransactionEntrySheet(
+            transactionToReplace: transaction,
+            onCreate: { resetAndLoadFirstPage() }
+        )
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func transferSheet() -> some View {
+        TransferEditorSheet(transferToEdit: editingTransfer)
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+    }
+
+    private func bulkEntrySheet() -> some View {
+        BulkTransactionEntrySheet()
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
     }
 
     @ViewBuilder
@@ -473,6 +470,10 @@ struct TransactionsView: View {
            let account = accounts.first(where: { $0.id == selectedAccountID }) {
             chips.append(TransactionFilterChip(title: account.name, kind: .account))
         }
+        if let selectedPersonID,
+           let person = people.first(where: { $0.id == selectedPersonID }) {
+            chips.append(TransactionFilterChip(title: person.name, kind: .person))
+        }
         if useDateRange {
             chips.append(
                 TransactionFilterChip(
@@ -511,6 +512,33 @@ struct TransactionsView: View {
         )
     }
 
+    private var transactionFiltersSheet: some View {
+        TransactionFilterSheet(
+            categories: categories,
+            accounts: accounts,
+            people: people,
+            selectedCategoryID: $selectedCategoryID,
+            selectedAccountID: $selectedAccountID,
+            selectedPersonID: $selectedPersonID,
+            selectedType: $selectedType,
+            useDateRange: $useDateRange,
+            startDate: $startDate,
+            endDate: $endDate,
+            minimumAmountText: $minimumAmountText,
+            maximumAmountText: $maximumAmountText,
+            hasActiveFilters: hasActiveFilters,
+            clearFilters: clearFilters,
+            currencyCode: appState.selectedCurrencyCode
+        )
+    }
+
+    private var transactionFilterSheetHost: some View {
+        TransactionFilterSheetHost(
+            isPresented: $showingFilters,
+            content: transactionFiltersSheet
+        )
+    }
+
     private func delete(_ transaction: TransactionItem) {
         deletedSnapshot = DeletedTransactionSnapshot(transaction: transaction)
         try? TransactionRepository(modelContext: modelContext)
@@ -529,7 +557,8 @@ struct TransactionsView: View {
         modelContext.insert(snapshot.makeTransaction(
             categories: categories,
             accounts: accounts,
-            events: events
+            events: events,
+            people: people
         ))
         try? modelContext.save()
         resetAndLoadFirstPage()
@@ -754,9 +783,12 @@ struct TransactionsView: View {
         let matchesAccount =
             selectedAccountID == nil
             || transaction.account?.id == selectedAccountID
+        let matchesPerson =
+            selectedPersonID == nil
+            || transaction.personTags.contains(where: { $0.person?.id == selectedPersonID })
         let matchesPendingFilters = !transaction.isPending
             || (selectedCategoryID == nil && selectedAccountID == nil)
-        return matchesCategory && matchesAccount && matchesPendingFilters && matchesSearch(transaction)
+        return matchesCategory && matchesAccount && matchesPerson && matchesPendingFilters && matchesSearch(transaction)
     }
 
     private func matchesTransfer(_ transfer: TransferItem) -> Bool {
@@ -774,6 +806,7 @@ struct TransactionsView: View {
         return (transaction.note ?? "").localizedCaseInsensitiveContains(query)
             || transaction.categoryName.localizedCaseInsensitiveContains(query)
             || transaction.accountName.localizedCaseInsensitiveContains(query)
+            || (transaction.personSummary ?? "").localizedCaseInsensitiveContains(query)
             || transaction.timestamp.formatted(date: .abbreviated, time: .shortened)
                 .localizedCaseInsensitiveContains(query)
             || MoneyFormatter.string(
@@ -817,6 +850,7 @@ struct TransactionsView: View {
     private func clearFilters() {
         selectedCategoryID = nil
         selectedAccountID = nil
+        selectedPersonID = nil
         selectedType = .all
         useDateRange = false
         minimumAmountText = ""
@@ -837,7 +871,7 @@ struct TransactionsView: View {
                 presentEditTransfer(transfer)
             }
             appState.consumeSpotlightRequest(request)
-        case .account, .category:
+        case .account, .category, .people:
             break
         }
     }
@@ -878,6 +912,8 @@ struct TransactionsView: View {
             selectedCategoryID = nil
         case .account:
             selectedAccountID = nil
+        case .person:
+            selectedPersonID = nil
         case .dateRange:
             useDateRange = false
         case .minimumAmount:
@@ -895,6 +931,24 @@ struct TransactionsView: View {
             currencyCode: appState.selectedCurrencyCode
         )
         return parsed > 0 ? parsed : nil
+    }
+}
+
+private struct TransactionFilterSheetHost<Content: View>: View {
+    @Binding var isPresented: Bool
+    let content: Content
+
+    var body: some View {
+        Color.clear
+            .frame(width: 0, height: 0)
+            .accessibilityHidden(true)
+            .sheet(isPresented: $isPresented) {
+                AnyView(
+                    content
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
+                )
+            }
     }
 }
 
@@ -1016,6 +1070,7 @@ private struct TransactionFilterChip: Identifiable {
         case type
         case category
         case account
+        case person
         case dateRange
         case minimumAmount
         case maximumAmount
@@ -1027,8 +1082,10 @@ private struct TransactionFilterSheet: View {
     @EnvironmentObject private var appState: AppState
     let categories: [CategoryItem]
     let accounts: [AccountItem]
+    let people: [PersonItem]
     @Binding var selectedCategoryID: UUID?
     @Binding var selectedAccountID: UUID?
+    @Binding var selectedPersonID: UUID?
     @Binding var selectedType: TransactionTypeFilter
     @Binding var useDateRange: Bool
     @Binding var startDate: Date
@@ -1082,6 +1139,21 @@ private struct TransactionFilterSheet: View {
                                 Picker("Account", selection: $selectedAccountID) {
                                     Text("All accounts").tag(UUID?.none)
                                     ForEach(accounts.filter { !$0.archived }) {
+                                        Text($0.name).tag(Optional($0.id))
+                                    }
+                                }
+                            }
+
+                            Divider()
+
+                            menuRow(
+                                title: "People",
+                                value: selectedPersonName,
+                                icon: "person.2.fill"
+                            ) {
+                                Picker("People", selection: $selectedPersonID) {
+                                    Text("All people").tag(UUID?.none)
+                                    ForEach(people) {
                                         Text($0.name).tag(Optional($0.id))
                                     }
                                 }
@@ -1177,6 +1249,15 @@ private struct TransactionFilterSheet: View {
             return "All accounts"
         }
         return account.name
+    }
+
+    private var selectedPersonName: String {
+        guard let selectedPersonID,
+              let person = people.first(where: { $0.id == selectedPersonID })
+        else {
+            return "All people"
+        }
+        return person.name
     }
 
     private func filterSection<Content: View>(
@@ -1332,6 +1413,13 @@ private struct FilterActionBar: View {
 }
 
     private struct DeletedTransactionSnapshot {
+        struct PersonTagSnapshot {
+            let personID: UUID
+            let sortOrder: Int
+            let allocatedMinor: Int64?
+            let settledMinor: Int64
+        }
+
         let id: UUID
         let amountMinor: Int64
         let isExpense: Bool
@@ -1342,20 +1430,30 @@ private struct FilterActionBar: View {
         let accountID: UUID?
         let eventID: UUID?
         let note: String?
+        let personTags: [PersonTagSnapshot]
         let createdAt: Date
         let updatedAt: Date
 
         init(transaction: TransactionItem) {
-        id = transaction.id
-        amountMinor = transaction.amountMinor
-        isExpense = transaction.isExpense
-        statusRaw = transaction.statusRaw
+            id = transaction.id
+            amountMinor = transaction.amountMinor
+            isExpense = transaction.isExpense
+            statusRaw = transaction.statusRaw
             timestamp = transaction.timestamp
             expectedDueDate = transaction.expectedDueDate
             categoryID = transaction.category?.id
             accountID = transaction.account?.id
             eventID = transaction.event?.id
             note = transaction.note
+            personTags = transaction.personTags.compactMap { tag in
+                guard let personID = tag.person?.id else { return nil }
+                return PersonTagSnapshot(
+                    personID: personID,
+                    sortOrder: tag.sortOrder,
+                    allocatedMinor: tag.allocatedMinor,
+                    settledMinor: tag.settledMinor
+                )
+            }
             createdAt = transaction.createdAt
             updatedAt = transaction.updatedAt
         }
@@ -1363,30 +1461,36 @@ private struct FilterActionBar: View {
         func makeTransaction(
             categories: [CategoryItem],
             accounts: [AccountItem],
-            events: [EventItem]
+            events: [EventItem],
+            people: [PersonItem]
         ) -> TransactionItem {
-            TransactionItem(
+            let transaction = TransactionItem(
                 id: id,
                 amountMinor: amountMinor,
                 isExpense: isExpense,
-            status: TransactionStatus(rawValue: statusRaw) ?? .posted,
-            timestamp: timestamp,
-            expectedDueDate: expectedDueDate,
-            category: categoryID.flatMap { id in
-                categories.first { $0.id == id }
-            },
-            account: accountID.flatMap { id in
-                accounts.first { $0.id == id }
-            },
-            event: eventID.flatMap { id in
-                events.first { $0.id == id }
-            },
-            note: note,
-            createdAt: createdAt,
-            updatedAt: updatedAt
-        )
+                status: TransactionStatus(rawValue: statusRaw) ?? .posted,
+                timestamp: timestamp,
+                expectedDueDate: expectedDueDate,
+                category: categoryID.flatMap { id in
+                    categories.first { $0.id == id }
+                },
+                account: accountID.flatMap { id in
+                    accounts.first { $0.id == id }
+                },
+                event: eventID.flatMap { id in
+                    events.first { $0.id == id }
+                },
+                note: note,
+                createdAt: createdAt,
+                updatedAt: updatedAt
+            )
+            let resolvedPeople = personTags.compactMap { snapshot in
+                people.first { $0.id == snapshot.personID }
+            }
+            transaction.replacePeople(resolvedPeople)
+            return transaction
+        }
     }
-}
 
 private extension Calendar {
     func endOfDay(for date: Date) -> Date {

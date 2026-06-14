@@ -14,6 +14,7 @@ enum FloatShortcutDestination: String, AppEnum {
     case templateGroups
     case categories
     case accounts
+    case people
     case reviewQueue
 
     static var typeDisplayRepresentation = TypeDisplayRepresentation(
@@ -33,6 +34,7 @@ enum FloatShortcutDestination: String, AppEnum {
         .templateGroups: "Template Groups",
         .categories: "Categories",
         .accounts: "Accounts",
+        .people: "People",
         .reviewQueue: "Review Queue",
     ]
 

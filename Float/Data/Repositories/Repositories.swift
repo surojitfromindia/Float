@@ -41,7 +41,8 @@ struct TransactionRepository {
         category: CategoryItem,
         account: AccountItem,
         event: EventItem? = nil,
-        note: String?
+        note: String?,
+        people: [PersonItem]? = nil
     ) throws -> TransactionItem {
         let transaction = TransactionItem(
             amountMinor: amountMinor,
@@ -53,6 +54,9 @@ struct TransactionRepository {
             note: note?.trimmedNilIfBlank
         )
         modelContext.insert(transaction)
+        if let people {
+            transaction.replacePeople(people, in: modelContext)
+        }
         try save()
         return transaction
     }
@@ -61,7 +65,8 @@ struct TransactionRepository {
         amountMinor: Int64,
         expectedDueDate: Date,
         event: EventItem? = nil,
-        note: String?
+        note: String?,
+        people: [PersonItem]? = nil
     ) throws -> TransactionItem {
         let transaction = TransactionItem(
             amountMinor: amountMinor,
@@ -75,6 +80,9 @@ struct TransactionRepository {
             note: note?.trimmedNilIfBlank
         )
         modelContext.insert(transaction)
+        if let people {
+            transaction.replacePeople(people, in: modelContext)
+        }
         try save()
         return transaction
     }
@@ -201,7 +209,8 @@ struct TransactionRepository {
         category: CategoryItem,
         account: AccountItem,
         event: EventItem? = nil,
-        note: String?
+        note: String?,
+        people: [PersonItem]? = nil
     ) throws {
         transaction.apply(
             amountMinor: amountMinor,
@@ -213,6 +222,9 @@ struct TransactionRepository {
             account: account,
             note: note
         )
+        if let people {
+            transaction.replacePeople(people, in: modelContext)
+        }
         transaction.event = event ?? transaction.event
         try save()
     }
@@ -222,7 +234,8 @@ struct TransactionRepository {
         amountMinor: Int64,
         expectedDueDate: Date,
         event: EventItem? = nil,
-        note: String?
+        note: String?,
+        people: [PersonItem]? = nil
     ) throws {
         transaction.apply(
             amountMinor: amountMinor,
@@ -234,6 +247,9 @@ struct TransactionRepository {
             account: nil,
             note: note
         )
+        if let people {
+            transaction.replacePeople(people, in: modelContext)
+        }
         transaction.event = event ?? transaction.event
         try save()
     }
@@ -777,7 +793,8 @@ struct RecurringRepository {
         cadence: RecurringCadence,
         intervalCount: Int,
         nextRunDate: Date,
-        endDate: Date?
+        endDate: Date?,
+        people: [PersonItem]? = nil
     ) throws -> RecurringRuleItem {
         let rule = RecurringRuleItem(
             amountMinor: amountMinor,
@@ -785,11 +802,15 @@ struct RecurringRepository {
             category: category,
             account: account,
             note: note?.trimmedNilIfBlank,
+            personTags: [],
             cadence: cadence,
             intervalCount: intervalCount,
             nextRunDate: nextRunDate,
             endDate: endDate
         )
+        if let people {
+            rule.replacePeople(people, in: modelContext)
+        }
         modelContext.insert(rule)
         try save()
         return rule
@@ -806,7 +827,8 @@ struct RecurringRepository {
         intervalCount: Int,
         nextRunDate: Date,
         endDate: Date?,
-        active: Bool
+        active: Bool,
+        people: [PersonItem]? = nil
     ) throws {
         rule.amountMinor = max(0, amountMinor)
         rule.isExpense = isExpense
@@ -818,6 +840,9 @@ struct RecurringRepository {
         rule.nextRunDate = nextRunDate
         rule.endDate = endDate
         rule.active = active
+        if let people {
+            rule.replacePeople(people, in: modelContext)
+        }
         rule.updatedAt = Date()
         try save()
     }

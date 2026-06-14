@@ -6,14 +6,17 @@ enum BackupService {
     static func createDocument(
         accounts: [AccountItem],
         categories: [CategoryItem],
+        people: [PersonItem],
         eventCategories: [EventCategoryItem],
         events: [EventItem],
         transactions: [TransactionItem],
+        transactionPersonTags: [TransactionPersonTagItem],
         transactionTemplates: [TransactionTemplateItem],
         transactionTemplateGroups: [TransactionTemplateGroupItem],
         transfers: [TransferItem],
         goals: [GoalItem],
         recurringRules: [RecurringRuleItem],
+        recurringRulePersonTags: [RecurringRulePersonTagItem],
         budgets: [BudgetPeriodItem],
         categoryBudgets: [CategoryBudgetItem],
         currencyCode: String
@@ -21,14 +24,17 @@ enum BackupService {
         let dto = FloatBackupDTO(
             accounts: accounts.map(AccountDTO.init),
             categories: categories.map(CategoryDTO.init),
+            people: people.map(PersonDTO.init),
             eventCategories: eventCategories.map(EventCategoryDTO.init),
             events: events.map(EventDTO.init),
             transactions: transactions.map(TransactionDTO.init),
+            transactionPersonTags: transactionPersonTags.map(TransactionPersonTagDTO.init),
             transactionTemplates: transactionTemplates.map(TransactionTemplateDTO.init),
             transactionTemplateGroups: transactionTemplateGroups.map(TransactionTemplateGroupDTO.init),
             transfers: transfers.map(TransferDTO.init),
             goals: goals.map(GoalDTO.init),
             recurringRules: recurringRules.map(RecurringRuleDTO.init),
+            recurringRulePersonTags: recurringRulePersonTags.map(RecurringRulePersonTagDTO.init),
             budgets: budgets.map(BudgetDTO.init),
             categoryBudgets: categoryBudgets.map(CategoryBudgetDTO.init),
             settings: SettingsDTO(
@@ -47,6 +53,7 @@ enum BackupService {
         try deleteExistingData(in: modelContext)
 
         var categoryMap: [UUID: CategoryItem] = [:]
+        var personMap: [UUID: PersonItem] = [:]
         var eventCategoryMap: [UUID: EventCategoryItem] = [:]
         var eventMap: [UUID: EventItem] = [:]
         var accountMap: [UUID: AccountItem] = [:]
@@ -54,6 +61,12 @@ enum BackupService {
         for item in dto.categories {
             let model = CategoryItem(dto: item)
             categoryMap[item.id] = model
+            modelContext.insert(model)
+        }
+
+        for item in dto.people {
+            let model = PersonItem(dto: item)
+            personMap[item.id] = model
             modelContext.insert(model)
         }
 
@@ -141,18 +154,53 @@ enum BackupService {
             modelContext.insert(model)
         }
 
+        var transactionMap: [UUID: TransactionItem] = [:]
         for item in dto.transactions {
-            modelContext.insert(
-                TransactionItem(
-                    dto: item,
-                    category: item.categoryID.flatMap { categoryMap[$0] },
-                    account: item.accountID.flatMap { accountMap[$0] },
-                    event: item.eventID.flatMap { eventMap[$0] },
-                    recurringRule: item.recurringRuleID.flatMap {
-                        recurringMap[$0]
-                    }
-                )
+            let model = TransactionItem(
+                dto: item,
+                category: item.categoryID.flatMap { categoryMap[$0] },
+                account: item.accountID.flatMap { accountMap[$0] },
+                event: item.eventID.flatMap { eventMap[$0] },
+                recurringRule: item.recurringRuleID.flatMap {
+                    recurringMap[$0]
+                }
             )
+            transactionMap[item.id] = model
+            modelContext.insert(model)
+        }
+
+        for item in dto.transactionPersonTags {
+            guard
+                let person = item.personID.flatMap({ personMap[$0] }),
+                let transaction = item.transactionID.flatMap({ transactionMap[$0] })
+            else { continue }
+            let tag = TransactionPersonTagItem(
+                id: item.id,
+                sortOrder: item.sortOrder,
+                allocatedMinor: item.allocatedMinor,
+                settledMinor: item.settledMinor,
+                person: person,
+                transaction: transaction,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt
+            )
+            modelContext.insert(tag)
+        }
+
+        for item in dto.recurringRulePersonTags {
+            guard
+                let person = item.personID.flatMap({ personMap[$0] }),
+                let recurringRule = item.recurringRuleID.flatMap({ recurringMap[$0] })
+            else { continue }
+            let tag = RecurringRulePersonTagItem(
+                id: item.id,
+                sortOrder: item.sortOrder,
+                person: person,
+                recurringRule: recurringRule,
+                createdAt: item.createdAt,
+                updatedAt: item.updatedAt
+            )
+            modelContext.insert(tag)
         }
 
         do {
@@ -164,6 +212,8 @@ enum BackupService {
     }
 
     private static func deleteExistingData(in modelContext: ModelContext) throws {
+        try modelContext.delete(model: TransactionPersonTagItem.self)
+        try modelContext.delete(model: RecurringRulePersonTagItem.self)
         try modelContext.delete(model: TransactionItem.self)
         try modelContext.delete(model: EventItem.self)
         try modelContext.delete(model: EventCategoryItem.self)
@@ -172,6 +222,7 @@ enum BackupService {
         try modelContext.delete(model: TransactionTemplateItem.self)
         try modelContext.delete(model: TransferItem.self)
         try modelContext.delete(model: RecurringRuleItem.self)
+        try modelContext.delete(model: PersonItem.self)
         try modelContext.delete(model: GoalItem.self)
         try modelContext.delete(model: CategoryBudgetItem.self)
         try modelContext.delete(model: BudgetPeriodItem.self)
@@ -206,6 +257,23 @@ private extension CategoryDTO {
             sortOrder: item.sortOrder,
             archived: item.archived,
             isDefault: item.isDefault,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension PersonDTO {
+    init(_ item: PersonItem) {
+        self.init(
+            id: item.id,
+            name: item.name,
+            alias: item.alias,
+            note: item.note,
+            colorHex: item.colorHex,
+            archived: item.archived,
+            transactionCount: item.transactionCount,
+            recurringRuleCount: item.recurringRuleCount,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt
         )
@@ -291,6 +359,21 @@ private extension TransactionDTO {
             eventID: item.event?.id,
             note: item.note,
             recurringRuleID: item.recurringRule?.id,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension TransactionPersonTagDTO {
+    init(_ item: TransactionPersonTagItem) {
+        self.init(
+            id: item.id,
+            sortOrder: item.sortOrder,
+            allocatedMinor: item.allocatedMinor,
+            settledMinor: item.settledMinor,
+            personID: item.person?.id,
+            transactionID: item.transaction?.id,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt
         )
@@ -415,6 +498,19 @@ private extension RecurringRuleDTO {
     }
 }
 
+private extension RecurringRulePersonTagDTO {
+    init(_ item: RecurringRulePersonTagItem) {
+        self.init(
+            id: item.id,
+            sortOrder: item.sortOrder,
+            personID: item.person?.id,
+            recurringRuleID: item.recurringRule?.id,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
 private extension BudgetDTO {
     init(_ item: BudgetPeriodItem) {
         self.init(
@@ -454,6 +550,23 @@ private extension AccountItem {
             openingBalanceMinor: dto.openingBalanceMinor,
             currencyCode: dto.currencyCode,
             archived: dto.archived,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension PersonItem {
+    convenience init(dto: PersonDTO) {
+        self.init(
+            id: dto.id,
+            name: dto.name,
+            alias: dto.alias,
+            note: dto.note,
+            colorHex: dto.colorHex,
+            archived: dto.archived,
+            transactionCount: dto.transactionCount,
+            recurringRuleCount: dto.recurringRuleCount,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )
@@ -541,6 +654,42 @@ private extension RecurringRuleItem {
             nextRunDate: dto.nextRunDate,
             endDate: dto.endDate,
             active: dto.active,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension TransactionPersonTagItem {
+    convenience init(
+        dto: TransactionPersonTagDTO,
+        person: PersonItem?,
+        transaction: TransactionItem?
+    ) {
+        self.init(
+            id: dto.id,
+            sortOrder: dto.sortOrder,
+            allocatedMinor: dto.allocatedMinor,
+            settledMinor: dto.settledMinor,
+            person: person,
+            transaction: transaction,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension RecurringRulePersonTagItem {
+    convenience init(
+        dto: RecurringRulePersonTagDTO,
+        person: PersonItem?,
+        recurringRule: RecurringRuleItem?
+    ) {
+        self.init(
+            id: dto.id,
+            sortOrder: dto.sortOrder,
+            person: person,
+            recurringRule: recurringRule,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )

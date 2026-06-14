@@ -168,6 +168,12 @@ private struct RecurringRuleRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
+                    if let people = rule.personSummary {
+                        Text(people)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
 
                 Spacer(minLength: 8)
@@ -262,6 +268,7 @@ struct RecurringEditorView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query(sort: \PersonItem.createdAt) private var people: [PersonItem]
     let rule: RecurringRuleItem?
     @State private var amountText = ""
     @State private var isExpense = true
@@ -269,6 +276,7 @@ struct RecurringEditorView: View {
     @State private var nextRunDate = Date()
     @State private var selectedCategory: CategoryItem?
     @State private var selectedAccount: AccountItem?
+    @State private var selectedPersonIDs: Set<UUID> = []
     @State private var note = ""
     @State private var intervalCount = 1
     @State private var hasEndDate = false
@@ -339,6 +347,10 @@ struct RecurringEditorView: View {
                     selectedAccount: $selectedAccount,
                     accounts: accounts.filter { !$0.archived }
                 )
+                PeoplePicker(
+                    selectedPersonIDs: $selectedPersonIDs,
+                    people: people
+                )
                 TextField("Note", text: $note)
                 if let validationMessage {
                     Text(validationMessage)
@@ -384,6 +396,9 @@ struct RecurringEditorView: View {
                 active = rule.active
                 selectedCategory = rule.category
                 selectedAccount = rule.account
+                selectedPersonIDs = Set(
+                    rule.personTags.compactMap { $0.person?.id }
+                )
                 note = rule.note ?? ""
             }
         }
@@ -425,7 +440,8 @@ struct RecurringEditorView: View {
                     intervalCount: intervalCount,
                     nextRunDate: nextRunDate,
                     endDate: hasEndDate ? endDate : nil,
-                    active: active
+                    active: active,
+                    people: resolvedPeople
                 )
             } else {
                 _ = try repository.create(
@@ -437,7 +453,8 @@ struct RecurringEditorView: View {
                     cadence: cadence,
                     intervalCount: intervalCount,
                     nextRunDate: nextRunDate,
-                    endDate: hasEndDate ? endDate : nil
+                    endDate: hasEndDate ? endDate : nil,
+                    people: resolvedPeople
                 )
             }
             appState.lastUsedCategoryID = category.id.uuidString
@@ -446,5 +463,9 @@ struct RecurringEditorView: View {
         } catch {
             validationMessage = error.localizedDescription
         }
+    }
+
+    private var resolvedPeople: [PersonItem] {
+        people.filter { selectedPersonIDs.contains($0.id) }
     }
 }

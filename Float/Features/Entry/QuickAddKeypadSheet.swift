@@ -28,6 +28,7 @@ struct QuickAddKeypadSheet: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query(sort: \PersonItem.createdAt) private var people: [PersonItem]
 
     let transactionToEdit: TransactionItem?
     let event: EventItem?
@@ -37,6 +38,7 @@ struct QuickAddKeypadSheet: View {
     @State private var transactionKind = QuickTransactionKind.expense
     @State private var selectedCategory: CategoryItem?
     @State private var selectedAccount: AccountItem?
+    @State private var selectedPersonIDs: Set<UUID> = []
     @State private var note = ""
     @State private var timestamp = Date()
     @State private var expectedDueDate = Date()
@@ -159,6 +161,11 @@ struct QuickAddKeypadSheet: View {
                                 )
                                 Divider()
                             }
+                            PeoplePicker(
+                                selectedPersonIDs: $selectedPersonIDs,
+                                people: people
+                            )
+                            Divider()
                             TextField("Note", text: $note, axis: .vertical)
                                 .textFieldStyle(.plain)
                                 .lineLimit(1...3)
@@ -533,6 +540,9 @@ struct QuickAddKeypadSheet: View {
             }
             selectedCategory = transactionToEdit.category
             selectedAccount = transactionToEdit.account
+            selectedPersonIDs = Set(
+                transactionToEdit.personTags.compactMap { $0.person?.id }
+            )
             note = transactionToEdit.note ?? ""
             expectedDueDate = transactionToEdit.expectedDueDate ?? transactionToEdit.timestamp
             return
@@ -640,14 +650,16 @@ struct QuickAddKeypadSheet: View {
                         amountMinor: amountMinor,
                         expectedDueDate: expectedDueDate,
                         event: event,
-                        note: cleanNote
+                        note: cleanNote,
+                        people: resolvedPeople
                     )
                 } else {
                     _ = try repository.createPending(
                         amountMinor: amountMinor,
                         expectedDueDate: expectedDueDate,
                         event: event,
-                        note: cleanNote
+                        note: cleanNote,
+                        people: resolvedPeople
                     )
                 }
                 Haptics.confirm()
@@ -687,7 +699,8 @@ struct QuickAddKeypadSheet: View {
                     category: category,
                     account: account,
                     event: event,
-                    note: cleanNote
+                    note: cleanNote,
+                    people: resolvedPeople
                 )
             } else {
                 _ = try repository.create(
@@ -697,7 +710,8 @@ struct QuickAddKeypadSheet: View {
                     category: category,
                     account: account,
                     event: event,
-                    note: cleanNote
+                    note: cleanNote,
+                    people: resolvedPeople
                 )
             }
             appState.lastUsedCategoryID = category.id.uuidString
@@ -722,6 +736,9 @@ struct QuickAddKeypadSheet: View {
         selectedCategory = transaction.category
         selectedAccount = transaction.account
         note = transaction.note ?? ""
+        selectedPersonIDs = Set(
+            transaction.personTags.compactMap { $0.person?.id }
+        )
         validationMessage = nil
         Haptics.tick()
     }
@@ -734,6 +751,10 @@ struct QuickAddKeypadSheet: View {
         note = template.note ?? ""
         validationMessage = nil
         Haptics.tick()
+    }
+
+    private var resolvedPeople: [PersonItem] {
+        people.filter { selectedPersonIDs.contains($0.id) }
     }
 
     private func applySmartCategorySuggestion() {

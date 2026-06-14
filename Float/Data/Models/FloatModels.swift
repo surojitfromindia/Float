@@ -149,6 +149,52 @@ final class CategoryItem {
 }
 
 @Model
+final class PersonItem {
+    var id: UUID = UUID()
+    var name: String = ""
+    var alias: String?
+    var note: String?
+    var colorHex: String = "#0E7C7B"
+    var archived: Bool = false
+    var transactionCount: Int = 0
+    var recurringRuleCount: Int = 0
+    @Relationship(deleteRule: .cascade, inverse: \TransactionPersonTagItem.person)
+    var transactionTags: [TransactionPersonTagItem] = []
+    @Relationship(deleteRule: .cascade, inverse: \RecurringRulePersonTagItem.person)
+    var recurringRuleTags: [RecurringRulePersonTagItem] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        alias: String? = nil,
+        note: String? = nil,
+        colorHex: String = "#0E7C7B",
+        archived: Bool = false,
+        transactionCount: Int = 0,
+        recurringRuleCount: Int = 0,
+        transactionTags: [TransactionPersonTagItem] = [],
+        recurringRuleTags: [RecurringRulePersonTagItem] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.name = name
+        self.alias = alias?.nilIfBlank
+        self.note = note?.nilIfBlank
+        self.colorHex = colorHex
+        self.archived = archived
+        self.transactionCount = transactionCount
+        self.recurringRuleCount = recurringRuleCount
+        self.transactionTags = transactionTags
+        self.recurringRuleTags = recurringRuleTags
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
 final class TransactionItem {
     var id: UUID = UUID()
     var amountMinor: Int64 = 0
@@ -161,6 +207,8 @@ final class TransactionItem {
     var event: EventItem?
     var note: String?
     var recurringRule: RecurringRuleItem?
+    @Relationship(deleteRule: .cascade, inverse: \TransactionPersonTagItem.transaction)
+    var personTags: [TransactionPersonTagItem] = []
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
 
@@ -176,6 +224,7 @@ final class TransactionItem {
         event: EventItem? = nil,
         note: String? = nil,
         recurringRule: RecurringRuleItem? = nil,
+        personTags: [TransactionPersonTagItem] = [],
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -190,6 +239,7 @@ final class TransactionItem {
         self.event = event
         self.note = note
         self.recurringRule = recurringRule
+        self.personTags = personTags
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -426,6 +476,8 @@ final class RecurringRuleItem {
     var category: CategoryItem?
     var account: AccountItem?
     var note: String?
+    @Relationship(deleteRule: .cascade, inverse: \RecurringRulePersonTagItem.recurringRule)
+    var personTags: [RecurringRulePersonTagItem] = []
     var cadence: RecurringCadence = RecurringCadence.monthly
     var intervalCount: Int = 1
     var nextRunDate: Date = Date()
@@ -441,6 +493,7 @@ final class RecurringRuleItem {
         category: CategoryItem? = nil,
         account: AccountItem? = nil,
         note: String? = nil,
+        personTags: [RecurringRulePersonTagItem] = [],
         cadence: RecurringCadence = .monthly,
         intervalCount: Int = 1,
         nextRunDate: Date = Date(),
@@ -455,6 +508,7 @@ final class RecurringRuleItem {
         self.category = category
         self.account = account
         self.note = note
+        self.personTags = personTags
         self.cadence = cadence
         self.intervalCount = max(1, intervalCount)
         self.nextRunDate = nextRunDate
@@ -564,6 +618,64 @@ final class CategoryBudgetItem {
     }
 }
 
+@Model
+final class TransactionPersonTagItem {
+    var id: UUID = UUID()
+    var sortOrder: Int = 0
+    var allocatedMinor: Int64?
+    var settledMinor: Int64 = 0
+    var person: PersonItem?
+    var transaction: TransactionItem?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        sortOrder: Int = 0,
+        allocatedMinor: Int64? = nil,
+        settledMinor: Int64 = 0,
+        person: PersonItem? = nil,
+        transaction: TransactionItem? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.sortOrder = sortOrder
+        self.allocatedMinor = allocatedMinor
+        self.settledMinor = max(0, settledMinor)
+        self.person = person
+        self.transaction = transaction
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
+final class RecurringRulePersonTagItem {
+    var id: UUID = UUID()
+    var sortOrder: Int = 0
+    var person: PersonItem?
+    var recurringRule: RecurringRuleItem?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        sortOrder: Int = 0,
+        person: PersonItem? = nil,
+        recurringRule: RecurringRuleItem? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.sortOrder = sortOrder
+        self.person = person
+        self.recurringRule = recurringRule
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
 extension TransactionItem {
     var status: TransactionStatus {
         get { TransactionStatus(rawValue: statusRaw) ?? .posted }
@@ -610,6 +722,27 @@ extension TransactionItem {
         return category?.colorHex.nilIfBlank ?? "#5A6B6B"
     }
 
+    var personNames: [String] {
+        personTags
+            .sorted { lhs, rhs in
+                if lhs.sortOrder == rhs.sortOrder {
+                    return lhs.createdAt < rhs.createdAt
+                }
+                return lhs.sortOrder < rhs.sortOrder
+            }
+            .compactMap { $0.person?.name.nilIfBlank }
+    }
+
+    var personSummary: String? {
+        let names = personNames
+        guard !names.isEmpty else { return nil }
+        return names.joined(separator: ", ")
+    }
+
+    var hasPeople: Bool {
+        personSummary != nil
+    }
+
     func apply(
         amountMinor: Int64,
         isExpense: Bool,
@@ -629,6 +762,34 @@ extension TransactionItem {
         self.account = account
         self.note = note?.nilIfBlank
         updatedAt = Date()
+    }
+
+    func replacePeople(_ people: [PersonItem]) {
+        personTags.removeAll()
+        for (index, person) in people.enumerated() {
+            let tag = TransactionPersonTagItem(
+                sortOrder: index,
+                person: person,
+                transaction: self
+            )
+            personTags.append(tag)
+        }
+    }
+
+    func replacePeople(_ people: [PersonItem], in modelContext: ModelContext) {
+        let oldTags = personTags
+        personTags.removeAll()
+        for tag in oldTags {
+            modelContext.delete(tag)
+        }
+        for (index, person) in people.enumerated() {
+            let tag = TransactionPersonTagItem(
+                sortOrder: index,
+                person: person,
+                transaction: self
+            )
+            personTags.append(tag)
+        }
     }
 }
 
@@ -675,6 +836,53 @@ extension TransferItem {
         self.timestamp = timestamp
         self.note = note?.nilIfBlank
         updatedAt = Date()
+    }
+}
+
+extension RecurringRuleItem {
+    var personNames: [String] {
+        personTags
+            .sorted { lhs, rhs in
+                if lhs.sortOrder == rhs.sortOrder {
+                    return lhs.createdAt < rhs.createdAt
+                }
+                return lhs.sortOrder < rhs.sortOrder
+            }
+            .compactMap { $0.person?.name.nilIfBlank }
+    }
+
+    var personSummary: String? {
+        let names = personNames
+        guard !names.isEmpty else { return nil }
+        return names.joined(separator: ", ")
+    }
+
+    func replacePeople(_ people: [PersonItem]) {
+        personTags.removeAll()
+        for (index, person) in people.enumerated() {
+            let tag = RecurringRulePersonTagItem(
+                sortOrder: index,
+                person: person,
+                recurringRule: self
+            )
+            personTags.append(tag)
+        }
+    }
+
+    func replacePeople(_ people: [PersonItem], in modelContext: ModelContext) {
+        let oldTags = personTags
+        personTags.removeAll()
+        for tag in oldTags {
+            modelContext.delete(tag)
+        }
+        for (index, person) in people.enumerated() {
+            let tag = RecurringRulePersonTagItem(
+                sortOrder: index,
+                person: person,
+                recurringRule: self
+            )
+            personTags.append(tag)
+        }
     }
 }
 

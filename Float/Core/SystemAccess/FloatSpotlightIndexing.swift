@@ -8,6 +8,7 @@ enum FloatSpotlightItemKind: String, Codable {
     case transfer
     case account
     case category
+    case people
 }
 
 struct FloatSpotlightTarget: Equatable {
@@ -65,6 +66,7 @@ enum FloatSpotlightIndexer {
         let transfers = (try? modelContext.fetch(FetchDescriptor<TransferItem>())) ?? []
         let accounts = (try? modelContext.fetch(FetchDescriptor<AccountItem>())) ?? []
         let categories = (try? modelContext.fetch(FetchDescriptor<CategoryItem>())) ?? []
+        let people = (try? modelContext.fetch(FetchDescriptor<PersonItem>())) ?? []
 
         let indexedTransactions = spotlightTransactions(from: transactions)
         let indexedTransfers = spotlightTransfers(from: transfers)
@@ -77,8 +79,12 @@ enum FloatSpotlightIndexer {
             from: categories,
             transactions: transactions
         )
+        let indexedPeople = spotlightPeople(
+            from: people,
+            transactions: transactions
+        )
 
-        return indexedTransactions + indexedTransfers + indexedAccounts + indexedCategories
+        return indexedTransactions + indexedTransfers + indexedAccounts + indexedCategories + indexedPeople
     }
 
     private static func spotlightTransactions(
@@ -164,6 +170,23 @@ enum FloatSpotlightIndexer {
                     $0.category?.id == category.id
                 }.count
                 return categoryItem(category, transactionCount: transactionCount)
+            }
+    }
+
+    private static func spotlightPeople(
+        from people: [PersonItem],
+        transactions: [TransactionItem]
+    ) -> [CSSearchableItem] {
+        let taggedTransactions = transactions.filter { !$0.personTags.isEmpty }
+
+        return people
+            .filter { !$0.archived }
+            .sorted { $0.createdAt < $1.createdAt }
+            .map { person in
+                let transactionCount = taggedTransactions.filter {
+                    $0.personTags.contains(where: { $0.person?.id == person.id })
+                }.count
+                return personItem(person, transactionCount: transactionCount)
             }
     }
 
@@ -308,6 +331,34 @@ enum FloatSpotlightIndexer {
             uniqueIdentifier: FloatSpotlightItemIdentifier.make(
                 kind: .category,
                 id: category.id
+            ),
+            domainIdentifier: domainIdentifier,
+            attributeSet: attributeSet
+        )
+    }
+
+    private static func personItem(
+        _ person: PersonItem,
+        transactionCount: Int
+    ) -> CSSearchableItem {
+        let attributeSet = CSSearchableItemAttributeSet(
+            itemContentType: UTType.item.identifier
+        )
+        attributeSet.title = person.name
+        attributeSet.contentDescription = AppLocalization.format(
+            "%lld tagged transactions",
+            Int64(transactionCount)
+        )
+        attributeSet.keywords = sanitizedKeywords([
+            person.name,
+            person.alias,
+            person.note,
+        ])
+
+        return CSSearchableItem(
+            uniqueIdentifier: FloatSpotlightItemIdentifier.make(
+                kind: .people,
+                id: person.id
             ),
             domainIdentifier: domainIdentifier,
             attributeSet: attributeSet

@@ -487,7 +487,20 @@ struct TransactionRowView: View {
                 .frame(minWidth: 88, alignment: .trailing)
             }
 
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
+                if let people = transaction.personSummary {
+                    HStack(spacing: 4) {
+                        Image(systemName: "person.2.fill")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(Color.primary.opacity(0.56))
+
+                        Text(people)
+                            .font(.caption2)
+                            .foregroundStyle(Color.primary.opacity(0.62))
+                            .lineLimit(1)
+                    }
+                }
+
                 if let noteText {
                     Text(noteText)
                         .font(.caption2)
@@ -598,6 +611,129 @@ struct AccountPicker: View {
             }
         }
         .pickerStyle(.menu)
+    }
+}
+
+struct PeoplePicker: View {
+    @Binding var selectedPersonIDs: Set<UUID>
+    let people: [PersonItem]
+    @State private var showingSelector = false
+
+    private var selectedPeople: [PersonItem] {
+        people.filter { selectedPersonIDs.contains($0.id) }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("People", systemImage: "person.2.fill")
+                Spacer()
+                Button(selectedPeople.isEmpty ? "Add" : "Edit") {
+                    showingSelector = true
+                }
+                .font(.caption.weight(.semibold))
+            }
+
+            if selectedPeople.isEmpty {
+                Text("No people tagged")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } else {
+                FlowLayout(spacing: 6) {
+                    ForEach(selectedPeople) { person in
+                        Text(person.name)
+                            .font(.caption.weight(.semibold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(
+                                Color(hex: person.colorHex).opacity(0.16),
+                                in: Capsule()
+                            )
+                            .foregroundStyle(Color(hex: person.colorHex))
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showingSelector) {
+            PersonSelectionSheet(
+                people: people,
+                selectedPersonIDs: $selectedPersonIDs
+            )
+            .presentationDetents([.medium, .large])
+            .presentationDragIndicator(.visible)
+        }
+    }
+}
+
+private struct PersonSelectionSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let people: [PersonItem]
+    @Binding var selectedPersonIDs: Set<UUID>
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(people) { person in
+                    Button {
+                        toggle(person)
+                    } label: {
+                        HStack(spacing: 12) {
+                            Circle()
+                                .fill(Color(hex: person.colorHex).opacity(0.18))
+                                .frame(width: 28, height: 28)
+                                .overlay {
+                                    Image(systemName: "person.fill")
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(Color(hex: person.colorHex))
+                                }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(person.name)
+                                if let alias = nonEmpty(person.alias) {
+                                    Text(alias)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                if person.archived {
+                                    Text("Archived")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            Spacer()
+
+                            if selectedPersonIDs.contains(person.id) {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .navigationTitle("People")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func toggle(_ person: PersonItem) {
+        if selectedPersonIDs.contains(person.id) {
+            selectedPersonIDs.remove(person.id)
+        } else {
+            selectedPersonIDs.insert(person.id)
+        }
+    }
+
+    private func nonEmpty(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmed, !trimmed.isEmpty else { return nil }
+        return trimmed
     }
 }
 

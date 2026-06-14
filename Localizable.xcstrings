@@ -991,6 +991,9 @@
         }
       }
     },
+    "Add person" : {
+
+    },
     "Add predictable bills or income to keep Safe-to-Spend current." : {
       "localizations" : {
         "bn" : {
@@ -1144,6 +1147,9 @@
         }
       }
     },
+    "Alias" : {
+
+    },
     "All accounts" : {
       "localizations" : {
         "bn" : {
@@ -1208,6 +1214,9 @@
           }
         }
       }
+    },
+    "All people" : {
+
     },
     "All transactions" : {
       "localizations" : {
@@ -1319,6 +1328,28 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "दिखावट"
+          }
+        }
+      }
+    },
+    "Archive" : {
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আর্কাইভ করুন"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivar"
+          }
+        },
+        "hi" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "संग्रहित करें"
           }
         }
       }
@@ -2589,6 +2620,9 @@
         }
       }
     },
+    "Edit Person" : {
+
+    },
     "Edit Rule" : {
       "localizations" : {
         "bn" : {
@@ -2882,7 +2916,14 @@
       }
     },
     "Expense Category" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "খরচের বিভাগ"
+          }
+        }
+      }
     },
     "Expense concentration by category" : {
       "localizations" : {
@@ -3409,7 +3450,14 @@
       }
     },
     "Income Category" : {
-
+      "localizations" : {
+        "bn" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "আয়ের বিভাগ"
+          }
+        }
+      }
     },
     "Income vs expenses" : {
       "localizations" : {
@@ -3856,6 +3904,9 @@
         }
       }
     },
+    "New Person" : {
+
+    },
     "New Rule" : {
       "localizations" : {
         "bn" : {
@@ -4056,6 +4107,9 @@
           }
         }
       }
+    },
+    "No people tagged" : {
+
     },
     "No range selected" : {
       "localizations" : {
@@ -4535,6 +4589,9 @@
         }
       }
     },
+    "People" : {
+
+    },
     "Period" : {
       "localizations" : {
         "bn" : {
@@ -4855,6 +4912,9 @@
         }
       }
     },
+    "Recurring rules" : {
+
+    },
     "Recurring time" : {
       "localizations" : {
         "bn" : {
@@ -4871,6 +4931,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ব্যালেন্স রিফ্রেশ করুন"
+          }
+        }
+      }
+    },
+    "Refresh counts" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Refresh counts"
           }
         }
       }

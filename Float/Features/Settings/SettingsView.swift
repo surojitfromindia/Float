@@ -12,22 +12,6 @@ private struct CurrencyOption: Identifiable {
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \TransactionItem.timestamp, order: .reverse) private
-        var transactions: [TransactionItem]
-    @Query(sort: \TransactionTemplateItem.createdAt, order: .reverse) private
-        var transactionTemplates: [TransactionTemplateItem]
-    @Query(sort: \TransactionTemplateGroupItem.createdAt, order: .reverse) private
-        var transactionTemplateGroups: [TransactionTemplateGroupItem]
-    @Query(sort: \TransferItem.timestamp, order: .reverse) private
-        var transfers: [TransferItem]
-    @Query(sort: \EventCategoryItem.sortOrder) private var eventCategories: [EventCategoryItem]
-    @Query(sort: \EventItem.startDate, order: .reverse) private var events: [EventItem]
-    @Query private var accounts: [AccountItem]
-    @Query private var categories: [CategoryItem]
-    @Query private var goals: [GoalItem]
-    @Query private var recurringRules: [RecurringRuleItem]
-    @Query private var budgets: [BudgetPeriodItem]
-    @Query private var categoryBudgets: [CategoryBudgetItem]
     @State private var exportingBackup = false
     @State private var importingBackup = false
     @State private var backupDocument = BackupDocument()
@@ -138,6 +122,7 @@ struct SettingsView: View {
                 NavigationLink("Template Groups", destination: TransactionTemplateGroupManagerView())
                 NavigationLink("Categories", destination: CategoryManagerView())
                 NavigationLink("Accounts", destination: AccountManagerView())
+                NavigationLink("People", destination: PeopleManagerView())
                 NavigationLink("Review Queue", destination: ReviewQueueView())
             }
             Section("Portable data") {
@@ -244,6 +229,8 @@ struct SettingsView: View {
             CategoryManagerView()
         case .accounts:
             AccountManagerView()
+        case .people:
+            PeopleManagerView()
         case .reviewQueue:
             ReviewQueueView()
         }
@@ -281,18 +268,21 @@ struct SettingsView: View {
     private func createBackup() {
         do {
             backupDocument = try BackupService.createDocument(
-                accounts: accounts,
-                categories: categories,
-                eventCategories: eventCategories,
-                events: events,
-                transactions: transactions,
-                transactionTemplates: transactionTemplates,
-                transactionTemplateGroups: transactionTemplateGroups,
-                transfers: transfers,
-                goals: goals,
-                recurringRules: recurringRules,
-                budgets: budgets,
-                categoryBudgets: categoryBudgets,
+                accounts: fetchAll(AccountItem.self),
+                categories: fetchAll(CategoryItem.self),
+                people: fetchAll(PersonItem.self),
+                eventCategories: fetchAll(EventCategoryItem.self),
+                events: fetchAll(EventItem.self),
+                transactions: fetchAll(TransactionItem.self),
+                transactionPersonTags: fetchAll(TransactionPersonTagItem.self),
+                transactionTemplates: fetchAll(TransactionTemplateItem.self),
+                transactionTemplateGroups: fetchAll(TransactionTemplateGroupItem.self),
+                transfers: fetchAll(TransferItem.self),
+                goals: fetchAll(GoalItem.self),
+                recurringRules: fetchAll(RecurringRuleItem.self),
+                recurringRulePersonTags: fetchAll(RecurringRulePersonTagItem.self),
+                budgets: fetchAll(BudgetPeriodItem.self),
+                categoryBudgets: fetchAll(CategoryBudgetItem.self),
                 currencyCode: appState.selectedCurrencyCode
             )
             message = "Preparing backup."
@@ -336,18 +326,21 @@ struct SettingsView: View {
     }
 
     private func resetAllData(reseedDefaults: Bool = true) {
-        for item in transactions { modelContext.delete(item) }
-        for item in transactionTemplateGroups { modelContext.delete(item) }
-        for item in transactionTemplates { modelContext.delete(item) }
-        for item in transfers { modelContext.delete(item) }
-        for item in events { modelContext.delete(item) }
-        for item in eventCategories { modelContext.delete(item) }
-        for item in recurringRules { modelContext.delete(item) }
-        for item in goals { modelContext.delete(item) }
-        for item in categoryBudgets { modelContext.delete(item) }
-        for item in budgets { modelContext.delete(item) }
-        for item in accounts { modelContext.delete(item) }
-        for item in categories { modelContext.delete(item) }
+        for item in fetchAll(TransactionPersonTagItem.self) { modelContext.delete(item) }
+        for item in fetchAll(RecurringRulePersonTagItem.self) { modelContext.delete(item) }
+        for item in fetchAll(TransactionItem.self) { modelContext.delete(item) }
+        for item in fetchAll(TransactionTemplateGroupItem.self) { modelContext.delete(item) }
+        for item in fetchAll(TransactionTemplateItem.self) { modelContext.delete(item) }
+        for item in fetchAll(TransferItem.self) { modelContext.delete(item) }
+        for item in fetchAll(EventItem.self) { modelContext.delete(item) }
+        for item in fetchAll(EventCategoryItem.self) { modelContext.delete(item) }
+        for item in fetchAll(RecurringRuleItem.self) { modelContext.delete(item) }
+        for item in fetchAll(GoalItem.self) { modelContext.delete(item) }
+        for item in fetchAll(CategoryBudgetItem.self) { modelContext.delete(item) }
+        for item in fetchAll(BudgetPeriodItem.self) { modelContext.delete(item) }
+        for item in fetchAll(AccountItem.self) { modelContext.delete(item) }
+        for item in fetchAll(PersonItem.self) { modelContext.delete(item) }
+        for item in fetchAll(CategoryItem.self) { modelContext.delete(item) }
         guard (try? modelContext.save()) != nil else { return }
         if reseedDefaults {
             SeedDataService.ensureSeedData(
@@ -356,6 +349,10 @@ struct SettingsView: View {
             )
         }
         FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
+    }
+
+    private func fetchAll<T: PersistentModel>(_ type: T.Type) -> [T] {
+        (try? modelContext.fetch(FetchDescriptor<T>())) ?? []
     }
 
     private func resultMessage(_ result: Result<URL, Error>, success: String)
@@ -423,4 +420,3 @@ private struct ThemeOptionRow: View {
         }
     }
 }
-

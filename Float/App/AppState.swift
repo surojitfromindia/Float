@@ -92,6 +92,7 @@ enum FloatSettingsDestination: String, Hashable, Identifiable {
     case templateGroups
     case categories
     case accounts
+    case people
     case reviewQueue
 
     var id: String { rawValue }
@@ -249,6 +250,9 @@ final class AppState: ObservableObject {
         case .accounts:
             selectedTab = .settings
             pendingSettingsDestination = .accounts
+        case .people:
+            selectedTab = .settings
+            pendingSettingsDestination = .people
         case .reviewQueue:
             selectedTab = .settings
             pendingSettingsDestination = .reviewQueue
@@ -294,6 +298,9 @@ final class AppState: ObservableObject {
         case .category:
             selectedTab = .settings
             pendingSettingsDestination = .categories
+        case .people:
+            selectedTab = .settings
+            pendingSettingsDestination = .people
         }
     }
 }
