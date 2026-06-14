@@ -1390,33 +1390,6 @@ private struct FilterActionBar: View {
     }
 }
 
-private extension View {
-    func transactionPlainSurface(
-        cornerRadius: CGFloat,
-        tint: Color? = nil
-    ) -> some View {
-        let shape = RoundedRectangle(
-            cornerRadius: cornerRadius,
-            style: .continuous
-        )
-
-        return self
-            .background(
-                Color(.secondarySystemGroupedBackground),
-                in: shape
-            )
-            .background(
-                (tint ?? Color.clear).opacity(tint == nil ? 0 : 0.08),
-                in: shape
-            )
-            .overlay(
-                shape.strokeBorder(
-                    (tint ?? Color.primary).opacity(tint == nil ? 0.06 : 0.14),
-                    lineWidth: 1
-                )
-            )
-    }
-}
 
 private struct FilterControlLabel: View {
     let title: String

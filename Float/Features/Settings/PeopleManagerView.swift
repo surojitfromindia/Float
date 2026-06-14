@@ -14,35 +14,50 @@ struct PeopleManagerView: View {
     @State private var editorPresentation: PersonEditorPresentation?
 
     var body: some View {
-        List {
-            ForEach(people) { person in
-                NavigationLink {
-                    PersonDetailView(person: person)
-                } label: {
-                    personRow(person)
-                }
-                .contextMenu {
-                    Button {
-                        editorPresentation = PersonEditorPresentation(person: person)
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(people) { person in
+                    NavigationLink {
+                        PersonDetailView(person: person)
                     } label: {
-                        Label("Edit", systemImage: "pencil")
+                        personRow(person)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 16)
+                        .contentShape(Rectangle())
                     }
-                    Button {
-                        archive(person)
-                    } label: {
-                        Label("Archive", systemImage: "archivebox")
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button {
+                            editorPresentation = PersonEditorPresentation(person: person)
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        Button {
+                            archive(person)
+                        } label: {
+                            Label("Archive", systemImage: "archivebox")
+                        }
+                        Button(role: .destructive) {
+                            delete(person)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                                .foregroundStyle(.red)
+                        }
                     }
-                    Button(role: .destructive) {
-                        delete(person)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                            .foregroundStyle(.red)
+
+                    if person.id != people.last?.id {
+                        Divider()
+                            .padding(.leading, 78)
                     }
                 }
             }
+            .transactionSectionGlassSurface(cornerRadius: 24)
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+            .padding(.bottom, 120)
         }
         .navigationTitle("People")
-        .scrollContentBackground(.hidden)
         .floatBackground()
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {

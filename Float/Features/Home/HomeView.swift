@@ -284,6 +284,8 @@ struct HomeView: View {
                 currencyCode: appState.selectedCurrencyCode,
                 tint: appState.themePalette.accent
             )
+            .padding(12)
+            .transactionSectionGlassSurface(.clear, cornerRadius: 24)
         }
     }
 
@@ -323,7 +325,7 @@ struct HomeView: View {
     private var recentTransactionsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: LocalizedStringResource("Recent"))
-            HomeGlassPanel(padding: 18, tint: appState.themePalette.accent) {
+            Group {
                 if dashboardSnapshot.recentTransactions.isEmpty {
                     EmptyStateView(
                         icon: "sparkles",
@@ -345,6 +347,8 @@ struct HomeView: View {
                     }
                 }
             }
+            .padding(18)
+            .transactionSectionGlassSurface(cornerRadius: 24)
         }
     }
 
@@ -352,29 +356,29 @@ struct HomeView: View {
         if !budgetAlerts.isEmpty || !pendingMetrics.isEmpty {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: LocalizedStringResource("Budget alerts"))
-                GlassCard {
-                    VStack(spacing: 12) {
-                        if !pendingMetrics.isEmpty {
-                            PendingMetricsRows(
-                                metrics: pendingMetrics,
-                                currencyCode: appState.selectedCurrencyCode,
-                                tint: appState.themePalette.accent
-                            )
-                            if !budgetAlerts.isEmpty {
-                                Divider()
-                            }
+                VStack(spacing: 12) {
+                    if !pendingMetrics.isEmpty {
+                        PendingMetricsRows(
+                            metrics: pendingMetrics,
+                            currencyCode: appState.selectedCurrencyCode,
+                            tint: appState.themePalette.accent
+                        )
+                        if !budgetAlerts.isEmpty {
+                            Divider()
                         }
-                        ForEach(budgetAlerts.prefix(3)) { alert in
-                            BudgetAlertRow(
-                                alert: alert,
-                                currencyCode: appState.selectedCurrencyCode
-                            )
-                            if alert.id != budgetAlerts.prefix(3).last?.id {
-                                Divider()
-                            }
+                    }
+                    ForEach(budgetAlerts.prefix(3)) { alert in
+                        BudgetAlertRow(
+                            alert: alert,
+                            currencyCode: appState.selectedCurrencyCode
+                        )
+                        if alert.id != budgetAlerts.prefix(3).last?.id {
+                            Divider()
                         }
                     }
                 }
+                .padding(20)
+                .transactionSectionGlassSurface(cornerRadius: 24)
             }
         }
     }
@@ -393,6 +397,8 @@ struct HomeView: View {
                         .buttonStyle(.plain)
                     }
                 }
+                .padding(18)
+                .transactionSectionGlassSurface(cornerRadius: 24)
             }
         }
     }
@@ -400,93 +406,93 @@ struct HomeView: View {
     private var queueLinksSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: LocalizedStringResource("Action center"))
-            HomeGlassPanel(padding: 18, tint: appState.themePalette.accent) {
-                VStack(spacing: 11) {
-                    NavigationLink {
-                        PendingTransactionsView()
+            VStack(spacing: 11) {
+                NavigationLink {
+                    PendingTransactionsView()
+                } label: {
+                    QueueLinkRow(
+                        title: LocalizedStringResource("Pending queue"),
+                        subtitle: pendingQueueSubtitle,
+                        icon: "clock.badge.exclamationmark.fill",
+                        tint: appState.themePalette.accent,
+                        trailingText: pendingQueueBadge
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Divider()
+
+                NavigationLink {
+                    ReviewQueueView()
+                } label: {
+                    QueueLinkRow(
+                        title: LocalizedStringResource("Review queue"),
+                        subtitle: AppLocalization.string(
+                            "Missing details, duplicates, and large transactions."
+                        ),
+                        icon: "checklist",
+                        tint: appState.themePalette.accent
+                    )
+                }
+                .buttonStyle(.plain)
+
+                Divider()
+
+                NavigationLink {
+                    EventsView()
+                } label: {
+                    QueueLinkRow(
+                        title: LocalizedStringResource("View events"),
+                        subtitle: AppLocalization.string(
+                            "Timelines, charts, and linked transactions."
+                        ),
+                        icon: "calendar.badge.plus",
+                        tint: appState.themePalette.accent
+                    )
+                }
+                .buttonStyle(.plain)
+
+                if let rule = upcomingRecurringExpense {
+                    Divider()
+
+                    Button {
+                        recurringRuleToEdit = rule
                     } label: {
                         QueueLinkRow(
-                            title: LocalizedStringResource("Pending queue"),
-                            subtitle: pendingQueueSubtitle,
-                            icon: "clock.badge.exclamationmark.fill",
+                            title: LocalizedStringResource("Upcoming recurring"),
+                            subtitle: recurringSubtitle(for: rule),
+                            icon: rule.category?.iconKey ?? "repeat",
                             tint: appState.themePalette.accent,
-                            trailingText: pendingQueueBadge
+                            trailingText: MoneyFormatter.string(
+                                minorUnits: rule.amountMinor,
+                                currencyCode: appState.selectedCurrencyCode
+                            )
                         )
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(LocalizedStringResource("Edit upcoming recurring rule"))
+                }
 
+                if let goal = nearestOpenGoal {
                     Divider()
 
-                    NavigationLink {
-                        ReviewQueueView()
+                    Button {
+                        contributionGoal = goal
                     } label: {
                         QueueLinkRow(
-                            title: LocalizedStringResource("Review queue"),
-                            subtitle: AppLocalization.string(
-                                "Missing details, duplicates, and large transactions."
-                            ),
-                            icon: "checklist",
-                            tint: appState.themePalette.accent
+                            title: LocalizedStringResource("Nearest goal"),
+                            subtitle: goalSubtitle(for: goal),
+                            icon: "target",
+                            tint: appState.themePalette.accent,
+                            trailingText: goalProgressText(for: goal)
                         )
                     }
                     .buttonStyle(.plain)
-
-                    Divider()
-
-                    NavigationLink {
-                        EventsView()
-                    } label: {
-                        QueueLinkRow(
-                            title: LocalizedStringResource("View events"),
-                            subtitle: AppLocalization.string(
-                                "Timelines, charts, and linked transactions."
-                            ),
-                            icon: "calendar.badge.plus",
-                            tint: appState.themePalette.accent
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    if let rule = upcomingRecurringExpense {
-                        Divider()
-
-                        Button {
-                            recurringRuleToEdit = rule
-                        } label: {
-                            QueueLinkRow(
-                                title: LocalizedStringResource("Upcoming recurring"),
-                                subtitle: recurringSubtitle(for: rule),
-                                icon: rule.category?.iconKey ?? "repeat",
-                                tint: appState.themePalette.accent,
-                                trailingText: MoneyFormatter.string(
-                                    minorUnits: rule.amountMinor,
-                                    currencyCode: appState.selectedCurrencyCode
-                                )
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(LocalizedStringResource("Edit upcoming recurring rule"))
-                    }
-
-                    if let goal = nearestOpenGoal {
-                        Divider()
-
-                        Button {
-                            contributionGoal = goal
-                        } label: {
-                            QueueLinkRow(
-                                title: LocalizedStringResource("Nearest goal"),
-                                subtitle: goalSubtitle(for: goal),
-                                icon: "target",
-                                tint: appState.themePalette.accent,
-                                trailingText: goalProgressText(for: goal)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(LocalizedStringResource("Add to nearest goal"))
-                    }
+                    .accessibilityLabel(LocalizedStringResource("Add to nearest goal"))
                 }
             }
+            .padding(18)
+            .transactionSectionGlassSurface(cornerRadius: 24)
         }
     }
 
@@ -1014,7 +1020,7 @@ private struct ForecastStripCard: View {
     let tint: Color
 
     var body: some View {
-        HomeGlassPanel(padding: 12, tint: tint) {
+        Group {
             if items.isEmpty {
                 EmptyStateView(
                     icon: "calendar.badge.clock",
@@ -1024,12 +1030,8 @@ private struct ForecastStripCard: View {
             } else {
                 HStack(spacing: 0) {
                     ForEach(items) { item in
-                        ForecastStripItem(
-                            item: item,
-                            currencyCode: currencyCode,
-                            tint: tint
-                        )
-                        .frame(maxWidth: .infinity)
+                        forecastItem(item)
+                            .frame(maxWidth: .infinity)
 
                         if item.id != items.last?.id {
                             Divider()
@@ -1041,14 +1043,8 @@ private struct ForecastStripCard: View {
             }
         }
     }
-}
 
-private struct ForecastStripItem: View {
-    let item: CashFlowForecastItem
-    let currencyCode: String
-    let tint: Color
-
-    var body: some View {
+    private func forecastItem(_ item: CashFlowForecastItem) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 5) {
                 Image(systemName: "calendar.badge.clock")
@@ -1239,68 +1235,65 @@ struct SafeToSpendHeroCard: View {
     let palette: FloatHeroPalette
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(LocalizedStringResource("Spendable"))
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                    Text(
-                        MoneyFormatter.string(
-                            minorUnits: result.safeToSpendMinor,
+        heroSurface(
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(LocalizedStringResource("Spendable"))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                        Text(
+                            MoneyFormatter.string(
+                                minorUnits: result.safeToSpendMinor,
+                                currencyCode: currencyCode
+                            )
+                        )
+                        .moneyStyle(size: 46, weight: .bold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.52)
+                    }
+                    Spacer(minLength: 12)
+                    statusPill
+                }
+
+                Text(statusCaption)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                ProgressRail(
+                    progress: result.spendingProgress,
+                    tint: statusTint,
+                    track: palette.railTrack
+                )
+
+                HStack(spacing: 0) {
+                    MetricPill(
+                        title: LocalizedStringResource("Daily"),
+                        value: MoneyFormatter.string(
+                            minorUnits: result.dailyAllowanceMinor,
                             currencyCode: currencyCode
                         )
                     )
-                    .moneyStyle(size: 46, weight: .bold)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.52)
+                    Divider().padding(.vertical, 4)
+                    MetricPill(
+                        title: LocalizedStringResource("Left"),
+                        value: localizedFormat("%lldd", Int64(result.daysRemaining))
+                    )
+                    Divider().padding(.vertical, 4)
+                    MetricPill(
+                        title: LocalizedStringResource("Spent"),
+                        value: MoneyFormatter.string(
+                            minorUnits: result.variableSpentMinor,
+                            currencyCode: currencyCode
+                        )
+                    )
                 }
-                Spacer(minLength: 12)
-                statusPill
+                .frame(height: 54)
+                .padding(.horizontal, 4)
             }
-
-            Text(statusCaption)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HeroProgressRail(
-                progress: result.spendingProgress,
-                tint: statusTint,
-                track: palette.railTrack
-            )
-
-            HStack(spacing: 0) {
-                HeroMetricPill(
-                    title: LocalizedStringResource("Daily"),
-                    value: MoneyFormatter.string(
-                        minorUnits: result.dailyAllowanceMinor,
-                        currencyCode: currencyCode
-                    )
-                )
-                Divider().padding(.vertical, 4)
-                HeroMetricPill(
-                    title: LocalizedStringResource("Left"),
-                    value: localizedFormat("%lldd", Int64(result.daysRemaining))
-                )
-                Divider().padding(.vertical, 4)
-                HeroMetricPill(
-                    title: LocalizedStringResource("Spent"),
-                    value: MoneyFormatter.string(
-                        minorUnits: result.variableSpentMinor,
-                        currencyCode: currencyCode
-                    )
-                )
-            }
-            .frame(height: 54)
-            .padding(.horizontal, 4)
-        }
-        .padding(20)
-        .heroSurface(
-            palette: palette,
-            status: statusTint,
-            isDark: colorScheme == .dark
+            .padding(20)
         )
     }
 
@@ -1349,21 +1342,15 @@ struct SafeToSpendHeroCard: View {
             "After recurring, goals, and spending recorded this period."
         )
     }
-}
 
-private extension View {
-    @ViewBuilder
-    func heroSurface(
-        palette: FloatHeroPalette,
-        status: Color,
-        isDark: Bool
-    ) -> some View {
+    private func heroSurface<Content: View>(_ content: Content) -> some View {
         let shape = RoundedRectangle(
             cornerRadius: 30,
             style: .continuous
         )
+        let isDark = colorScheme == .dark
 
-        self
+        return content
             .background(
                 LinearGradient(
                     colors: [
@@ -1383,7 +1370,7 @@ private extension View {
                     .offset(x: 26, y: -34)
                     .allowsHitTesting(false)
                 Circle()
-                    .fill(status.opacity(isDark ? 0.14 : 0.08))
+                    .fill(statusTint.opacity(isDark ? 0.14 : 0.08))
                     .frame(width: 78, height: 78)
                     .blur(radius: 20)
                     .offset(x: -2, y: -10)
@@ -1402,59 +1389,59 @@ private extension View {
                 y: 14
             )
     }
-}
 
-private struct HeroMetricPill: View {
-    let title: LocalizedStringResource
-    let value: String
+    private struct MetricPill: View {
+        let title: LocalizedStringResource
+        let value: String
 
-    var body: some View {
-        VStack(alignment: .center, spacing: 3) {
-            Text(title)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Text(value)
-                .moneyStyle(size: 13, weight: .semibold)
-                .lineLimit(1)
-                .minimumScaleFactor(0.68)
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-private struct HeroProgressRail: View {
-    @Environment(\.colorScheme) private var colorScheme
-    let progress: Double
-    let tint: Color
-    let track: Color
-
-    private var clampedProgress: Double {
-        min(max(progress, 0), 1)
-    }
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(track.opacity(colorScheme == .dark ? 0.65 : 0.52))
-                Capsule()
-                    .fill(tint.gradient)
-                    .frame(
-                        width: max(
-                            8,
-                            proxy.size.width * CGFloat(clampedProgress)
-                        )
-                    )
-                    .shadow(
-                        color: tint.opacity(colorScheme == .dark ? 0.32 : 0.18),
-                        radius: 8,
-                        y: 2
-                    )
+        var body: some View {
+            VStack(alignment: .center, spacing: 3) {
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(value)
+                    .moneyStyle(size: 13, weight: .semibold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.68)
             }
+            .frame(maxWidth: .infinity)
         }
-        .frame(height: 7)
-        .padding(2)
-        .background(track.opacity(colorScheme == .dark ? 0.22 : 0.34), in: Capsule())
+    }
+
+    private struct ProgressRail: View {
+        @Environment(\.colorScheme) private var colorScheme
+        let progress: Double
+        let tint: Color
+        let track: Color
+
+        private var clampedProgress: Double {
+            min(max(progress, 0), 1)
+        }
+
+        var body: some View {
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(track.opacity(colorScheme == .dark ? 0.65 : 0.52))
+                    Capsule()
+                        .fill(tint.gradient)
+                        .frame(
+                            width: max(
+                                8,
+                                proxy.size.width * CGFloat(clampedProgress)
+                            )
+                        )
+                        .shadow(
+                            color: tint.opacity(colorScheme == .dark ? 0.32 : 0.18),
+                            radius: 8,
+                            y: 2
+                        )
+                }
+            }
+            .frame(height: 7)
+            .padding(2)
+            .background(track.opacity(colorScheme == .dark ? 0.22 : 0.34), in: Capsule())
+        }
     }
 }
 
@@ -1554,10 +1541,7 @@ private struct BudgetStatusChart: View {
             }
         }
         .padding(16)
-        .background(
-            Color(.secondarySystemGroupedBackground),
-            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
-        )
+        .transactionSectionGlassSurface(cornerRadius: 24)
     }
 
     private var periodSummary: String {

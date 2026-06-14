@@ -2,6 +2,25 @@ import Foundation
 import SwiftUI
 
 extension View {
+    func transactionSectionGlassSurface(
+        _ glass: Glass = .regular,
+        cornerRadius: CGFloat = FloatTheme.controlRadius
+    ) -> some View {
+        let shape = RoundedRectangle(
+            cornerRadius: cornerRadius,
+            style: .continuous
+        )
+
+        return self
+            .glassEffect(glass, in: .rect(cornerRadius: cornerRadius))
+            .overlay(
+                shape.strokeBorder(
+                    Color.primary.opacity(0.07),
+                    lineWidth: 1
+                )
+            )
+    }
+
     @ViewBuilder
     func floatGlassSurface(
         cornerRadius: CGFloat = FloatTheme.tileRadius,

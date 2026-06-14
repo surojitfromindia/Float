@@ -352,7 +352,7 @@ struct TransactionsView: View {
                 }
             }
             .padding(14)
-            .transactionPlainSurface(cornerRadius: FloatTheme.controlRadius)
+            .transactionSectionGlassSurface(cornerRadius: FloatTheme.controlRadius)
         }
     }
 
@@ -968,7 +968,7 @@ private struct FilterControlLabel: View {
     }
 }
 
-private extension View {
+extension View {
     func transactionPlainSurface(
         cornerRadius: CGFloat,
         tint: Color? = nil
