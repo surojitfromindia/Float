@@ -36,6 +36,8 @@ struct FloatBackupDTO: Codable {
     var recurringRulePersonTags: [RecurringRulePersonTagDTO]
     var budgets: [BudgetDTO]
     var categoryBudgets: [CategoryBudgetDTO]
+    var settlementCases: [SettlementCaseDTO]
+    var settlementEntries: [SettlementEntryDTO]
     var settings: SettingsDTO
 
     enum CodingKeys: String, CodingKey {
@@ -54,6 +56,8 @@ struct FloatBackupDTO: Codable {
         case recurringRulePersonTags
         case budgets
         case categoryBudgets
+        case settlementCases
+        case settlementEntries
         case settings
     }
 
@@ -73,6 +77,8 @@ struct FloatBackupDTO: Codable {
         recurringRulePersonTags: [RecurringRulePersonTagDTO] = [],
         budgets: [BudgetDTO],
         categoryBudgets: [CategoryBudgetDTO] = [],
+        settlementCases: [SettlementCaseDTO] = [],
+        settlementEntries: [SettlementEntryDTO] = [],
         settings: SettingsDTO
     ) {
         self.accounts = accounts
@@ -90,6 +96,8 @@ struct FloatBackupDTO: Codable {
         self.recurringRulePersonTags = recurringRulePersonTags
         self.budgets = budgets
         self.categoryBudgets = categoryBudgets
+        self.settlementCases = settlementCases
+        self.settlementEntries = settlementEntries
         self.settings = settings
     }
 
@@ -110,6 +118,8 @@ struct FloatBackupDTO: Codable {
         recurringRulePersonTags = try container.decodeIfPresent([RecurringRulePersonTagDTO].self, forKey: .recurringRulePersonTags) ?? []
         budgets = try container.decode([BudgetDTO].self, forKey: .budgets)
         categoryBudgets = try container.decodeIfPresent([CategoryBudgetDTO].self, forKey: .categoryBudgets) ?? []
+        settlementCases = try container.decodeIfPresent([SettlementCaseDTO].self, forKey: .settlementCases) ?? []
+        settlementEntries = try container.decodeIfPresent([SettlementEntryDTO].self, forKey: .settlementEntries) ?? []
         settings = try container.decode(SettingsDTO.self, forKey: .settings)
     }
 }
@@ -198,6 +208,28 @@ struct PersonDTO: Codable {
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
+}
+struct SettlementCaseDTO: Codable {
+    var id: UUID
+    var title: String
+    var directionRaw: String
+    var currencyCode: String
+    var note: String?
+    var personID: UUID?
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct SettlementEntryDTO: Codable {
+    var id: UUID
+    var kindRaw: String
+    var amountMinor: Int64
+    var entryDate: Date
+    var note: String?
+    var reference: String?
+    var caseID: UUID?
+    var linkedTransactionID: UUID?
+    var createdAt: Date
+    var updatedAt: Date
 }
 struct EventCategoryDTO: Codable {
     var id: UUID

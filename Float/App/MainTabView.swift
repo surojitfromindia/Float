@@ -11,9 +11,9 @@ struct MainTabView: View {
             NavigationStack { TransactionsView() }
                 .tabItem { Label("List", systemImage: "line.3.horizontal.decrease") }
                 .tag(FloatTab.transactions)
-            NavigationStack { CalendarView() }
-                .tabItem { Label("Calendar", systemImage: "calendar.day.timeline.left") }
-                .tag(FloatTab.calendar)
+            NavigationStack { SettlementsView() }
+                .tabItem { Label("Settlements", systemImage: "person.2.fill") }
+                .tag(FloatTab.settlements)
             NavigationStack { InsightsView() }
                 .tabItem {
                     Label("Stats", systemImage: "chart.xyaxis.line")

@@ -19,6 +19,8 @@ enum BackupService {
         recurringRulePersonTags: [RecurringRulePersonTagItem],
         budgets: [BudgetPeriodItem],
         categoryBudgets: [CategoryBudgetItem],
+        settlementCases: [SettlementCaseItem],
+        settlementEntries: [SettlementEntryItem],
         currencyCode: String
     ) throws -> BackupDocument {
         let dto = FloatBackupDTO(
@@ -37,6 +39,8 @@ enum BackupService {
             recurringRulePersonTags: recurringRulePersonTags.map(RecurringRulePersonTagDTO.init),
             budgets: budgets.map(BudgetDTO.init),
             categoryBudgets: categoryBudgets.map(CategoryBudgetDTO.init),
+            settlementCases: settlementCases.map(SettlementCaseDTO.init),
+            settlementEntries: settlementEntries.map(SettlementEntryDTO.init),
             settings: SettingsDTO(
                 currencyCode: currencyCode,
                 exportedAt: Date()
@@ -169,6 +173,29 @@ enum BackupService {
             modelContext.insert(model)
         }
 
+        var settlementCaseMap: [UUID: SettlementCaseItem] = [:]
+        for item in dto.settlementCases {
+            let model = SettlementCaseItem(
+                dto: item,
+                person: item.personID.flatMap { personMap[$0] }
+            )
+            settlementCaseMap[item.id] = model
+            modelContext.insert(model)
+        }
+
+        for item in dto.settlementEntries {
+            guard let caseItem = item.caseID.flatMap({ settlementCaseMap[$0] }) else {
+                continue
+            }
+            let entry = SettlementEntryItem(
+                dto: item,
+                caseItem: caseItem,
+                linkedTransaction: item.linkedTransactionID.flatMap { transactionMap[$0] }
+            )
+            modelContext.insert(entry)
+            caseItem.entries.append(entry)
+        }
+
         for item in dto.transactionPersonTags {
             guard
                 let person = item.personID.flatMap({ personMap[$0] }),
@@ -214,6 +241,8 @@ enum BackupService {
     private static func deleteExistingData(in modelContext: ModelContext) throws {
         try modelContext.delete(model: TransactionPersonTagItem.self)
         try modelContext.delete(model: RecurringRulePersonTagItem.self)
+        try modelContext.delete(model: SettlementEntryItem.self)
+        try modelContext.delete(model: SettlementCaseItem.self)
         try modelContext.delete(model: TransactionItem.self)
         try modelContext.delete(model: EventItem.self)
         try modelContext.delete(model: EventCategoryItem.self)
@@ -276,6 +305,77 @@ private extension PersonDTO {
             recurringRuleCount: item.recurringRuleCount,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension SettlementCaseDTO {
+    init(_ item: SettlementCaseItem) {
+        self.init(
+            id: item.id,
+            title: item.title,
+            directionRaw: item.directionRaw,
+            currencyCode: item.currencyCode,
+            note: item.note,
+            personID: item.person?.id,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension SettlementCaseItem {
+    convenience init(
+        dto: SettlementCaseDTO,
+        person: PersonItem? = nil
+    ) {
+        self.init(
+            id: dto.id,
+            title: dto.title,
+            direction: SettlementDirection(rawValue: dto.directionRaw) ?? .theyOweYou,
+            currencyCode: dto.currencyCode,
+            note: dto.note,
+            person: person,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension SettlementEntryDTO {
+    init(_ item: SettlementEntryItem) {
+        self.init(
+            id: item.id,
+            kindRaw: item.kindRaw,
+            amountMinor: item.amountMinor,
+            entryDate: item.entryDate,
+            note: item.note,
+            reference: item.reference,
+            caseID: item.caseItem?.id,
+            linkedTransactionID: item.linkedTransaction?.id,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension SettlementEntryItem {
+    convenience init(
+        dto: SettlementEntryDTO,
+        caseItem: SettlementCaseItem? = nil,
+        linkedTransaction: TransactionItem? = nil
+    ) {
+        self.init(
+            id: dto.id,
+            kind: SettlementEntryKind(rawValue: dto.kindRaw) ?? .addition,
+            amountMinor: dto.amountMinor,
+            entryDate: dto.entryDate,
+            note: dto.note,
+            reference: dto.reference,
+            caseItem: caseItem,
+            linkedTransaction: linkedTransaction,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
         )
     }
 }

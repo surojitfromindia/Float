@@ -12,6 +12,8 @@ struct HomeView: View {
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
     @Query(sort: \EventItem.startDate, order: .reverse) private var events: [EventItem]
     @Query private var categoryBudgets: [CategoryBudgetItem]
+    @Query(sort: \SettlementCaseItem.updatedAt, order: .reverse) private var settlementCases:
+        [SettlementCaseItem]
     @State private var recurringRuleToEdit: RecurringRuleItem?
     @State private var recurringRulePendingPayment: RecurringRuleItem?
     @State private var contributionGoal: GoalItem?
@@ -119,6 +121,7 @@ struct HomeView: View {
                 )
 
                 quickActions
+                settlementsSection
                 queueLinksSection
                 pinnedEventsSection
                 cashFlowForecast
@@ -274,6 +277,63 @@ struct HomeView: View {
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder private var settlementsSection: some View {
+        if !settlementCases.isEmpty {
+            let summary = SettlementDashboardSummary(cases: settlementCases)
+            let recent = Array(settlementCases.filter(\.isActive).prefix(3))
+
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: LocalizedStringResource("Settlements"))
+                NavigationLink {
+                    SettlementsView()
+                } label: {
+                    VStack(spacing: 14) {
+                        HStack(spacing: 10) {
+                            SummaryMetricTile(
+                                title: LocalizedStringResource("To collect"),
+                                value: money(summary.receivableMinor),
+                                captionText: AppLocalization.format(
+                                    "%lld open",
+                                    Int64(summary.receivableCases)
+                                ),
+                                icon: "arrow.down.circle.fill",
+                                tint: appState.themePalette.positive
+                            )
+                            SummaryMetricTile(
+                                title: LocalizedStringResource("To pay"),
+                                value: money(summary.payableMinor),
+                                captionText: AppLocalization.format(
+                                    "%lld open",
+                                    Int64(summary.payableCases)
+                                ),
+                                icon: "arrow.up.circle.fill",
+                                tint: appState.themePalette.caution
+                            )
+                        }
+
+                        if !recent.isEmpty {
+                            Divider()
+                            VStack(spacing: 10) {
+                                ForEach(recent) { caseItem in
+                                    HomeSettlementRow(
+                                        caseItem: caseItem,
+                                        fallbackCurrencyCode: appState.selectedCurrencyCode
+                                    )
+                                    if caseItem.id != recent.last?.id {
+                                        Divider()
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    .padding(18)
+                    .transactionSectionGlassSurface(cornerRadius: 24)
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 
     private var cashFlowForecast: some View {
@@ -1739,4 +1799,59 @@ private struct AllocationSegment: Identifiable {
     let id = UUID()
     let amount: Int64
     let color: Color
+}
+
+private struct HomeSettlementRow: View {
+    let caseItem: SettlementCaseItem
+    let fallbackCurrencyCode: String
+
+    private var snapshot: SettlementBalanceSnapshot {
+        caseItem.balanceSnapshot
+    }
+
+    private var currencyCode: String {
+        let trimmed = caseItem.currencyCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? fallbackCurrencyCode : trimmed
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            FloatIconBadge(
+                icon: caseItem.direction == .theyOweYou
+                    ? "arrow.down.circle.fill"
+                    : "arrow.up.circle.fill",
+                tint: settlementStatusTint(for: snapshot.status),
+                size: 34
+            )
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(caseItem.displayTitle)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Text(caseItem.personName)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 8)
+
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(balanceText)
+                    .moneyStyle(size: 14, weight: .bold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                Text(snapshot.status.title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(settlementStatusTint(for: snapshot.status))
+            }
+        }
+    }
+
+    private var balanceText: String {
+        MoneyFormatter.string(
+            minorUnits: snapshot.creditMinor > 0 ? snapshot.creditMinor : snapshot.remainingMinor,
+            currencyCode: currencyCode
+        )
+    }
 }

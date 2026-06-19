@@ -3,6 +3,7 @@ import SwiftData
 
 enum DataIntegrityError: LocalizedError {
     case saveFailed
+    case invalidInput
     case missingRequiredAccount
     case missingRequiredCategory
 
@@ -10,6 +11,8 @@ enum DataIntegrityError: LocalizedError {
         switch self {
         case .saveFailed:
             "Float could not save the latest changes."
+        case .invalidInput:
+            "Float could not save incomplete data."
         case .missingRequiredAccount:
             "Float could not find an account for this transaction."
         case .missingRequiredCategory:

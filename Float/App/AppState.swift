@@ -79,12 +79,13 @@ enum AppLocalization {
 enum FloatTab: Hashable {
     case home
     case transactions
-    case calendar
+    case settlements
     case insights
     case settings
 }
 
 enum FloatSettingsDestination: String, Hashable, Identifiable {
+    case calendar
     case budget
     case goals
     case recurring
@@ -93,6 +94,7 @@ enum FloatSettingsDestination: String, Hashable, Identifiable {
     case categories
     case accounts
     case people
+    case settlements
     case reviewQueue
 
     var id: String { rawValue }
@@ -224,7 +226,8 @@ final class AppState: ObservableObject {
         case .transactions:
             selectedTab = .transactions
         case .calendar:
-            selectedTab = .calendar
+            selectedTab = .settings
+            pendingSettingsDestination = .calendar
         case .reports:
             selectedTab = .insights
         case .settings:
@@ -253,6 +256,8 @@ final class AppState: ObservableObject {
         case .people:
             selectedTab = .settings
             pendingSettingsDestination = .people
+        case .settlements:
+            selectedTab = .settlements
         case .reviewQueue:
             selectedTab = .settings
             pendingSettingsDestination = .reviewQueue

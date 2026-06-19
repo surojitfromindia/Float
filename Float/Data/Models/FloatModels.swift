@@ -78,6 +78,94 @@ enum EventStatus: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum SettlementDirection: String, Codable, CaseIterable, Identifiable {
+    case youOweThem
+    case theyOweYou
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .youOweThem: String(localized: "You owe them")
+        case .theyOweYou: String(localized: "They owe you")
+        }
+    }
+}
+
+enum SettlementEntryKind: String, Codable, CaseIterable, Identifiable {
+    case initialAmount
+    case addition
+    case payment
+    case adjustment
+    case discount
+    case waived
+    case correctionDown
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .initialAmount: String(localized: "Initial amount")
+        case .addition: String(localized: "Added charge")
+        case .payment: String(localized: "Payment")
+        case .adjustment: String(localized: "Correction up")
+        case .discount: String(localized: "Discount")
+        case .waived: String(localized: "Waived amount")
+        case .correctionDown: String(localized: "Correction down")
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .initialAmount: "doc.text.fill"
+        case .addition: "plus.circle.fill"
+        case .payment: "checkmark.circle.fill"
+        case .adjustment: "slider.horizontal.3"
+        case .discount: "tag.fill"
+        case .waived: "xmark.seal.fill"
+        case .correctionDown: "minus.circle.fill"
+        }
+    }
+
+    var isDueIncrease: Bool {
+        switch self {
+        case .initialAmount, .addition, .adjustment:
+            true
+        case .payment, .discount, .waived, .correctionDown:
+            false
+        }
+    }
+
+    var isDueReduction: Bool {
+        switch self {
+        case .discount, .waived, .correctionDown:
+            true
+        case .initialAmount, .addition, .payment, .adjustment:
+            false
+        }
+    }
+}
+
+enum SettlementCaseStatus: String, Codable, CaseIterable, Identifiable {
+    case unpaid
+    case partiallyPaid
+    case settled
+    case overpaid
+    case writtenOff
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .unpaid: String(localized: "Unpaid")
+        case .partiallyPaid: String(localized: "Partially paid")
+        case .settled: String(localized: "Settled")
+        case .overpaid: String(localized: "Overpaid")
+        case .writtenOff: String(localized: "Written off")
+        }
+    }
+}
+
 @Model
 final class AccountItem {
     var id: UUID = UUID()
@@ -619,6 +707,80 @@ final class CategoryBudgetItem {
 }
 
 @Model
+final class SettlementCaseItem {
+    var id: UUID = UUID()
+    var title: String = ""
+    var directionRaw: String = SettlementDirection.theyOweYou.rawValue
+    var currencyCode: String = "USD"
+    var note: String?
+    var person: PersonItem?
+    @Relationship(deleteRule: .cascade, inverse: \SettlementEntryItem.caseItem)
+    var entries: [SettlementEntryItem] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        direction: SettlementDirection,
+        currencyCode: String,
+        note: String? = nil,
+        person: PersonItem? = nil,
+        entries: [SettlementEntryItem] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.title = title
+        self.directionRaw = direction.rawValue
+        self.currencyCode = currencyCode
+        self.note = note?.nilIfBlank
+        self.person = person
+        self.entries = entries
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
+final class SettlementEntryItem {
+    var id: UUID = UUID()
+    var kindRaw: String = SettlementEntryKind.addition.rawValue
+    var amountMinor: Int64 = 0
+    var entryDate: Date = Date()
+    var note: String?
+    var reference: String?
+    var caseItem: SettlementCaseItem?
+    var linkedTransaction: TransactionItem?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        kind: SettlementEntryKind,
+        amountMinor: Int64,
+        entryDate: Date = Date(),
+        note: String? = nil,
+        reference: String? = nil,
+        caseItem: SettlementCaseItem? = nil,
+        linkedTransaction: TransactionItem? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.kindRaw = kind.rawValue
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.entryDate = entryDate
+        self.note = note?.nilIfBlank
+        self.reference = reference?.nilIfBlank
+        self.caseItem = caseItem
+        self.linkedTransaction = linkedTransaction
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
 final class TransactionPersonTagItem {
     var id: UUID = UUID()
     var sortOrder: Int = 0
@@ -883,6 +1045,78 @@ extension RecurringRuleItem {
             )
             personTags.append(tag)
         }
+    }
+}
+
+extension SettlementCaseItem {
+    var direction: SettlementDirection {
+        get { SettlementDirection(rawValue: directionRaw) ?? .theyOweYou }
+        set { directionRaw = newValue.rawValue }
+    }
+
+    var displayTitle: String {
+        title.nilIfBlank ?? String(localized: "Settlement")
+    }
+
+    var personName: String {
+        person?.name.nilIfBlank ?? String(localized: "No person")
+    }
+
+    var sortedEntries: [SettlementEntryItem] {
+        entries.sorted { lhs, rhs in
+            if lhs.entryDate == rhs.entryDate {
+                return lhs.createdAt < rhs.createdAt
+            }
+            return lhs.entryDate < rhs.entryDate
+        }
+    }
+
+    var lastActivityDate: Date {
+        sortedEntries.last?.entryDate ?? updatedAt
+    }
+
+    var balanceSnapshot: SettlementBalanceSnapshot {
+        SettlementBalanceCalculator.snapshot(for: entries)
+    }
+
+    var status: SettlementCaseStatus {
+        balanceSnapshot.status
+    }
+
+    var isActive: Bool {
+        switch status {
+        case .unpaid, .partiallyPaid, .overpaid:
+            true
+        case .settled, .writtenOff:
+            false
+        }
+    }
+}
+
+extension SettlementEntryItem {
+    var kind: SettlementEntryKind {
+        get { SettlementEntryKind(rawValue: kindRaw) ?? .addition }
+        set { kindRaw = newValue.rawValue }
+    }
+
+    var canCreateLinkedTransaction: Bool {
+        linkedTransaction == nil && kind == .payment
+    }
+
+    func apply(
+        kind: SettlementEntryKind,
+        amountMinor: Int64,
+        entryDate: Date,
+        note: String?,
+        reference: String?
+    ) {
+        self.kindRaw = kind.rawValue
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.entryDate = entryDate
+        self.note = note?.nilIfBlank
+        self.reference = reference?.nilIfBlank
+        updatedAt = Date()
+        caseItem?.updatedAt = Date()
     }
 }
 

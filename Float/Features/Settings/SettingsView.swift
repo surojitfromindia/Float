@@ -132,6 +132,7 @@ struct SettingsView: View {
         }
 
         Section("Manage") {
+            settingsNavigationLink("Calendar", destination: CalendarView())
             settingsNavigationLink("Budget", destination: BudgetSettingsView())
             settingsNavigationLink("Goals", destination: GoalsView())
             settingsNavigationLink("Recurring", destination: RecurringView())
@@ -140,6 +141,7 @@ struct SettingsView: View {
             settingsNavigationLink("Categories", destination: CategoryManagerView())
             settingsNavigationLink("Accounts", destination: AccountManagerView())
             settingsNavigationLink("People", destination: PeopleManagerView())
+            settingsNavigationLink("Settlements", destination: SettlementsView())
             settingsNavigationLink("Review Queue", destination: ReviewQueueView())
         }
 
@@ -243,6 +245,8 @@ struct SettingsView: View {
     @ViewBuilder
     private func settingsDestination(_ destination: FloatSettingsDestination) -> some View {
         switch destination {
+        case .calendar:
+            CalendarView()
         case .budget:
             BudgetSettingsView()
         case .goals:
@@ -259,6 +263,8 @@ struct SettingsView: View {
             AccountManagerView()
         case .people:
             PeopleManagerView()
+        case .settlements:
+            SettlementsView()
         case .reviewQueue:
             ReviewQueueView()
         }
@@ -311,6 +317,8 @@ struct SettingsView: View {
                 recurringRulePersonTags: fetchAll(RecurringRulePersonTagItem.self),
                 budgets: fetchAll(BudgetPeriodItem.self),
                 categoryBudgets: fetchAll(CategoryBudgetItem.self),
+                settlementCases: fetchAll(SettlementCaseItem.self),
+                settlementEntries: fetchAll(SettlementEntryItem.self),
                 currencyCode: appState.selectedCurrencyCode
             )
             message = "Preparing backup."
@@ -356,6 +364,8 @@ struct SettingsView: View {
     private func resetAllData(reseedDefaults: Bool = true) {
         for item in fetchAll(TransactionPersonTagItem.self) { modelContext.delete(item) }
         for item in fetchAll(RecurringRulePersonTagItem.self) { modelContext.delete(item) }
+        for item in fetchAll(SettlementEntryItem.self) { modelContext.delete(item) }
+        for item in fetchAll(SettlementCaseItem.self) { modelContext.delete(item) }
         for item in fetchAll(TransactionItem.self) { modelContext.delete(item) }
         for item in fetchAll(TransactionTemplateGroupItem.self) { modelContext.delete(item) }
         for item in fetchAll(TransactionTemplateItem.self) { modelContext.delete(item) }

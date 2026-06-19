@@ -951,10 +951,256 @@ struct CategoryBudgetRepository {
 }
 
 @MainActor
+struct SettlementCaseRepository {
+    let modelContext: ModelContext
+
+    func create(
+        title: String,
+        person: PersonItem,
+        direction: SettlementDirection,
+        initialAmountMinor: Int64,
+        date: Date,
+        currencyCode: String,
+        note: String?
+    ) throws -> SettlementCaseItem {
+        guard initialAmountMinor > 0 else {
+            throw DataIntegrityError.invalidInput
+        }
+        let caseItem = SettlementCaseItem(
+            title: title.trimmedNilIfBlank ?? String(localized: "Settlement"),
+            direction: direction,
+            currencyCode: currencyCode,
+            note: note?.trimmedNilIfBlank,
+            person: person,
+            createdAt: date,
+            updatedAt: date
+        )
+        let entry = SettlementEntryItem(
+            kind: .initialAmount,
+            amountMinor: initialAmountMinor,
+            entryDate: date,
+            note: note?.trimmedNilIfBlank,
+            caseItem: caseItem,
+            createdAt: date,
+            updatedAt: date
+        )
+        caseItem.entries.append(entry)
+        modelContext.insert(caseItem)
+        modelContext.insert(entry)
+        try save()
+        return caseItem
+    }
+
+    func update(
+        _ caseItem: SettlementCaseItem,
+        title: String,
+        person: PersonItem,
+        direction: SettlementDirection,
+        currencyCode: String,
+        initialAmountMinor: Int64,
+        date: Date,
+        note: String?
+    ) throws {
+        guard initialAmountMinor > 0 else {
+            throw DataIntegrityError.invalidInput
+        }
+        caseItem.title = title.trimmedNilIfBlank ?? String(localized: "Settlement")
+        caseItem.person = person
+        caseItem.direction = direction
+        caseItem.currencyCode = currencyCode
+        caseItem.createdAt = date
+        caseItem.note = note?.trimmedNilIfBlank
+        caseItem.updatedAt = Date()
+
+        if let initialEntry = caseItem.entries.first(where: { $0.kind == .initialAmount }) {
+            initialEntry.apply(
+                kind: .initialAmount,
+                amountMinor: initialAmountMinor,
+                entryDate: date,
+                note: note?.trimmedNilIfBlank,
+                reference: initialEntry.reference
+            )
+        } else {
+            let initialEntry = SettlementEntryItem(
+                kind: .initialAmount,
+                amountMinor: initialAmountMinor,
+                entryDate: date,
+                note: note?.trimmedNilIfBlank,
+                caseItem: caseItem,
+                createdAt: date,
+                updatedAt: Date()
+            )
+            caseItem.entries.append(initialEntry)
+            modelContext.insert(initialEntry)
+        }
+        try save()
+    }
+
+    func addEntry(
+        to caseItem: SettlementCaseItem,
+        kind: SettlementEntryKind,
+        amountMinor: Int64,
+        entryDate: Date,
+        note: String?,
+        reference: String?
+    ) throws -> SettlementEntryItem {
+        guard amountMinor > 0, kind != .initialAmount else {
+            throw DataIntegrityError.invalidInput
+        }
+        let entry = SettlementEntryItem(
+            kind: kind,
+            amountMinor: amountMinor,
+            entryDate: entryDate,
+            note: note?.trimmedNilIfBlank,
+            reference: reference?.trimmedNilIfBlank,
+            caseItem: caseItem
+        )
+        caseItem.entries.append(entry)
+        caseItem.updatedAt = Date()
+        modelContext.insert(entry)
+        try save()
+        return entry
+    }
+
+    func addEntryAndCreateTransaction(
+        to caseItem: SettlementCaseItem,
+        kind: SettlementEntryKind,
+        amountMinor: Int64,
+        entryDate: Date,
+        note: String?,
+        reference: String?,
+        category: CategoryItem,
+        account: AccountItem
+    ) throws -> SettlementEntryItem {
+        guard amountMinor > 0, kind != .initialAmount else {
+            throw DataIntegrityError.invalidInput
+        }
+
+        let transaction = TransactionItem(
+            amountMinor: amountMinor,
+            isExpense: linkedTransactionIsExpense(for: caseItem, kind: kind),
+            timestamp: entryDate,
+            category: category,
+            account: account,
+            note: linkedTransactionNote(
+                title: caseItem.displayTitle,
+                note: note?.trimmedNilIfBlank,
+                reference: reference?.trimmedNilIfBlank
+            )
+        )
+        modelContext.insert(transaction)
+        if let person = caseItem.person {
+            transaction.replacePeople([person], in: modelContext)
+        }
+
+        let entry = SettlementEntryItem(
+            kind: kind,
+            amountMinor: amountMinor,
+            entryDate: entryDate,
+            note: note?.trimmedNilIfBlank,
+            reference: reference?.trimmedNilIfBlank,
+            caseItem: caseItem,
+            linkedTransaction: transaction
+        )
+        caseItem.entries.append(entry)
+        caseItem.updatedAt = Date()
+        modelContext.insert(entry)
+        try save()
+        return entry
+    }
+
+    func updateEntry(
+        _ entry: SettlementEntryItem,
+        kind: SettlementEntryKind,
+        amountMinor: Int64,
+        entryDate: Date,
+        note: String?,
+        reference: String?
+    ) throws {
+        guard amountMinor > 0, kind != .initialAmount else {
+            throw DataIntegrityError.invalidInput
+        }
+        entry.apply(
+            kind: kind,
+            amountMinor: amountMinor,
+            entryDate: entryDate,
+            note: note?.trimmedNilIfBlank,
+            reference: reference?.trimmedNilIfBlank
+        )
+        if let transaction = entry.linkedTransaction {
+            transaction.amountMinor = entry.amountMinor
+            transaction.isExpense = entry.caseItem.map {
+                linkedTransactionIsExpense(for: $0, kind: kind)
+            } ?? transaction.isExpense
+            transaction.timestamp = entryDate
+            transaction.note = linkedTransactionNote(
+                title: entry.caseItem?.displayTitle ?? String(localized: "Settlement"),
+                note: note?.trimmedNilIfBlank,
+                reference: reference?.trimmedNilIfBlank
+            )
+            if let person = entry.caseItem?.person {
+                transaction.replacePeople([person], in: modelContext)
+            }
+        }
+        try save()
+    }
+
+    func deleteEntry(_ entry: SettlementEntryItem) throws {
+        guard entry.kind != .initialAmount else {
+            throw DataIntegrityError.invalidInput
+        }
+        entry.caseItem?.updatedAt = Date()
+        modelContext.delete(entry)
+        try save()
+    }
+
+    func delete(_ caseItem: SettlementCaseItem) throws {
+        modelContext.delete(caseItem)
+        try save()
+    }
+
+    private func linkedTransactionIsExpense(
+        for caseItem: SettlementCaseItem,
+        kind: SettlementEntryKind
+    ) -> Bool {
+        switch kind {
+        case .payment:
+            return caseItem.direction == .youOweThem
+        case .addition, .adjustment:
+            return caseItem.direction == .youOweThem
+        case .discount, .waived, .correctionDown:
+            return false
+        case .initialAmount:
+            return caseItem.direction == .youOweThem
+        }
+    }
+
+    private func linkedTransactionNote(
+        title: String,
+        note: String?,
+        reference: String?
+    ) -> String {
+        [title, note, reference]
+            .compactMap { $0?.trimmedNilIfBlank }
+            .joined(separator: " - ")
+    }
+
+    private func save() throws {
+        do {
+            try modelContext.save()
+        } catch {
+            throw DataIntegrityError.saveFailed
+        }
+    }
+}
+
+@MainActor
 struct SettingsRepository {
     let modelContext: ModelContext
 
     func resetAllData(currencyCode: String) throws {
+        try modelContext.delete(model: SettlementEntryItem.self)
+        try modelContext.delete(model: SettlementCaseItem.self)
         try modelContext.delete(model: TransactionItem.self)
         try modelContext.delete(model: TransactionTemplateItem.self)
         try modelContext.delete(model: TransferItem.self)

@@ -22,6 +22,7 @@ enum FloatDestination: String, CaseIterable, Codable, Identifiable {
     case categories
     case accounts
     case people
+    case settlements
     case reviewQueue
 
     var id: String { rawValue }

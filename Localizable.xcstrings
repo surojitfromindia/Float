@@ -825,6 +825,12 @@
         }
       }
     },
+    "Active matters" : {
+
+    },
+    "Active only" : {
+
+    },
     "Add" : {
       "localizations" : {
         "bn" : {
@@ -900,6 +906,9 @@
           }
         }
       }
+    },
+    "Add charge" : {
+
     },
     "Add dated income and expenses to build a trend." : {
       "localizations" : {
@@ -1003,6 +1012,12 @@
           }
         }
       }
+    },
+    "Add settlement case" : {
+
+    },
+    "Add settlement entry" : {
+
     },
     "Add split row" : {
       "localizations" : {
@@ -1126,6 +1141,12 @@
         }
       }
     },
+    "Added" : {
+
+    },
+    "Added charge" : {
+
+    },
     "Adds realistic expenses, income, and transfers for pagination testing." : {
       "localizations" : {
         "bn" : {
@@ -1148,6 +1169,9 @@
       }
     },
     "Alias" : {
+
+    },
+    "All" : {
 
     },
     "All accounts" : {
@@ -1204,6 +1228,9 @@
           }
         }
       }
+    },
+    "All directions" : {
+
     },
     "All events" : {
       "localizations" : {
@@ -1652,6 +1679,9 @@
         }
       }
     },
+    "Case" : {
+
+    },
     "Cash" : {
       "localizations" : {
         "bn" : {
@@ -1881,6 +1911,9 @@
         }
       }
     },
+    "Completed" : {
+
+    },
     "Completed goals are hidden for now." : {
       "localizations" : {
         "bn" : {
@@ -1986,6 +2019,15 @@
         }
       }
     },
+    "Correction down" : {
+
+    },
+    "Correction up" : {
+
+    },
+    "Create a case when a bill or payment will settle over time." : {
+
+    },
     "Create a daily set from your transaction templates." : {
       "localizations" : {
         "bn" : {
@@ -2048,6 +2090,9 @@
         }
       }
     },
+    "Create linked transaction" : {
+
+    },
     "Create reusable entries for coffee, groceries, bills, salary, or transfers." : {
       "localizations" : {
         "bn" : {
@@ -2077,6 +2122,9 @@
           }
         }
       }
+    },
+    "Create transaction" : {
+
     },
     "Cumulative" : {
       "localizations" : {
@@ -2338,6 +2386,9 @@
         }
       }
     },
+    "Delete entry?" : {
+
+    },
     "Delete event" : {
       "localizations" : {
         "bn" : {
@@ -2407,6 +2458,9 @@
           }
         }
       }
+    },
+    "Delete settlement case?" : {
+
     },
     "Delete Template" : {
       "localizations" : {
@@ -2510,6 +2564,12 @@
         }
       }
     },
+    "Direction" : {
+
+    },
+    "Discount" : {
+
+    },
     "Done" : {
       "localizations" : {
         "bn" : {
@@ -2550,6 +2610,9 @@
         }
       }
     },
+    "Edit case" : {
+
+    },
     "Edit Category" : {
       "localizations" : {
         "bn" : {
@@ -2559,6 +2622,9 @@
           }
         }
       }
+    },
+    "Edit entry" : {
+
     },
     "Edit event" : {
       "localizations" : {
@@ -2632,6 +2698,9 @@
           }
         }
       }
+    },
+    "Edit settlement" : {
+
     },
     "Edit Template" : {
       "localizations" : {
@@ -2714,6 +2783,15 @@
         }
       }
     },
+    "Enter a person name." : {
+
+    },
+    "Enter a starting amount." : {
+
+    },
+    "Enter a title." : {
+
+    },
     "Enter an amount greater than zero." : {
       "localizations" : {
         "bn" : {
@@ -2723,6 +2801,9 @@
           }
         }
       }
+    },
+    "Enter an amount." : {
+
     },
     "Enter the normal currency amount for one budget period. For example, enter 60000 for ₹60,000." : {
       "localizations" : {
@@ -2743,6 +2824,9 @@
           }
         }
       }
+    },
+    "Entry" : {
+
     },
     "Event categories" : {
       "localizations" : {
@@ -3325,6 +3409,9 @@
         }
       }
     },
+    "History" : {
+
+    },
     "Home" : {
       "localizations" : {
         "bn" : {
@@ -3479,6 +3566,9 @@
         }
       }
     },
+    "Initial amount" : {
+
+    },
     "Jump to month" : {
       "localizations" : {
         "bn" : {
@@ -3603,6 +3693,9 @@
         }
       }
     },
+    "Linked transaction" : {
+
+    },
     "List" : {
       "localizations" : {
         "bn" : {
@@ -3706,6 +3799,12 @@
           }
         }
       }
+    },
+    "Mark resolved" : {
+
+    },
+    "Marked resolved" : {
+
     },
     "Metric" : {
       "localizations" : {
@@ -3884,6 +3983,9 @@
         }
       }
     },
+    "New entry" : {
+
+    },
     "New Goal" : {
       "localizations" : {
         "bn" : {
@@ -3916,6 +4018,9 @@
           }
         }
       }
+    },
+    "New settlement" : {
+
     },
     "New Template" : {
       "localizations" : {
@@ -4078,6 +4183,9 @@
         }
       }
     },
+    "No matching cases" : {
+
+    },
     "No matching events" : {
       "localizations" : {
         "bn" : {
@@ -4111,6 +4219,9 @@
     "No people tagged" : {
 
     },
+    "No person" : {
+
+    },
     "No range selected" : {
       "localizations" : {
         "bn" : {
@@ -4130,6 +4241,9 @@
           }
         }
       }
+    },
+    "No settlement cases yet" : {
+
     },
     "No spending yet" : {
       "localizations" : {
@@ -4304,6 +4418,9 @@
         }
       }
     },
+    "Open cases" : {
+
+    },
     "Open Float" : {
       "localizations" : {
         "bn" : {
@@ -4425,6 +4542,9 @@
         }
       }
     },
+    "Original" : {
+
+    },
     "Over budget" : {
       "localizations" : {
         "bn" : {
@@ -4477,6 +4597,9 @@
         }
       }
     },
+    "Overpaid" : {
+
+    },
     "Overview" : {
       "localizations" : {
         "bn" : {
@@ -4486,6 +4609,12 @@
           }
         }
       }
+    },
+    "Paid" : {
+
+    },
+    "Partially paid" : {
+
     },
     "Pay recurring" : {
       "localizations" : {
@@ -4506,6 +4635,9 @@
           }
         }
       }
+    },
+    "Payment" : {
+
     },
     "pending" : {
       "extractionState" : "stale",
@@ -4623,6 +4755,9 @@
           }
         }
       }
+    },
+    "Person name" : {
+
     },
     "Pin event" : {
       "localizations" : {
@@ -4840,6 +4975,9 @@
         }
       }
     },
+    "Record payment" : {
+
+    },
     "Recurring" : {
       "localizations" : {
         "bn" : {
@@ -4924,6 +5062,12 @@
           }
         }
       }
+    },
+    "Reduced" : {
+
+    },
+    "Reference" : {
+
     },
     "Refresh balance" : {
       "localizations" : {
@@ -5244,6 +5388,9 @@
         }
       }
     },
+    "Search cases or people" : {
+
+    },
     "Search categories" : {
       "localizations" : {
         "bn" : {
@@ -5375,6 +5522,15 @@
           }
         }
       }
+    },
+    "Settled" : {
+
+    },
+    "Settlement" : {
+
+    },
+    "Settlements" : {
+
     },
     "Show completed" : {
       "localizations" : {
@@ -5639,6 +5795,9 @@
         }
       }
     },
+    "Starting amount" : {
+
+    },
     "Starts on" : {
       "localizations" : {
         "bn" : {
@@ -5847,6 +6006,12 @@
         }
       }
     },
+    "They owe" : {
+
+    },
+    "They owe you" : {
+
+    },
     "This adds two years of varied sample transactions and transfers to your current data." : {
       "localizations" : {
         "bn" : {
@@ -5909,6 +6074,9 @@
         }
       }
     },
+    "This permanently deletes the case and its full entry history." : {
+
+    },
     "This permanently deletes your accounts, categories, budgets, goals, recurring rules, and transactions. This action cannot be undone." : {
       "localizations" : {
         "bn" : {
@@ -5918,6 +6086,9 @@
           }
         }
       }
+    },
+    "This removes one timeline entry from the settlement case." : {
+
     },
     "This will create a posted transaction and advance the next recurring date." : {
       "extractionState" : "stale",
@@ -5940,6 +6111,12 @@
           }
         }
       }
+    },
+    "This will post as an expense." : {
+
+    },
+    "This will post as income." : {
+
     },
     "This year" : {
       "localizations" : {
@@ -5972,6 +6149,9 @@
         }
       }
     },
+    "Title" : {
+
+    },
     "To" : {
       "localizations" : {
         "bn" : {
@@ -5981,6 +6161,12 @@
           }
         }
       }
+    },
+    "To collect" : {
+
+    },
+    "To pay" : {
+
     },
     "Today" : {
       "localizations" : {
@@ -6043,6 +6229,9 @@
           }
         }
       }
+    },
+    "Transaction" : {
+
     },
     "Transaction deleted" : {
       "localizations" : {
@@ -6136,6 +6325,9 @@
           }
         }
       }
+    },
+    "Try changing the search or filters." : {
+
     },
     "Try changing your search or filters." : {
       "localizations" : {
@@ -6250,6 +6442,9 @@
           }
         }
       }
+    },
+    "Unpaid" : {
+
     },
     "Unpin event" : {
       "localizations" : {
@@ -6374,6 +6569,12 @@
         }
       }
     },
+    "Waive amount" : {
+
+    },
+    "Waived amount" : {
+
+    },
     "Wallet" : {
       "localizations" : {
         "bn" : {
@@ -6414,6 +6615,9 @@
         }
       }
     },
+    "Written off" : {
+
+    },
     "Year" : {
       "localizations" : {
         "bn" : {
@@ -6446,6 +6650,12 @@
           }
         }
       }
+    },
+    "You owe" : {
+
+    },
+    "You owe them" : {
+
     },
     "Your transactions will appear here as you add them." : {
       "localizations" : {
