@@ -53,217 +53,150 @@ struct SettingsView: View {
     }
 
     private var settingsList: some View {
-        ScrollView {
-            if #available(iOS 26.0, *) {
-                GlassEffectContainer(spacing: 18) {
-                    settingsSections
-                }
-            } else {
-                settingsSections
-            }
+        List {
+            settingsSections
         }
         .keyboardDismissControls()
-        .scrollContentBackground(.hidden)
-        .floatBackground()
+        .contentMargins(.top, 0, for: .scrollContent)
+        .listStyle(.insetGrouped)
         .id(appState.selectedThemeMode)
     }
 
+    @ViewBuilder
     private var settingsSections: some View {
-        LazyVStack(alignment: .leading, spacing: 18) {
-            SettingsGlassSection("Preferences") {
-                SettingsPickerRow("Currency", selection: $appState.selectedCurrencyCode) {
-                    ForEach(Self.currencyOptions) { currency in
-                        Text("\(currency.symbol) \(currency.code)")
-                            .tag(currency.code)
-                    }
-                }
-                SettingsDivider()
-                SettingsPickerRow("Appearance", selection: $appState.selectedAppearance) {
-                    Text("System").tag("system")
-                    Text("Light").tag("light")
-                    Text("Dark").tag("dark")
-                }
-                SettingsDivider()
-                SettingsPickerRow("Language", selection: $appState.selectedLanguageCode) {
-                    ForEach(AppLanguage.allCases) { language in
-                        Text(language.title)
-                            .tag(language.rawValue)
-                    }
-                }
-                SettingsDivider()
-                SettingsPickerRow("Theme", selection: $appState.selectedThemeMode) {
-                    ForEach(FloatColorTheme.allCases) { theme in
-                        Text(theme.title)
-                            .tag(theme.rawValue)
-                    }
-                }
-                SettingsDivider()
-                SettingsRow {
-                    Toggle("Privacy Lock", isOn: $appState.isAppLockEnabled)
+        Section {
+            SettingsPickerRow("Currency", selection: $appState.selectedCurrencyCode) {
+                ForEach(Self.currencyOptions) { currency in
+                    Text("\(currency.symbol) \(currency.code)")
+                        .tag(currency.code)
                 }
             }
-
-            SettingsGlassSection("Reminders") {
-                SettingsRow {
-                    Toggle("Recurring due reminders", isOn: $appState.recurringRemindersEnabled)
+            SettingsPickerRow("Appearance", selection: $appState.selectedAppearance) {
+                Text("System").tag("system")
+                Text("Light").tag("light")
+                Text("Dark").tag("dark")
+            }
+            SettingsPickerRow("Language", selection: $appState.selectedLanguageCode) {
+                ForEach(AppLanguage.allCases) { language in
+                    Text(language.title)
+                        .tag(language.rawValue)
                 }
-                if appState.recurringRemindersEnabled {
-                    SettingsDivider()
-                    SettingsRow {
-                        DatePicker(
-                            "Recurring time",
-                            selection: reminderTimeBinding(
-                                get: { appState.recurringReminderMinutes },
-                                set: { appState.recurringReminderMinutes = $0 }
-                            ),
-                            displayedComponents: .hourAndMinute
-                        )
+            }
+            SettingsPickerRow("Theme", selection: $appState.selectedThemeMode) {
+                ForEach(FloatColorTheme.allCases) { theme in
+                    Text(theme.title)
+                        .tag(theme.rawValue)
+                }
+            }
+            Toggle("Privacy Lock", isOn: $appState.isAppLockEnabled)
+        } header: {
+            Text("Preferences")
+                .textCase(nil)
+                .padding(.top, -14)
+        }
+
+        Section("Reminders") {
+            Toggle("Recurring due reminders", isOn: $appState.recurringRemindersEnabled)
+            if appState.recurringRemindersEnabled {
+                DatePicker(
+                    "Recurring time",
+                    selection: reminderTimeBinding(
+                        get: { appState.recurringReminderMinutes },
+                        set: { appState.recurringReminderMinutes = $0 }
+                    ),
+                    displayedComponents: .hourAndMinute
+                )
+            }
+
+            Toggle("Goal target reminders", isOn: $appState.goalRemindersEnabled)
+            if appState.goalRemindersEnabled {
+                DatePicker(
+                    "Goal time",
+                    selection: reminderTimeBinding(
+                        get: { appState.goalReminderMinutes },
+                        set: { appState.goalReminderMinutes = $0 }
+                    ),
+                    displayedComponents: .hourAndMinute
+                )
+            }
+
+            Toggle("Budget alerts", isOn: $appState.budgetAlertsEnabled)
+            if appState.budgetAlertsEnabled {
+                SettingsPickerRow("Budget sensitivity", selection: $appState.budgetAlertSensitivityRaw) {
+                    ForEach(BudgetAlertSensitivity.allCases) { sensitivity in
+                        Text(sensitivity.title)
+                            .tag(sensitivity.rawValue)
                     }
-                }
-
-                SettingsDivider()
-                SettingsRow {
-                    Toggle("Goal target reminders", isOn: $appState.goalRemindersEnabled)
-                }
-                if appState.goalRemindersEnabled {
-                    SettingsDivider()
-                    SettingsRow {
-                        DatePicker(
-                            "Goal time",
-                            selection: reminderTimeBinding(
-                                get: { appState.goalReminderMinutes },
-                                set: { appState.goalReminderMinutes = $0 }
-                            ),
-                            displayedComponents: .hourAndMinute
-                        )
-                    }
-                }
-
-                SettingsDivider()
-                SettingsRow {
-                    Toggle("Budget alerts", isOn: $appState.budgetAlertsEnabled)
-                }
-                if appState.budgetAlertsEnabled {
-                    SettingsDivider()
-                    SettingsPickerRow("Budget sensitivity", selection: $appState.budgetAlertSensitivityRaw) {
-                        ForEach(BudgetAlertSensitivity.allCases) { sensitivity in
-                            Text(sensitivity.title)
-                                .tag(sensitivity.rawValue)
-                        }
-                    }
-                }
-            }
-
-            SettingsGlassSection("Manage") {
-                settingsNavigationLink("Budget", destination: BudgetSettingsView())
-                SettingsDivider()
-                settingsNavigationLink("Goals", destination: GoalsView())
-                SettingsDivider()
-                settingsNavigationLink("Recurring", destination: RecurringView())
-                SettingsDivider()
-                settingsNavigationLink("Templates", destination: TransactionTemplateManagerView())
-                SettingsDivider()
-                settingsNavigationLink("Template Groups", destination: TransactionTemplateGroupManagerView())
-                SettingsDivider()
-                settingsNavigationLink("Categories", destination: CategoryManagerView())
-                SettingsDivider()
-                settingsNavigationLink("Accounts", destination: AccountManagerView())
-                SettingsDivider()
-                settingsNavigationLink("People", destination: PeopleManagerView())
-                SettingsDivider()
-                settingsNavigationLink("Review Queue", destination: ReviewQueueView())
-            }
-
-            SettingsGlassSection("Portable data") {
-                SettingsRow {
-                    Button("Create backup", action: createBackup)
-                        .buttonStyle(.borderless)
-                }
-                SettingsDivider()
-                SettingsRow {
-                    Button("Restore backup", action: presentBackupImporter)
-                        .buttonStyle(.borderless)
-                }
-                if !message.isEmpty {
-                    SettingsDivider()
-                    SettingsRow {
-                        Text(message)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            SettingsGlassSection("Sample data") {
-                SettingsRow {
-                    Button {
-                        showingSeedConfirmation = true
-                    } label: {
-                        Label("Seed data", systemImage: "tray.and.arrow.down.fill")
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(isSeedingData)
-                }
-                SettingsDivider()
-                SettingsRow {
-                    Text(
-                        isSeedingData
-                            ? "Seeding two years of data."
-                            : "Adds realistic expenses, income, and transfers for pagination testing."
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-            }
-
-            SettingsGlassSection("Privacy") {
-                SettingsRow {
-                    Text(
-                        "Data stays on device. Float has no backend, no account, no analytics, and no tracking SDKs. Backup files are created only when you choose them."
-                    )
-                    .font(.subheadline)
-                }
-            }
-
-            SettingsGlassSection("About") {
-                SettingsRow {
-                    Text("Float 1.0")
-                }
-            }
-
-            SettingsGlassSection {
-                SettingsRow {
-                    Button(
-                        "Reset all data",
-                        role: .destructive,
-                        action: { showingResetConfirmation = true }
-                    )
-                    .buttonStyle(.borderless)
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 18)
-        .padding(.bottom, 40)
+
+        Section("Manage") {
+            settingsNavigationLink("Budget", destination: BudgetSettingsView())
+            settingsNavigationLink("Goals", destination: GoalsView())
+            settingsNavigationLink("Recurring", destination: RecurringView())
+            settingsNavigationLink("Templates", destination: TransactionTemplateManagerView())
+            settingsNavigationLink("Template Groups", destination: TransactionTemplateGroupManagerView())
+            settingsNavigationLink("Categories", destination: CategoryManagerView())
+            settingsNavigationLink("Accounts", destination: AccountManagerView())
+            settingsNavigationLink("People", destination: PeopleManagerView())
+            settingsNavigationLink("Review Queue", destination: ReviewQueueView())
+        }
+
+        Section("Portable data") {
+            Button("Create backup", action: createBackup)
+            Button("Restore backup", action: presentBackupImporter)
+            if !message.isEmpty {
+                Text(message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+
+        Section("Sample data") {
+            Button {
+                showingSeedConfirmation = true
+            } label: {
+                Label("Seed data", systemImage: "tray.and.arrow.down.fill")
+            }
+            .disabled(isSeedingData)
+            Text(
+                isSeedingData
+                    ? "Seeding two years of data."
+                    : "Adds realistic expenses, income, and transfers for pagination testing."
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+
+        Section("Privacy") {
+            Text(
+                "Data stays on device. Float has no backend, no account, no analytics, and no tracking SDKs. Backup files are created only when you choose them."
+            )
+            .font(.subheadline)
+        }
+
+        Section("About") {
+            Text("Float 1.0")
+        }
+
+        Section {
+            Button(
+                "Reset all data",
+                role: .destructive,
+                action: { showingResetConfirmation = true }
+            )
+        }
     }
 
     private func settingsNavigationLink<Destination: View>(
         _ title: LocalizedStringKey,
         destination: Destination
     ) -> some View {
-        SettingsRow {
-            NavigationLink {
-                destination
-            } label: {
-                HStack {
-                    Text(title)
-                    Spacer()
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.tertiary)
-                }
-            }
-            .buttonStyle(.plain)
+        NavigationLink {
+            destination
+        } label: {
+            Text(title)
         }
     }
 
@@ -460,48 +393,6 @@ struct SettingsView: View {
     }
 }
 
-private struct SettingsGlassSection<Content: View>: View {
-    private let title: LocalizedStringKey?
-    private let content: Content
-
-    init(
-        _ title: LocalizedStringKey,
-        @ViewBuilder content: () -> Content
-    ) {
-        self.title = title
-        self.content = content()
-    }
-
-    init(@ViewBuilder content: () -> Content) {
-        self.title = nil
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if let title {
-                Text(title)
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 4)
-            }
-
-            VStack(alignment: .leading, spacing: 0) {
-                content
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .floatGlassSurface(
-                cornerRadius: FloatTheme.controlRadius,
-                material: .thinMaterial,
-                strokeOpacity: 0.06,
-                shadowOpacity: 0.04,
-                shadowRadius: 16,
-                shadowY: 8
-            )
-        }
-    }
-}
-
 private struct SettingsPickerRow<SelectionValue: Hashable, Content: View>: View {
     private let title: LocalizedStringKey
     @Binding private var selection: SelectionValue
@@ -518,41 +409,16 @@ private struct SettingsPickerRow<SelectionValue: Hashable, Content: View>: View 
     }
 
     var body: some View {
-        SettingsRow {
-            HStack(spacing: 12) {
-                Text(title)
-                Spacer(minLength: 16)
-                Picker("", selection: $selection) {
-                    content
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .fixedSize()
+        LabeledContent {
+            Picker("", selection: $selection) {
+                content
             }
-            .accessibilityElement(children: .combine)
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .fixedSize()
+        } label: {
+            Text(title)
         }
-    }
-}
-
-private struct SettingsRow<Content: View>: View {
-    private let content: Content
-
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
-    }
-
-    var body: some View {
-        content
-            .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
-    }
-}
-
-private struct SettingsDivider: View {
-    var body: some View {
-        Divider()
-            .padding(.leading, 16)
     }
 }
 
