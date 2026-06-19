@@ -17,6 +17,18 @@ struct SettlementBalanceSnapshot: Equatable {
     }
 }
 
+struct SettlementOperationalSnapshot: Equatable {
+    let workflowStatus: SettlementWorkflowStatus
+    let nextDueDate: Date?
+    let daysUntilDue: Int?
+    let amountDueNowMinor: Int64
+    let openMilestoneCount: Int
+
+    var isOverdue: Bool {
+        workflowStatus == .overdue
+    }
+}
+
 enum SettlementBalanceCalculator {
     static func snapshot(for entries: [SettlementEntryItem]) -> SettlementBalanceSnapshot {
         var initialAmountMinor: Int64 = 0
@@ -69,6 +81,56 @@ enum SettlementBalanceCalculator {
             remainingMinor: remainingMinor,
             creditMinor: creditMinor,
             status: status
+        )
+    }
+}
+
+enum SettlementOperations {
+    static func snapshot(
+        for caseItem: SettlementCaseItem,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> SettlementOperationalSnapshot {
+        let balance = caseItem.balanceSnapshot
+        let openMilestones = caseItem.sortedMilestones.filter { $0.status == .pending }
+        let nextMilestone = openMilestones.first
+        let nextDueDate = nextMilestone?.dueDate ?? caseItem.dueDate
+        let startOfToday = calendar.startOfDay(for: now)
+        let daysUntilDue = nextDueDate.map {
+            calendar.dateComponents(
+                [.day],
+                from: startOfToday,
+                to: calendar.startOfDay(for: $0)
+            ).day ?? 0
+        }
+
+        let workflowStatus: SettlementWorkflowStatus
+        if caseItem.archived {
+            workflowStatus = .archived
+        } else if balance.remainingMinor == 0 && balance.creditMinor == 0 {
+            workflowStatus = .settled
+        } else if let daysUntilDue, daysUntilDue < 0 {
+            workflowStatus = .overdue
+        } else if let daysUntilDue, daysUntilDue <= 3 {
+            workflowStatus = .dueSoon
+        } else {
+            workflowStatus = .active
+        }
+
+        let amountDueNowMinor: Int64
+        if let nextMilestone {
+            let paidAgainstMilestone = nextMilestone.linkedEntry?.amountMinor ?? 0
+            amountDueNowMinor = max(0, nextMilestone.amountMinor - paidAgainstMilestone)
+        } else {
+            amountDueNowMinor = balance.remainingMinor
+        }
+
+        return SettlementOperationalSnapshot(
+            workflowStatus: workflowStatus,
+            nextDueDate: nextDueDate,
+            daysUntilDue: daysUntilDue,
+            amountDueNowMinor: amountDueNowMinor,
+            openMilestoneCount: openMilestones.count
         )
     }
 }

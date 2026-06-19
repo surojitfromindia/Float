@@ -961,18 +961,23 @@ struct SettlementCaseRepository {
         initialAmountMinor: Int64,
         date: Date,
         currencyCode: String,
-        note: String?
+        note: String?,
+        person: PersonItem? = nil,
+        dueDate: Date? = nil
     ) throws -> SettlementCaseItem {
         guard initialAmountMinor > 0 else {
             throw DataIntegrityError.invalidInput
         }
         let caseItem = SettlementCaseItem(
             title: title.trimmedNilIfBlank ?? String(localized: "Settlement"),
-            counterpartyName: personName.trimmedNilIfBlank ?? String(localized: "No person"),
+            counterpartyName: person?.name.trimmedNilIfBlank
+                ?? personName.trimmedNilIfBlank
+                ?? String(localized: "No person"),
             direction: direction,
             currencyCode: currencyCode,
             note: note?.trimmedNilIfBlank,
-            person: nil,
+            person: person,
+            dueDate: dueDate,
             createdAt: date,
             updatedAt: date
         )
@@ -1000,17 +1005,22 @@ struct SettlementCaseRepository {
         currencyCode: String,
         initialAmountMinor: Int64,
         date: Date,
-        note: String?
+        note: String?,
+        person: PersonItem? = nil,
+        dueDate: Date? = nil
     ) throws {
         guard initialAmountMinor > 0 else {
             throw DataIntegrityError.invalidInput
         }
         caseItem.title = title.trimmedNilIfBlank ?? String(localized: "Settlement")
-        caseItem.counterpartyName = personName.trimmedNilIfBlank ?? String(localized: "No person")
-        caseItem.person = nil
+        caseItem.counterpartyName = person?.name.trimmedNilIfBlank
+            ?? personName.trimmedNilIfBlank
+            ?? String(localized: "No person")
+        caseItem.person = person
         caseItem.direction = direction
         caseItem.currencyCode = currencyCode
         caseItem.createdAt = date
+        caseItem.dueDate = dueDate
         caseItem.note = note?.trimmedNilIfBlank
         caseItem.updatedAt = Date()
 
@@ -1035,6 +1045,7 @@ struct SettlementCaseRepository {
             caseItem.entries.append(initialEntry)
             modelContext.insert(initialEntry)
         }
+        refreshClosureState(for: caseItem)
         try save()
     }
 
@@ -1060,6 +1071,7 @@ struct SettlementCaseRepository {
         caseItem.entries.append(entry)
         caseItem.updatedAt = Date()
         modelContext.insert(entry)
+        refreshClosureState(for: caseItem)
         try save()
         return entry
     }
@@ -1103,6 +1115,7 @@ struct SettlementCaseRepository {
         caseItem.entries.append(entry)
         caseItem.updatedAt = Date()
         modelContext.insert(entry)
+        refreshClosureState(for: caseItem)
         try save()
         return entry
     }
@@ -1137,6 +1150,9 @@ struct SettlementCaseRepository {
                 reference: reference?.trimmedNilIfBlank
             )
         }
+        if let caseItem = entry.caseItem {
+            refreshClosureState(for: caseItem)
+        }
         try save()
     }
 
@@ -1145,12 +1161,132 @@ struct SettlementCaseRepository {
             throw DataIntegrityError.invalidInput
         }
         entry.caseItem?.updatedAt = Date()
+        entry.caseItem?.milestones
+            .filter { $0.linkedEntry?.id == entry.id }
+            .forEach {
+                $0.linkedEntry = nil
+                $0.status = .pending
+                $0.updatedAt = Date()
+            }
+        if let caseItem = entry.caseItem {
+            refreshClosureState(for: caseItem)
+        }
         modelContext.delete(entry)
         try save()
     }
 
     func delete(_ caseItem: SettlementCaseItem) throws {
         modelContext.delete(caseItem)
+        try save()
+    }
+
+    func close(_ caseItem: SettlementCaseItem) throws {
+        caseItem.closedAt = Date()
+        caseItem.archived = false
+        caseItem.updatedAt = Date()
+        try save()
+    }
+
+    func reopen(_ caseItem: SettlementCaseItem) throws {
+        caseItem.closedAt = nil
+        caseItem.archived = false
+        caseItem.updatedAt = Date()
+        try save()
+    }
+
+    func archive(_ caseItem: SettlementCaseItem) throws {
+        caseItem.archived = true
+        if caseItem.closedAt == nil {
+            caseItem.closedAt = Date()
+        }
+        caseItem.updatedAt = Date()
+        try save()
+    }
+
+    func addMilestone(
+        to caseItem: SettlementCaseItem,
+        title: String,
+        amountMinor: Int64,
+        dueDate: Date,
+        note: String?
+    ) throws -> SettlementMilestoneItem {
+        guard amountMinor > 0 else {
+            throw DataIntegrityError.invalidInput
+        }
+        let milestone = SettlementMilestoneItem(
+            title: title.trimmedNilIfBlank ?? String(localized: "Payment"),
+            amountMinor: amountMinor,
+            dueDate: dueDate,
+            note: note?.trimmedNilIfBlank,
+            caseItem: caseItem
+        )
+        caseItem.milestones.append(milestone)
+        caseItem.updatedAt = Date()
+        modelContext.insert(milestone)
+        try save()
+        return milestone
+    }
+
+    func updateMilestone(
+        _ milestone: SettlementMilestoneItem,
+        title: String,
+        amountMinor: Int64,
+        dueDate: Date,
+        note: String?,
+        status: SettlementMilestoneStatus
+    ) throws {
+        guard amountMinor > 0 else {
+            throw DataIntegrityError.invalidInput
+        }
+        milestone.apply(
+            title: title.trimmedNilIfBlank ?? String(localized: "Payment"),
+            amountMinor: amountMinor,
+            dueDate: dueDate,
+            note: note?.trimmedNilIfBlank,
+            status: status
+        )
+        try save()
+    }
+
+    func deleteMilestone(_ milestone: SettlementMilestoneItem) throws {
+        milestone.caseItem?.updatedAt = Date()
+        modelContext.delete(milestone)
+        try save()
+    }
+
+    func recordPayment(
+        to caseItem: SettlementCaseItem,
+        milestone: SettlementMilestoneItem?,
+        amountMinor: Int64,
+        entryDate: Date,
+        note: String?,
+        reference: String?
+    ) throws -> SettlementEntryItem {
+        let entry = try addEntry(
+            to: caseItem,
+            kind: .payment,
+            amountMinor: amountMinor,
+            entryDate: entryDate,
+            note: note,
+            reference: reference
+        )
+        if let milestone {
+            milestone.linkedEntry = entry
+            milestone.status = entry.amountMinor >= milestone.amountMinor ? .paid : .pending
+            milestone.updatedAt = Date()
+        }
+        refreshClosureState(for: caseItem)
+        try save()
+        return entry
+    }
+
+    func linkTransaction(
+        _ transaction: TransactionItem?,
+        to entry: SettlementEntryItem
+    ) throws {
+        entry.linkedTransaction = transaction
+        entry.updatedAt = Date()
+        entry.caseItem?.updatedAt = Date()
         try save()
     }
 
@@ -1180,6 +1316,18 @@ struct SettlementCaseRepository {
             .joined(separator: " - ")
     }
 
+    private func refreshClosureState(for caseItem: SettlementCaseItem) {
+        if caseItem.archived {
+            return
+        }
+        let snapshot = caseItem.balanceSnapshot
+        if snapshot.remainingMinor == 0 && snapshot.creditMinor == 0 {
+            caseItem.closedAt = caseItem.closedAt ?? Date()
+        } else if caseItem.closedAt != nil {
+            caseItem.closedAt = nil
+        }
+    }
+
     private func save() throws {
         do {
             try modelContext.save()
@@ -1194,6 +1342,7 @@ struct SettingsRepository {
     let modelContext: ModelContext
 
     func resetAllData(currencyCode: String) throws {
+        try modelContext.delete(model: SettlementMilestoneItem.self)
         try modelContext.delete(model: SettlementEntryItem.self)
         try modelContext.delete(model: SettlementCaseItem.self)
         try modelContext.delete(model: TransactionItem.self)

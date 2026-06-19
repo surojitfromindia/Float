@@ -692,7 +692,6 @@ enum DataIntegrityService {
                 caseItem.counterpartyName = String(localized: "No person")
                 didRepair = true
             }
-            caseItem.person = nil
             if didRepair {
                 caseItem.updatedAt = max(caseItem.updatedAt, now)
             }

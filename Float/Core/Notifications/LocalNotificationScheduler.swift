@@ -6,13 +6,16 @@ enum LocalNotificationScheduler {
         recurringRules: [RecurringRuleItem],
         budgetAlerts: [BudgetAlertItem],
         goals: [GoalItem],
+        settlementCases: [SettlementCaseItem] = [],
         currencyCode: String,
         preferences: FloatReminderPreferences = FloatReminderPreferences(
             recurringEnabled: true,
             budgetEnabled: true,
             goalsEnabled: true,
+            settlementsEnabled: true,
             recurringReminderMinutes: 9 * 60,
             goalReminderMinutes: 9 * 60 + 30,
+            settlementReminderMinutes: 9 * 60,
             budgetAlertSensitivity: .closeAndOver
         ),
         now: Date = Date(),
@@ -30,6 +33,7 @@ enum LocalNotificationScheduler {
                 $0.hasPrefix("float.recurring.")
                     || $0.hasPrefix("float.budget.")
                     || $0.hasPrefix("float.goal.")
+                    || $0.hasPrefix("float.settlement.")
             }
             center.removePendingNotificationRequests(withIdentifiers: managedIDs)
 
@@ -76,6 +80,26 @@ enum LocalNotificationScheduler {
                             calendar: calendar,
                             currencyCode: currencyCode,
                             reminderMinutes: preferences.goalReminderMinutes
+                        )
+                    }
+            }
+
+            if preferences.settlementsEnabled {
+                settlementCases
+                    .filter { !$0.archived && $0.balanceSnapshot.remainingMinor > 0 }
+                    .sorted {
+                        ($0.operationalSnapshot.nextDueDate ?? .distantFuture)
+                            < ($1.operationalSnapshot.nextDueDate ?? .distantFuture)
+                    }
+                    .prefix(8)
+                    .forEach {
+                        scheduleSettlement(
+                            $0,
+                            center: center,
+                            now: now,
+                            calendar: calendar,
+                            fallbackCurrencyCode: currencyCode,
+                            reminderMinutes: preferences.settlementReminderMinutes
                         )
                     }
             }
@@ -164,6 +188,41 @@ enum LocalNotificationScheduler {
         )
     }
 
+    private static func scheduleSettlement(
+        _ caseItem: SettlementCaseItem,
+        center: UNUserNotificationCenter,
+        now: Date,
+        calendar: Calendar,
+        fallbackCurrencyCode: String,
+        reminderMinutes: Int
+    ) {
+        let snapshot = caseItem.operationalSnapshot
+        guard let dueDate = snapshot.nextDueDate else { return }
+        let dueStart = calendar.startOfDay(for: dueDate)
+        guard dueStart >= calendar.startOfDay(for: now) else { return }
+        let reminderDate = date(on: dueStart, minutesAfterStartOfDay: reminderMinutes, calendar: calendar)
+        guard reminderDate > now else { return }
+
+        let currencyCode = caseCurrencyCode(for: caseItem, fallbackCurrencyCode: fallbackCurrencyCode)
+        let content = UNMutableNotificationContent()
+        content.title = String(localized: "Settlement due today")
+        content.body = String(
+            localized: "\(caseItem.displayTitle) has \(money(snapshot.amountDueNowMinor, currencyCode)) due."
+        )
+        content.sound = .default
+        content.userInfo = [
+            "destination": FloatDestination.settlements.rawValue
+        ]
+
+        schedule(
+            id: "float.settlement.\(caseItem.id.uuidString)",
+            date: reminderDate,
+            content: content,
+            center: center,
+            calendar: calendar
+        )
+    }
+
     private static func schedule(
         id: String,
         date: Date,
@@ -219,5 +278,13 @@ enum LocalNotificationScheduler {
 
     private static func money(_ amount: Int64, _ currencyCode: String) -> String {
         MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
+    }
+
+    private static func caseCurrencyCode(
+        for caseItem: SettlementCaseItem,
+        fallbackCurrencyCode: String
+    ) -> String {
+        let trimmed = caseItem.currencyCode.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? fallbackCurrencyCode : trimmed
     }
 }

@@ -122,8 +122,10 @@ struct FloatReminderPreferences {
     var recurringEnabled: Bool
     var budgetEnabled: Bool
     var goalsEnabled: Bool
+    var settlementsEnabled: Bool
     var recurringReminderMinutes: Int
     var goalReminderMinutes: Int
+    var settlementReminderMinutes: Int
     var budgetAlertSensitivity: BudgetAlertSensitivity
 }
 
@@ -145,8 +147,10 @@ final class AppState: ObservableObject {
     @AppStorage("recurringRemindersEnabled") var recurringRemindersEnabled = true
     @AppStorage("budgetAlertsEnabled") var budgetAlertsEnabled = true
     @AppStorage("goalRemindersEnabled") var goalRemindersEnabled = true
+    @AppStorage("settlementRemindersEnabled") var settlementRemindersEnabled = true
     @AppStorage("recurringReminderMinutes") var recurringReminderMinutes = 9 * 60
     @AppStorage("goalReminderMinutes") var goalReminderMinutes = 9 * 60 + 30
+    @AppStorage("settlementReminderMinutes") var settlementReminderMinutes = 9 * 60
     @AppStorage("budgetAlertSensitivity") var budgetAlertSensitivityRaw =
         BudgetAlertSensitivity.closeAndOver.rawValue
 
@@ -184,8 +188,10 @@ final class AppState: ObservableObject {
             recurringEnabled: recurringRemindersEnabled,
             budgetEnabled: budgetAlertsEnabled,
             goalsEnabled: goalRemindersEnabled,
+            settlementsEnabled: settlementRemindersEnabled,
             recurringReminderMinutes: recurringReminderMinutes,
             goalReminderMinutes: goalReminderMinutes,
+            settlementReminderMinutes: settlementReminderMinutes,
             budgetAlertSensitivity: BudgetAlertSensitivity(rawValue: budgetAlertSensitivityRaw)
                 ?? .closeAndOver
         )

@@ -282,7 +282,11 @@ struct HomeView: View {
     @ViewBuilder private var settlementsSection: some View {
         if !settlementCases.isEmpty {
             let summary = SettlementDashboardSummary(cases: settlementCases)
-            let recent = Array(settlementCases.filter(\.isActive).prefix(3))
+            let attention = HomeSettlementAttentionSummary(
+                cases: settlementCases,
+                calendar: .current
+            )
+            let featured = attention.featuredCases
 
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: LocalizedStringResource("Settlements"))
@@ -313,15 +317,41 @@ struct HomeView: View {
                             )
                         }
 
-                        if !recent.isEmpty {
+                        if attention.hasAttention {
+                            Divider()
+                            HStack(spacing: 10) {
+                                SummaryMetricTile(
+                                    title: LocalizedStringResource("Overdue"),
+                                    value: "\(attention.overdueCount)",
+                                    captionText: AppLocalization.format(
+                                        "%lld cases",
+                                        Int64(attention.overdueCount)
+                                    ),
+                                    icon: "exclamationmark.triangle.fill",
+                                    tint: Color(hex: "#B91C1C")
+                                )
+                                SummaryMetricTile(
+                                    title: LocalizedStringResource("Due this week"),
+                                    value: money(attention.dueThisWeekMinor),
+                                    captionText: AppLocalization.format(
+                                        "%lld open",
+                                        Int64(attention.dueThisWeekCount)
+                                    ),
+                                    icon: "calendar.badge.clock",
+                                    tint: appState.themePalette.accent
+                                )
+                            }
+                        }
+
+                        if !featured.isEmpty {
                             Divider()
                             VStack(spacing: 10) {
-                                ForEach(recent) { caseItem in
+                                ForEach(featured) { caseItem in
                                     HomeSettlementRow(
                                         caseItem: caseItem,
                                         fallbackCurrencyCode: appState.selectedCurrencyCode
                                     )
-                                    if caseItem.id != recent.last?.id {
+                                    if caseItem.id != featured.last?.id {
                                         Divider()
                                     }
                                 }
@@ -620,13 +650,16 @@ struct HomeView: View {
             budgetUpdatedAt: activeBudget?.updatedAt,
             goalsUpdatedAt: goals.map(\.updatedAt).max(),
             recurringRulesUpdatedAt: recurringRules.map(\.updatedAt).max(),
+            settlementCasesUpdatedAt: settlementCases.map(\.updatedAt).max(),
             accountsUpdatedAt: accounts.map(\.updatedAt).max(),
             categoryBudgetsUpdatedAt: categoryBudgets.map(\.updatedAt).max(),
             recurringRemindersEnabled: appState.recurringRemindersEnabled,
             budgetAlertsEnabled: appState.budgetAlertsEnabled,
             goalRemindersEnabled: appState.goalRemindersEnabled,
+            settlementRemindersEnabled: appState.settlementRemindersEnabled,
             recurringReminderMinutes: appState.recurringReminderMinutes,
             goalReminderMinutes: appState.goalReminderMinutes,
+            settlementReminderMinutes: appState.settlementReminderMinutes,
             budgetAlertSensitivityRaw: appState.budgetAlertSensitivityRaw
         )
     }
@@ -638,6 +671,7 @@ struct HomeView: View {
             recurringRules: recurringRules,
             budgetAlerts: dashboardSnapshot.budgetAlerts,
             goals: goals,
+            settlementCases: settlementCases,
             currencyCode: appState.selectedCurrencyCode,
             preferences: appState.reminderPreferences
         )
@@ -899,13 +933,16 @@ private struct HomeDashboardLoadKey: Equatable {
     let budgetUpdatedAt: Date?
     let goalsUpdatedAt: Date?
     let recurringRulesUpdatedAt: Date?
+    let settlementCasesUpdatedAt: Date?
     let accountsUpdatedAt: Date?
     let categoryBudgetsUpdatedAt: Date?
     let recurringRemindersEnabled: Bool
     let budgetAlertsEnabled: Bool
     let goalRemindersEnabled: Bool
+    let settlementRemindersEnabled: Bool
     let recurringReminderMinutes: Int
     let goalReminderMinutes: Int
+    let settlementReminderMinutes: Int
     let budgetAlertSensitivityRaw: String
 }
 
@@ -1801,12 +1838,83 @@ private struct AllocationSegment: Identifiable {
     let color: Color
 }
 
+private struct HomeSettlementAttentionSummary {
+    let overdueCount: Int
+    let dueThisWeekCount: Int
+    let dueThisWeekMinor: Int64
+    let featuredCases: [SettlementCaseItem]
+
+    var hasAttention: Bool {
+        overdueCount > 0 || dueThisWeekCount > 0
+    }
+
+    init(cases: [SettlementCaseItem], calendar: Calendar) {
+        let now = Date()
+        let today = calendar.startOfDay(for: now)
+        let weekEnd = calendar.date(byAdding: .day, value: 7, to: today) ?? today
+        let openCases = cases.filter {
+            !$0.archived && $0.balanceSnapshot.remainingMinor > 0
+        }
+
+        var overdueCount = 0
+        var dueThisWeekCount = 0
+        var dueThisWeekMinor: Int64 = 0
+        for caseItem in openCases {
+            let operational = caseItem.operationalSnapshot
+            if operational.workflowStatus == .overdue {
+                overdueCount += 1
+            }
+            if let nextDueDate = operational.nextDueDate {
+                let dueStart = calendar.startOfDay(for: nextDueDate)
+                if dueStart >= today && dueStart <= weekEnd {
+                    dueThisWeekCount += 1
+                    dueThisWeekMinor += operational.amountDueNowMinor
+                }
+            }
+        }
+
+        self.overdueCount = overdueCount
+        self.dueThisWeekCount = dueThisWeekCount
+        self.dueThisWeekMinor = dueThisWeekMinor
+        featuredCases = Array(
+            openCases.sorted { lhs, rhs in
+                let lhsSort = Self.sortKey(for: lhs)
+                let rhsSort = Self.sortKey(for: rhs)
+                if lhsSort == rhsSort {
+                    return lhs.updatedAt > rhs.updatedAt
+                }
+                return lhsSort < rhsSort
+            }
+            .prefix(3)
+        )
+    }
+
+    private static func sortKey(for caseItem: SettlementCaseItem) -> Int {
+        switch caseItem.operationalSnapshot.workflowStatus {
+        case .overdue:
+            return 0
+        case .dueSoon:
+            return 1
+        case .active:
+            return 2
+        case .settled:
+            return 3
+        case .archived:
+            return 4
+        }
+    }
+}
+
 private struct HomeSettlementRow: View {
     let caseItem: SettlementCaseItem
     let fallbackCurrencyCode: String
 
     private var snapshot: SettlementBalanceSnapshot {
         caseItem.balanceSnapshot
+    }
+
+    private var operational: SettlementOperationalSnapshot {
+        caseItem.operationalSnapshot
     }
 
     private var currencyCode: String {
@@ -1832,6 +1940,12 @@ private struct HomeSettlementRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                if let dueText {
+                    Text(dueText)
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(rowTint)
+                        .lineLimit(1)
+                }
             }
 
             Spacer(minLength: 8)
@@ -1843,9 +1957,30 @@ private struct HomeSettlementRow: View {
                     .minimumScaleFactor(0.75)
                 Text(snapshot.status.title)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(settlementStatusTint(for: snapshot.status))
+                    .foregroundStyle(rowTint)
             }
         }
+    }
+
+    private var rowTint: Color {
+        if operational.workflowStatus == .overdue || operational.workflowStatus == .dueSoon {
+            return settlementWorkflowTint(for: operational.workflowStatus)
+        }
+        return settlementStatusTint(for: snapshot.status)
+    }
+
+    private var dueText: String? {
+        guard let dueDate = operational.nextDueDate else { return nil }
+        if operational.workflowStatus == .overdue {
+            return String(localized: "Overdue")
+        }
+        if operational.daysUntilDue == 0 {
+            return String(localized: "Due today")
+        }
+        return AppLocalization.format(
+            "Due %@",
+            dueDate.formatted(date: .abbreviated, time: .omitted)
+        )
     }
 
     private var balanceText: String {

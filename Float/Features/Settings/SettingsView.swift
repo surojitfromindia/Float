@@ -120,6 +120,18 @@ struct SettingsView: View {
                 )
             }
 
+            Toggle("Settlement due reminders", isOn: $appState.settlementRemindersEnabled)
+            if appState.settlementRemindersEnabled {
+                DatePicker(
+                    "Settlement time",
+                    selection: reminderTimeBinding(
+                        get: { appState.settlementReminderMinutes },
+                        set: { appState.settlementReminderMinutes = $0 }
+                    ),
+                    displayedComponents: .hourAndMinute
+                )
+            }
+
             Toggle("Budget alerts", isOn: $appState.budgetAlertsEnabled)
             if appState.budgetAlertsEnabled {
                 SettingsPickerRow("Budget sensitivity", selection: $appState.budgetAlertSensitivityRaw) {
@@ -319,6 +331,7 @@ struct SettingsView: View {
                 categoryBudgets: fetchAll(CategoryBudgetItem.self),
                 settlementCases: fetchAll(SettlementCaseItem.self),
                 settlementEntries: fetchAll(SettlementEntryItem.self),
+                settlementMilestones: fetchAll(SettlementMilestoneItem.self),
                 currencyCode: appState.selectedCurrencyCode
             )
             message = "Preparing backup."
@@ -364,6 +377,7 @@ struct SettingsView: View {
     private func resetAllData(reseedDefaults: Bool = true) {
         for item in fetchAll(TransactionPersonTagItem.self) { modelContext.delete(item) }
         for item in fetchAll(RecurringRulePersonTagItem.self) { modelContext.delete(item) }
+        for item in fetchAll(SettlementMilestoneItem.self) { modelContext.delete(item) }
         for item in fetchAll(SettlementEntryItem.self) { modelContext.delete(item) }
         for item in fetchAll(SettlementCaseItem.self) { modelContext.delete(item) }
         for item in fetchAll(TransactionItem.self) { modelContext.delete(item) }

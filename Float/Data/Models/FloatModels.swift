@@ -146,6 +146,22 @@ enum SettlementEntryKind: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum SettlementMilestoneStatus: String, Codable, CaseIterable, Identifiable {
+    case pending
+    case paid
+    case skipped
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .pending: String(localized: "Pending")
+        case .paid: String(localized: "Paid")
+        case .skipped: String(localized: "Skipped")
+        }
+    }
+}
+
 enum SettlementCaseStatus: String, Codable, CaseIterable, Identifiable {
     case unpaid
     case partiallyPaid
@@ -162,6 +178,42 @@ enum SettlementCaseStatus: String, Codable, CaseIterable, Identifiable {
         case .settled: String(localized: "Settled")
         case .overpaid: String(localized: "Overpaid")
         case .writtenOff: String(localized: "Written off")
+        }
+    }
+}
+
+enum SettlementWorkflowStatus: String, Codable, CaseIterable, Identifiable {
+    case active
+    case dueSoon
+    case overdue
+    case settled
+    case archived
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .active: String(localized: "Active")
+        case .dueSoon: String(localized: "Due soon")
+        case .overdue: String(localized: "Overdue")
+        case .settled: String(localized: "Settled")
+        case .archived: String(localized: "Archived")
+        }
+    }
+}
+
+enum SettlementReconciliationStatus: String, Codable, CaseIterable, Identifiable {
+    case unlinked
+    case partiallyLinked
+    case fullyLinked
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .unlinked: String(localized: "Unlinked")
+        case .partiallyLinked: String(localized: "Partial match")
+        case .fullyLinked: String(localized: "Matched")
         }
     }
 }
@@ -714,10 +766,14 @@ final class SettlementCaseItem {
     var directionRaw: String = SettlementDirection.theyOweYou.rawValue
     var currencyCode: String = "USD"
     var note: String?
-    // Deprecated: settlements keep their own counterpartyName and should not depend on People.
     var person: PersonItem?
+    var dueDate: Date?
+    var closedAt: Date?
+    var archived: Bool = false
     @Relationship(deleteRule: .cascade, inverse: \SettlementEntryItem.caseItem)
     var entries: [SettlementEntryItem] = []
+    @Relationship(deleteRule: .cascade, inverse: \SettlementMilestoneItem.caseItem)
+    var milestones: [SettlementMilestoneItem] = []
     var createdAt: Date = Date()
     var updatedAt: Date = Date()
 
@@ -729,7 +785,11 @@ final class SettlementCaseItem {
         currencyCode: String,
         note: String? = nil,
         person: PersonItem? = nil,
+        dueDate: Date? = nil,
+        closedAt: Date? = nil,
+        archived: Bool = false,
         entries: [SettlementEntryItem] = [],
+        milestones: [SettlementMilestoneItem] = [],
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -740,7 +800,11 @@ final class SettlementCaseItem {
         self.currencyCode = currencyCode
         self.note = note?.nilIfBlank
         self.person = person
+        self.dueDate = dueDate
+        self.closedAt = closedAt
+        self.archived = archived
         self.entries = entries
+        self.milestones = milestones
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -779,6 +843,44 @@ final class SettlementEntryItem {
         self.reference = reference?.nilIfBlank
         self.caseItem = caseItem
         self.linkedTransaction = linkedTransaction
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+@Model
+final class SettlementMilestoneItem {
+    var id: UUID = UUID()
+    var title: String = ""
+    var amountMinor: Int64 = 0
+    var dueDate: Date = Date()
+    var note: String?
+    var statusRaw: String = SettlementMilestoneStatus.pending.rawValue
+    var caseItem: SettlementCaseItem?
+    var linkedEntry: SettlementEntryItem?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        title: String,
+        amountMinor: Int64,
+        dueDate: Date,
+        note: String? = nil,
+        status: SettlementMilestoneStatus = .pending,
+        caseItem: SettlementCaseItem? = nil,
+        linkedEntry: SettlementEntryItem? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.title = title.nilIfBlank ?? String(localized: "Payment")
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.dueDate = dueDate
+        self.note = note?.nilIfBlank
+        self.statusRaw = status.rawValue
+        self.caseItem = caseItem
+        self.linkedEntry = linkedEntry
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -1063,7 +1165,7 @@ extension SettlementCaseItem {
     }
 
     var personName: String {
-        counterpartyName.nilIfBlank ?? String(localized: "No person")
+        person?.name.nilIfBlank ?? counterpartyName.nilIfBlank ?? String(localized: "No person")
     }
 
     var sortedEntries: [SettlementEntryItem] {
@@ -1075,12 +1177,31 @@ extension SettlementCaseItem {
         }
     }
 
+    var sortedMilestones: [SettlementMilestoneItem] {
+        milestones.sorted { lhs, rhs in
+            if lhs.dueDate == rhs.dueDate {
+                return lhs.createdAt < rhs.createdAt
+            }
+            return lhs.dueDate < rhs.dueDate
+        }
+    }
+
     var lastActivityDate: Date {
-        sortedEntries.last?.entryDate ?? updatedAt
+        [
+            sortedEntries.last?.entryDate,
+            sortedMilestones.last?.updatedAt,
+            updatedAt
+        ]
+        .compactMap { $0 }
+        .max() ?? updatedAt
     }
 
     var balanceSnapshot: SettlementBalanceSnapshot {
         SettlementBalanceCalculator.snapshot(for: entries)
+    }
+
+    var operationalSnapshot: SettlementOperationalSnapshot {
+        SettlementOperations.snapshot(for: self)
     }
 
     var status: SettlementCaseStatus {
@@ -1088,11 +1209,12 @@ extension SettlementCaseItem {
     }
 
     var isActive: Bool {
+        guard !archived else { return false }
         switch status {
         case .unpaid, .partiallyPaid, .overpaid:
-            true
+            return true
         case .settled, .writtenOff:
-            false
+            return false
         }
     }
 }
@@ -1107,6 +1229,13 @@ extension SettlementEntryItem {
         linkedTransaction == nil && kind == .payment
     }
 
+    var reconciliationStatus: SettlementReconciliationStatus {
+        guard let linkedTransaction else {
+            return .unlinked
+        }
+        return linkedTransaction.amountMinor >= amountMinor ? .fullyLinked : .partiallyLinked
+    }
+
     func apply(
         kind: SettlementEntryKind,
         amountMinor: Int64,
@@ -1119,6 +1248,37 @@ extension SettlementEntryItem {
         self.entryDate = entryDate
         self.note = note?.nilIfBlank
         self.reference = reference?.nilIfBlank
+        updatedAt = Date()
+        caseItem?.updatedAt = Date()
+    }
+}
+
+extension SettlementMilestoneItem {
+    var status: SettlementMilestoneStatus {
+        get { SettlementMilestoneStatus(rawValue: statusRaw) ?? .pending }
+        set { statusRaw = newValue.rawValue }
+    }
+
+    var displayTitle: String {
+        title.nilIfBlank ?? String(localized: "Payment")
+    }
+
+    var isOpen: Bool {
+        status == .pending
+    }
+
+    func apply(
+        title: String,
+        amountMinor: Int64,
+        dueDate: Date,
+        note: String?,
+        status: SettlementMilestoneStatus
+    ) {
+        self.title = title.nilIfBlank ?? String(localized: "Payment")
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.dueDate = dueDate
+        self.note = note?.nilIfBlank
+        self.statusRaw = status.rawValue
         updatedAt = Date()
         caseItem?.updatedAt = Date()
     }

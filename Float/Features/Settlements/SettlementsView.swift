@@ -40,6 +40,24 @@ struct SettlementsView: View {
             || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    private var needsAttentionCases: [SettlementCaseItem] {
+        filteredCases.filter {
+            [.overdue, .dueSoon].contains($0.operationalSnapshot.workflowStatus)
+        }
+    }
+
+    private var activeCases: [SettlementCaseItem] {
+        filteredCases.filter {
+            $0.operationalSnapshot.workflowStatus == .active
+        }
+    }
+
+    private var closedCases: [SettlementCaseItem] {
+        filteredCases.filter {
+            [.settled, .archived].contains($0.operationalSnapshot.workflowStatus)
+        }
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
@@ -61,50 +79,9 @@ struct SettlementsView: View {
                         )
                     }
                 } else {
-                    ForEach(filteredCases) { caseItem in
-                        NavigationLink {
-                            SettlementCaseDetailView(caseItem: caseItem)
-                        } label: {
-                            SettlementCaseRow(caseItem: caseItem)
-                        }
-                        .buttonStyle(.plain)
-                        .contextMenu {
-                            Button {
-                                entryPresentation = SettlementEntryEditorPresentation(
-                                    caseItem: caseItem,
-                                    entry: nil,
-                                    kind: .payment
-                                )
-                            } label: {
-                                Label("Record payment", systemImage: "checkmark.circle.fill")
-                            }
-                            Button {
-                                entryPresentation = SettlementEntryEditorPresentation(
-                                    caseItem: caseItem,
-                                    entry: nil,
-                                    kind: .addition
-                                )
-                            } label: {
-                                Label("Add charge", systemImage: "plus.circle.fill")
-                            }
-                            Button {
-                                markResolved(caseItem)
-                            } label: {
-                                Label("Mark resolved", systemImage: "xmark.seal.fill")
-                            }
-                            .disabled(caseItem.balanceSnapshot.remainingMinor <= 0)
-                            Button {
-                                editorPresentation = SettlementCaseEditorPresentation(caseItem: caseItem)
-                            } label: {
-                                Label("Edit", systemImage: "pencil")
-                            }
-                            Button(role: .destructive) {
-                                casePendingDeletion = caseItem
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                        }
-                    }
+                    settlementSection(title: "Needs attention", cases: needsAttentionCases)
+                    settlementSection(title: "Active", cases: activeCases)
+                    settlementSection(title: "Closed", cases: closedCases)
                 }
             }
             .padding(20)
@@ -131,7 +108,8 @@ struct SettlementsView: View {
             SettlementEntryEditorView(
                 caseItem: presentation.caseItem,
                 entry: presentation.entry,
-                initialKind: presentation.kind
+                initialKind: presentation.kind,
+                milestone: presentation.milestone
             )
         }
         .alert(
@@ -254,6 +232,69 @@ struct SettlementsView: View {
         .scrollClipDisabled()
     }
 
+    @ViewBuilder
+    private func settlementSection(
+        title: LocalizedStringResource,
+        cases sectionCases: [SettlementCaseItem]
+    ) -> some View {
+        if !sectionCases.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHeader(title: title)
+                ForEach(sectionCases) { caseItem in
+                    NavigationLink {
+                        SettlementCaseDetailView(caseItem: caseItem)
+                    } label: {
+                        SettlementCaseRow(caseItem: caseItem)
+                    }
+                    .buttonStyle(.plain)
+                    .contextMenu {
+                        Button {
+                            entryPresentation = SettlementEntryEditorPresentation(
+                                caseItem: caseItem,
+                                entry: nil,
+                                kind: .payment,
+                                milestone: caseItem.sortedMilestones.first(where: \.isOpen)
+                            )
+                        } label: {
+                            Label("Record payment", systemImage: "checkmark.circle.fill")
+                        }
+                        Button {
+                            entryPresentation = SettlementEntryEditorPresentation(
+                                caseItem: caseItem,
+                                entry: nil,
+                                kind: .addition,
+                                milestone: nil
+                            )
+                        } label: {
+                            Label("Add charge", systemImage: "plus.circle.fill")
+                        }
+                        Button {
+                            markResolved(caseItem)
+                        } label: {
+                            Label("Mark resolved", systemImage: "xmark.seal.fill")
+                        }
+                        .disabled(caseItem.balanceSnapshot.remainingMinor <= 0)
+                        Button {
+                            archive(caseItem)
+                        } label: {
+                            Label("Archive", systemImage: "archivebox.fill")
+                        }
+                        Button {
+                            editorPresentation = SettlementCaseEditorPresentation(caseItem: caseItem)
+                        } label: {
+                            Label("Edit", systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            casePendingDeletion = caseItem
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     private func money(_ amount: Int64) -> String {
         MoneyFormatter.string(
             minorUnits: amount,
@@ -278,6 +319,11 @@ struct SettlementsView: View {
             note: String(localized: "Marked resolved"),
             reference: nil
         )
+        Haptics.confirm()
+    }
+
+    private func archive(_ caseItem: SettlementCaseItem) {
+        try? SettlementCaseRepository(modelContext: modelContext).archive(caseItem)
         Haptics.confirm()
     }
 
@@ -348,6 +394,10 @@ struct SettlementDashboardSummary {
 
         for caseItem in cases {
             let snapshot = caseItem.balanceSnapshot
+            if caseItem.archived {
+                settledCases += 1
+                continue
+            }
             switch snapshot.status {
             case .settled, .writtenOff:
                 settledCases += 1
@@ -383,8 +433,15 @@ private struct SettlementCaseRow: View {
         caseItem.balanceSnapshot
     }
 
+    private var operational: SettlementOperationalSnapshot {
+        caseItem.operationalSnapshot
+    }
+
     private var statusTint: Color {
-        settlementStatusTint(for: snapshot.status)
+        if operational.workflowStatus == .overdue || operational.workflowStatus == .dueSoon {
+            return settlementWorkflowTint(for: operational.workflowStatus)
+        }
+        return settlementStatusTint(for: snapshot.status)
     }
 
     var body: some View {
@@ -427,7 +484,10 @@ private struct SettlementCaseRow: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.68)
 
-                        SettlementStatusPill(title: snapshot.status.title, tint: statusTint)
+                        SettlementStatusPill(
+                            title: operational.workflowStatus.title,
+                            tint: statusTint
+                        )
                     }
                 }
 
@@ -458,12 +518,16 @@ private struct SettlementCaseRow: View {
                 ViewThatFits(in: .horizontal) {
                     HStack(spacing: 8) {
                         activityDate
+                        dueDateLabel
                         Spacer(minLength: 8)
                         deltaChips
                     }
 
                     VStack(alignment: .leading, spacing: 8) {
-                        activityDate
+                        HStack(spacing: 8) {
+                            activityDate
+                            dueDateLabel
+                        }
                         deltaChips
                     }
                 }
@@ -513,9 +577,33 @@ private struct SettlementCaseRow: View {
     }
 
     @ViewBuilder
+    private var dueDateLabel: some View {
+        if let nextDueDate = operational.nextDueDate {
+            Label {
+                Text(dueText(for: nextDueDate))
+                    .lineLimit(1)
+            } icon: {
+                Image(systemName: "clock.fill")
+                    .font(.caption2.weight(.semibold))
+            }
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(settlementWorkflowTint(for: operational.workflowStatus))
+        }
+    }
+
+    @ViewBuilder
     private var deltaChips: some View {
         let addedMinor = snapshot.additionsMinor + snapshot.adjustmentsMinor
         HStack(spacing: 8) {
+            if operational.openMilestoneCount > 0 {
+                SettlementRowDeltaChip(
+                    title: "Plan",
+                    value: "\(operational.openMilestoneCount)",
+                    icon: "calendar.badge.clock",
+                    tint: appState.themePalette.accent
+                )
+            }
+
             if addedMinor > 0 {
                 SettlementRowDeltaChip(
                     title: "Added",
@@ -546,6 +634,19 @@ private struct SettlementCaseRow: View {
     private var caseCurrencyCode: String {
         let trimmed = caseItem.currencyCode.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? appState.selectedCurrencyCode : trimmed
+    }
+
+    private func dueText(for date: Date) -> String {
+        guard let days = operational.daysUntilDue else {
+            return date.formatted(date: .abbreviated, time: .omitted)
+        }
+        if days < 0 {
+            return String(localized: "Overdue")
+        }
+        if days == 0 {
+            return String(localized: "Due today")
+        }
+        return date.formatted(date: .abbreviated, time: .omitted)
     }
 }
 
@@ -621,10 +722,14 @@ struct SettlementCaseDetailView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
     @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query(sort: \TransactionItem.timestamp, order: .reverse) private var transactions:
+        [TransactionItem]
     let caseItem: SettlementCaseItem
     @State private var editorPresentation: SettlementEntryEditorPresentation?
+    @State private var milestonePresentation: SettlementMilestoneEditorPresentation?
     @State private var editingCase = false
     @State private var entryPendingDeletion: SettlementEntryItem?
+    @State private var transactionLinkEntry: SettlementEntryItem?
 
     private var snapshot: SettlementBalanceSnapshot {
         caseItem.balanceSnapshot
@@ -634,6 +739,8 @@ struct SettlementCaseDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 summaryCard
+                milestonesSection
+                linkedTransactionsSection
                 timelineSection
             }
             .padding(20)
@@ -653,10 +760,19 @@ struct SettlementCaseDetailView: View {
 
                 Menu {
                     Button {
+                        milestonePresentation = SettlementMilestoneEditorPresentation(
+                            caseItem: caseItem,
+                            milestone: nil
+                        )
+                    } label: {
+                        Label("Add milestone", systemImage: "calendar.badge.plus")
+                    }
+                    Button {
                         editorPresentation = SettlementEntryEditorPresentation(
                             caseItem: caseItem,
                             entry: nil,
-                            kind: .addition
+                            kind: .addition,
+                            milestone: nil
                         )
                     } label: {
                         Label("Add charge", systemImage: "plus.circle.fill")
@@ -665,7 +781,8 @@ struct SettlementCaseDetailView: View {
                         editorPresentation = SettlementEntryEditorPresentation(
                             caseItem: caseItem,
                             entry: nil,
-                            kind: .payment
+                            kind: .payment,
+                            milestone: caseItem.sortedMilestones.first(where: \.isOpen)
                         )
                     } label: {
                         Label("Record payment", systemImage: "checkmark.circle.fill")
@@ -674,7 +791,8 @@ struct SettlementCaseDetailView: View {
                         editorPresentation = SettlementEntryEditorPresentation(
                             caseItem: caseItem,
                             entry: nil,
-                            kind: .adjustment
+                            kind: .adjustment,
+                            milestone: nil
                         )
                     } label: {
                         Label("Correction up", systemImage: "slider.horizontal.3")
@@ -683,7 +801,8 @@ struct SettlementCaseDetailView: View {
                         editorPresentation = SettlementEntryEditorPresentation(
                             caseItem: caseItem,
                             entry: nil,
-                            kind: .waived
+                            kind: .waived,
+                            milestone: nil
                         )
                     } label: {
                         Label("Waive amount", systemImage: "xmark.seal.fill")
@@ -701,7 +820,20 @@ struct SettlementCaseDetailView: View {
             SettlementEntryEditorView(
                 caseItem: presentation.caseItem,
                 entry: presentation.entry,
-                initialKind: presentation.kind
+                initialKind: presentation.kind,
+                milestone: presentation.milestone
+            )
+        }
+        .sheet(item: $milestonePresentation) { presentation in
+            SettlementMilestoneEditorView(
+                caseItem: presentation.caseItem,
+                milestone: presentation.milestone
+            )
+        }
+        .sheet(item: $transactionLinkEntry) { entry in
+            SettlementTransactionLinkView(
+                entry: entry,
+                transactions: matchingTransactions(for: entry)
             )
         }
         .alert(
@@ -805,6 +937,103 @@ struct SettlementCaseDetailView: View {
         }
     }
 
+    private var milestonesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeader(title: "Payment plan")
+            if caseItem.sortedMilestones.isEmpty {
+                GlassCard {
+                    EmptyStateView(
+                        icon: "calendar.badge.plus",
+                        title: "No payment plan",
+                        message: "Add milestones when this settlement will be paid over time."
+                    )
+                }
+            } else {
+                VStack(spacing: 6) {
+                    ForEach(caseItem.sortedMilestones) { milestone in
+                        SettlementMilestoneRow(
+                            milestone: milestone,
+                            currencyCode: caseCurrencyCode
+                        )
+                        .contentShape(Rectangle())
+                        .contextMenu {
+                            Button {
+                                editorPresentation = SettlementEntryEditorPresentation(
+                                    caseItem: caseItem,
+                                    entry: nil,
+                                    kind: .payment,
+                                    milestone: milestone
+                                )
+                            } label: {
+                                Label("Record payment", systemImage: "checkmark.circle.fill")
+                            }
+                            Button {
+                                milestonePresentation = SettlementMilestoneEditorPresentation(
+                                    caseItem: caseItem,
+                                    milestone: milestone
+                                )
+                            } label: {
+                                Label("Edit milestone", systemImage: "pencil")
+                            }
+                            Button(role: .destructive) {
+                                deleteMilestone(milestone)
+                            } label: {
+                                Label("Delete milestone", systemImage: "trash")
+                            }
+                        }
+
+                        if milestone.id != caseItem.sortedMilestones.last?.id {
+                            Divider()
+                                .padding(.leading, 48)
+                        }
+                    }
+                }
+                .padding(14)
+                .transactionSectionGlassSurface(cornerRadius: FloatTheme.controlRadius)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var linkedTransactionsSection: some View {
+        let paymentEntries = caseItem.sortedEntries.filter { $0.kind == .payment }
+        if !paymentEntries.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHeader(title: "Linked transactions")
+                VStack(spacing: 6) {
+                    ForEach(paymentEntries) { entry in
+                        SettlementLinkedTransactionRow(
+                            entry: entry,
+                            currencyCode: caseCurrencyCode
+                        )
+                        .contentShape(Rectangle())
+                        .contextMenu {
+                            Button {
+                                transactionLinkEntry = entry
+                            } label: {
+                                Label("Link transaction", systemImage: "link")
+                            }
+                            if entry.linkedTransaction != nil {
+                                Button(role: .destructive) {
+                                    unlinkTransaction(from: entry)
+                                } label: {
+                                    Label("Unlink transaction", systemImage: "link.badge.minus")
+                                }
+                            }
+                        }
+
+                        if entry.id != paymentEntries.last?.id {
+                            Divider()
+                                .padding(.leading, 48)
+                        }
+                    }
+                }
+                .padding(14)
+                .transactionSectionGlassSurface(cornerRadius: FloatTheme.controlRadius)
+            }
+        }
+    }
+
     private var timelineSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "History")
@@ -836,6 +1065,13 @@ struct SettlementCaseDetailView: View {
                                     createLinkedTransaction(for: entry)
                                 } label: {
                                     Label("Create transaction", systemImage: "link.badge.plus")
+                                }
+                            }
+                            if entry.kind == .payment {
+                                Button {
+                                    transactionLinkEntry = entry
+                                } label: {
+                                    Label("Link existing transaction", systemImage: "link")
                                 }
                             }
                             Button(role: .destructive) {
@@ -900,7 +1136,8 @@ struct SettlementCaseDetailView: View {
             editorPresentation = SettlementEntryEditorPresentation(
                 caseItem: caseItem,
                 entry: entry,
-                kind: entry.kind
+                kind: entry.kind,
+                milestone: nil
             )
         }
     }
@@ -938,6 +1175,55 @@ struct SettlementCaseDetailView: View {
         Haptics.confirm()
     }
 
+    private func unlinkTransaction(from entry: SettlementEntryItem) {
+        try? SettlementCaseRepository(modelContext: modelContext).linkTransaction(nil, to: entry)
+        Haptics.confirm()
+    }
+
+    private func deleteMilestone(_ milestone: SettlementMilestoneItem) {
+        try? SettlementCaseRepository(modelContext: modelContext).deleteMilestone(milestone)
+        Haptics.confirm()
+    }
+
+    private func matchingTransactions(for entry: SettlementEntryItem) -> [TransactionItem] {
+        let isExpense = linkedTransactionIsExpense(for: entry)
+        let dayRange = Calendar.current.dateInterval(of: .day, for: entry.entryDate)
+        let nearby = transactions.filter { transaction in
+            transaction.isPosted
+                && transaction.isExpense == isExpense
+                && transaction.id != entry.linkedTransaction?.id
+        }
+        return nearby.sorted { lhs, rhs in
+            let lhsScore = transactionMatchScore(lhs, entry: entry, dayRange: dayRange)
+            let rhsScore = transactionMatchScore(rhs, entry: entry, dayRange: dayRange)
+            if lhsScore == rhsScore {
+                return lhs.timestamp > rhs.timestamp
+            }
+            return lhsScore > rhsScore
+        }
+        .prefix(20)
+        .map { $0 }
+    }
+
+    private func transactionMatchScore(
+        _ transaction: TransactionItem,
+        entry: SettlementEntryItem,
+        dayRange: DateInterval?
+    ) -> Int {
+        var score = 0
+        if transaction.amountMinor == entry.amountMinor {
+            score += 6
+        }
+        if dayRange?.contains(transaction.timestamp) == true {
+            score += 3
+        }
+        if let personID = caseItem.person?.id,
+           transaction.personTags.contains(where: { $0.person?.id == personID }) {
+            score += 2
+        }
+        return score
+    }
+
     private func linkedTransactionIsExpense(for entry: SettlementEntryItem) -> Bool {
         switch entry.kind {
         case .payment:
@@ -964,6 +1250,7 @@ private struct SettlementEntryEditorPresentation: Identifiable {
     let caseItem: SettlementCaseItem
     let entry: SettlementEntryItem?
     let kind: SettlementEntryKind
+    let milestone: SettlementMilestoneItem?
 }
 
 private struct SettlementSummaryProgress: View {
@@ -1065,10 +1352,10 @@ private struct SettlementEntryRow: View {
                         .lineLimit(1)
                 }
 
-                if entry.linkedTransaction != nil {
-                    Label("Linked transaction", systemImage: "link")
+                if entry.kind == .payment {
+                    Label(entry.reconciliationStatus.title, systemImage: entry.linkedTransaction == nil ? "link.badge.plus" : "link")
                         .font(.caption2.weight(.semibold))
-                        .foregroundStyle(Color(hex: "#1B8A5A"))
+                        .foregroundStyle(reconciliationTint)
                         .lineLimit(1)
                 }
             }
@@ -1105,6 +1392,17 @@ private struct SettlementEntryRow: View {
         }
     }
 
+    private var reconciliationTint: Color {
+        switch entry.reconciliationStatus {
+        case .unlinked:
+            Color(hex: "#B4613B")
+        case .partiallyLinked:
+            Color(hex: "#8B5CF6")
+        case .fullyLinked:
+            Color(hex: "#1B8A5A")
+        }
+    }
+
     private var displayAmount: String {
         switch entry.kind {
         case .initialAmount:
@@ -1130,16 +1428,146 @@ private struct SettlementEntryRow: View {
     }
 }
 
+private struct SettlementMilestoneEditorPresentation: Identifiable {
+    let id = UUID()
+    let caseItem: SettlementCaseItem
+    let milestone: SettlementMilestoneItem?
+}
+
+private struct SettlementMilestoneRow: View {
+    let milestone: SettlementMilestoneItem
+    let currencyCode: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            FloatIconBadge(icon: icon, tint: tint, size: 36)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(milestone.displayTitle)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Text(milestone.dueDate.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                if let note = cleaned(milestone.note) {
+                    Text(note)
+                        .font(.caption2)
+                        .foregroundStyle(Color.primary.opacity(0.62))
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(MoneyFormatter.string(minorUnits: milestone.amountMinor, currencyCode: currencyCode))
+                    .moneyStyle(size: 15, weight: .semibold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                SettlementStatusPill(title: milestone.status.title, tint: tint)
+            }
+        }
+        .padding(.vertical, 5)
+    }
+
+    private var tint: Color {
+        switch milestone.status {
+        case .pending: Color(hex: "#B4613B")
+        case .paid: Color(hex: "#1B8A5A")
+        case .skipped: Color(hex: "#5A6B6B")
+        }
+    }
+
+    private var icon: String {
+        switch milestone.status {
+        case .pending: "calendar.badge.clock"
+        case .paid: "checkmark.circle.fill"
+        case .skipped: "forward.end.fill"
+        }
+    }
+
+    private func cleaned(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty
+        else {
+            return nil
+        }
+        return trimmed
+    }
+}
+
+private struct SettlementLinkedTransactionRow: View {
+    let entry: SettlementEntryItem
+    let currencyCode: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            FloatIconBadge(icon: icon, tint: tint, size: 36)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Text(entry.entryDate.formatted(date: .abbreviated, time: .omitted))
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                if let transaction = entry.linkedTransaction {
+                    Text(cleaned(transaction.note) ?? transaction.categoryName)
+                        .font(.caption2)
+                        .foregroundStyle(Color.primary.opacity(0.62))
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: 8)
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(MoneyFormatter.string(minorUnits: entry.amountMinor, currencyCode: currencyCode))
+                    .moneyStyle(size: 15, weight: .semibold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                SettlementStatusPill(title: entry.reconciliationStatus.title, tint: tint)
+            }
+        }
+        .padding(.vertical, 5)
+    }
+
+    private var title: LocalizedStringResource {
+        entry.linkedTransaction == nil ? "Unlinked payment" : "Linked payment"
+    }
+
+    private var icon: String {
+        entry.linkedTransaction == nil ? "link.badge.plus" : "link"
+    }
+
+    private var tint: Color {
+        switch entry.reconciliationStatus {
+        case .unlinked: Color(hex: "#B4613B")
+        case .partiallyLinked: Color(hex: "#8B5CF6")
+        case .fullyLinked: Color(hex: "#1B8A5A")
+        }
+    }
+
+    private func cleaned(_ value: String?) -> String? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty
+        else {
+            return nil
+        }
+        return trimmed
+    }
+}
+
 private struct SettlementCaseEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
+    @Query(sort: \PersonItem.name) private var people: [PersonItem]
     let caseItem: SettlementCaseItem?
     @State private var title = ""
     @State private var personName = ""
+    @State private var selectedPersonID: UUID?
     @State private var direction = SettlementDirection.theyOweYou
     @State private var amountText = ""
     @State private var date = Date()
+    @State private var hasDueDate = false
+    @State private var dueDate = Date()
     @State private var note = ""
     @State private var validationMessage: String?
 
@@ -1155,13 +1583,27 @@ private struct SettlementCaseEditorView: View {
             Form {
                 Section("Case") {
                     TextField("Title", text: $title)
-                    TextField("Person name", text: $personName)
+                    if !activePeople.isEmpty {
+                        Picker("Person", selection: $selectedPersonID) {
+                            Text("Custom person").tag(UUID?.none)
+                            ForEach(activePeople) { person in
+                                Text(person.name).tag(Optional(person.id))
+                            }
+                        }
+                    }
+                    if selectedPersonID == nil {
+                        TextField("Person name", text: $personName)
+                    }
                     Picker("Direction", selection: $direction) {
                         ForEach(SettlementDirection.allCases) { direction in
                             Text(direction.title).tag(direction)
                         }
                     }
                     DatePicker("Date", selection: $date, displayedComponents: .date)
+                    Toggle("Set due date", isOn: $hasDueDate)
+                    if hasDueDate {
+                        DatePicker("Due date", selection: $dueDate, displayedComponents: .date)
+                    }
                     TextField("Note", text: $note, axis: .vertical)
                         .lineLimit(2...4)
                 }
@@ -1206,8 +1648,13 @@ private struct SettlementCaseEditorView: View {
         guard let caseItem else { return }
         title = caseItem.title
         personName = caseItem.personName == String(localized: "No person") ? "" : caseItem.personName
+        selectedPersonID = caseItem.person?.id
         direction = caseItem.direction
         date = caseItem.createdAt
+        if let existingDueDate = caseItem.dueDate {
+            hasDueDate = true
+            dueDate = existingDueDate
+        }
         note = caseItem.note ?? ""
         amountText = decimalText(for: caseItem.balanceSnapshot.initialAmountMinor)
     }
@@ -1215,11 +1662,14 @@ private struct SettlementCaseEditorView: View {
     private func save() {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanPersonName = personName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let selectedPerson = selectedPersonID.flatMap { id in
+            activePeople.first { $0.id == id } ?? people.first { $0.id == id }
+        }
         guard !cleanTitle.isEmpty else {
             validationMessage = String(localized: "Enter a title.")
             return
         }
-        guard !cleanPersonName.isEmpty else {
+        guard selectedPerson != nil || !cleanPersonName.isEmpty else {
             validationMessage = String(localized: "Enter a person name.")
             return
         }
@@ -1239,17 +1689,21 @@ private struct SettlementCaseEditorView: View {
                     currencyCode: caseCurrencyCode(for: caseItem),
                     initialAmountMinor: amountMinor,
                     date: date,
-                    note: note
+                    note: note,
+                    person: selectedPerson,
+                    dueDate: hasDueDate ? dueDate : nil
                 )
             } else {
                 _ = try repository.create(
                     title: cleanTitle,
-                    personName: cleanPersonName,
+                    personName: selectedPerson?.name ?? cleanPersonName,
                     direction: direction,
                     initialAmountMinor: amountMinor,
                     date: date,
                     currencyCode: appState.selectedCurrencyCode,
-                    note: note
+                    note: note,
+                    person: selectedPerson,
+                    dueDate: hasDueDate ? dueDate : nil
                 )
             }
             dismiss()
@@ -1270,6 +1724,10 @@ private struct SettlementCaseEditorView: View {
         return appState.selectedCurrencyCode
     }
 
+    private var activePeople: [PersonItem] {
+        people.filter { !$0.archived }
+    }
+
     private func decimalText(for minorUnits: Int64) -> String {
         let fractionDigits = MoneyFormatter.fractionDigits(for: caseCurrencyCode)
         let divisor = pow(10.0, Double(fractionDigits))
@@ -1286,6 +1744,7 @@ private struct SettlementEntryEditorView: View {
     let caseItem: SettlementCaseItem
     let entry: SettlementEntryItem?
     let initialKind: SettlementEntryKind
+    let milestone: SettlementMilestoneItem?
     @State private var kind = SettlementEntryKind.addition
     @State private var amountText = ""
     @State private var entryDate = Date()
@@ -1305,6 +1764,11 @@ private struct SettlementEntryEditorView: View {
         NavigationStack {
             Form {
                 Section("Entry") {
+                    if let milestone, entry == nil {
+                        LabeledContent("Milestone") {
+                            Text(milestone.displayTitle)
+                        }
+                    }
                     if entry?.linkedTransaction != nil {
                         LabeledContent("Type") {
                             Text(kind.title)
@@ -1377,6 +1841,11 @@ private struct SettlementEntryEditorView: View {
             createLinkedTransaction = false
         } else {
             kind = initialKind == .initialAmount ? .addition : initialKind
+            if let milestone, kind == .payment {
+                amountText = decimalText(for: milestone.amountMinor)
+                entryDate = milestone.dueDate
+                note = milestone.note ?? ""
+            }
             createLinkedTransaction = false
         }
     }
@@ -1392,6 +1861,15 @@ private struct SettlementEntryEditorView: View {
                 try repository.updateEntry(
                     entry,
                     kind: kind,
+                    amountMinor: amountMinor,
+                    entryDate: entryDate,
+                    note: note,
+                    reference: reference
+                )
+            } else if kind == .payment, let milestone {
+                _ = try repository.recordPayment(
+                    to: caseItem,
+                    milestone: milestone,
                     amountMinor: amountMinor,
                     entryDate: entryDate,
                     note: note,
@@ -1467,6 +1945,211 @@ private struct SettlementEntryEditorView: View {
     }
 }
 
+private struct SettlementMilestoneEditorView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    let caseItem: SettlementCaseItem
+    let milestone: SettlementMilestoneItem?
+    @State private var title = ""
+    @State private var amountText = ""
+    @State private var dueDate = Date()
+    @State private var note = ""
+    @State private var status = SettlementMilestoneStatus.pending
+    @State private var validationMessage: String?
+
+    private var amountMinor: Int64 {
+        MoneyParser.parseDisplayAmountMinor(
+            from: amountText,
+            currencyCode: caseItem.currencyCode
+        )
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Milestone") {
+                    TextField("Title", text: $title)
+                    HStack {
+                        TextField("Amount", text: $amountText)
+                            .keyboardType(.decimalPad)
+                        SettlementAmountPreview(
+                            minorUnits: amountMinor,
+                            currencyCode: caseItem.currencyCode
+                        )
+                    }
+                    DatePicker("Due date", selection: $dueDate, displayedComponents: .date)
+                    Picker("Status", selection: $status) {
+                        ForEach(SettlementMilestoneStatus.allCases) { status in
+                            Text(status.title).tag(status)
+                        }
+                    }
+                    TextField("Note", text: $note, axis: .vertical)
+                        .lineLimit(2...4)
+                }
+
+                if let validationMessage {
+                    Section {
+                        Text(validationMessage)
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle(milestone == nil ? "New milestone" : "Edit milestone")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        save()
+                    }
+                }
+            }
+            .onAppear(perform: populate)
+        }
+    }
+
+    private func populate() {
+        guard let milestone else { return }
+        title = milestone.title
+        amountText = decimalText(for: milestone.amountMinor)
+        dueDate = milestone.dueDate
+        note = milestone.note ?? ""
+        status = milestone.status
+    }
+
+    private func save() {
+        guard amountMinor > 0 else {
+            validationMessage = String(localized: "Enter an amount.")
+            return
+        }
+        do {
+            let repository = SettlementCaseRepository(modelContext: modelContext)
+            if let milestone {
+                try repository.updateMilestone(
+                    milestone,
+                    title: title,
+                    amountMinor: amountMinor,
+                    dueDate: dueDate,
+                    note: note,
+                    status: status
+                )
+            } else {
+                _ = try repository.addMilestone(
+                    to: caseItem,
+                    title: title,
+                    amountMinor: amountMinor,
+                    dueDate: dueDate,
+                    note: note
+                )
+            }
+            dismiss()
+        } catch {
+            validationMessage = error.localizedDescription
+        }
+    }
+
+    private func decimalText(for minorUnits: Int64) -> String {
+        let fractionDigits = MoneyFormatter.fractionDigits(for: caseItem.currencyCode)
+        let divisor = pow(10.0, Double(fractionDigits))
+        return String(format: "%.\(fractionDigits)f", Double(minorUnits) / divisor)
+    }
+}
+
+private struct SettlementTransactionLinkView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    let entry: SettlementEntryItem
+    let transactions: [TransactionItem]
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if let linkedTransaction = entry.linkedTransaction {
+                    Section("Current") {
+                        transactionButton(linkedTransaction, isSelected: true)
+                        Button(role: .destructive) {
+                            link(nil)
+                        } label: {
+                            Label("Unlink transaction", systemImage: "link.badge.minus")
+                        }
+                    }
+                }
+
+                Section("Matches") {
+                    if transactions.isEmpty {
+                        Text("No matching transactions")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(transactions) { transaction in
+                            transactionButton(
+                                transaction,
+                                isSelected: transaction.id == entry.linkedTransaction?.id
+                            )
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Link transaction")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+
+    private func transactionButton(
+        _ transaction: TransactionItem,
+        isSelected: Bool
+    ) -> some View {
+        Button {
+            link(transaction)
+        } label: {
+            HStack(spacing: 12) {
+                FloatIconBadge(
+                    icon: transaction.categoryIconKey,
+                    tint: Color(hex: transaction.categoryColorHex),
+                    size: 34
+                )
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(transactionTitle(transaction))
+                        .font(.subheadline.weight(.semibold))
+                    Text(transaction.timestamp.formatted(date: .abbreviated, time: .omitted))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Text(MoneyFormatter.string(
+                    minorUnits: transaction.amountMinor,
+                    currencyCode: entry.caseItem?.currencyCode ?? "USD"
+                ))
+                .moneyStyle(size: 14, weight: .semibold)
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Color(hex: "#1B8A5A"))
+                }
+            }
+        }
+    }
+
+    private func link(_ transaction: TransactionItem?) {
+        try? SettlementCaseRepository(modelContext: modelContext).linkTransaction(transaction, to: entry)
+        Haptics.confirm()
+        dismiss()
+    }
+
+    private func transactionTitle(_ transaction: TransactionItem) -> String {
+        let trimmed = transaction.note?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed?.isEmpty == false ? trimmed ?? transaction.categoryName : transaction.categoryName
+    }
+}
+
 private struct SettlementAmountPreview: View {
     let minorUnits: Int64
     let currencyCode: String
@@ -1491,6 +2174,21 @@ func settlementStatusTint(for status: SettlementCaseStatus) -> Color {
     case .overpaid:
         Color(hex: "#8B5CF6")
     case .writtenOff:
+        Color(hex: "#5A6B6B")
+    }
+}
+
+func settlementWorkflowTint(for status: SettlementWorkflowStatus) -> Color {
+    switch status {
+    case .active:
+        Color(hex: "#3B82F6")
+    case .dueSoon:
+        Color(hex: "#B4613B")
+    case .overdue:
+        Color(hex: "#B91C1C")
+    case .settled:
+        Color(hex: "#1B8A5A")
+    case .archived:
         Color(hex: "#5A6B6B")
     }
 }

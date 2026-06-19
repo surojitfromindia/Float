@@ -21,6 +21,7 @@ enum BackupService {
         categoryBudgets: [CategoryBudgetItem],
         settlementCases: [SettlementCaseItem],
         settlementEntries: [SettlementEntryItem],
+        settlementMilestones: [SettlementMilestoneItem],
         currencyCode: String
     ) throws -> BackupDocument {
         let dto = FloatBackupDTO(
@@ -41,6 +42,7 @@ enum BackupService {
             categoryBudgets: categoryBudgets.map(CategoryBudgetDTO.init),
             settlementCases: settlementCases.map(SettlementCaseDTO.init),
             settlementEntries: settlementEntries.map(SettlementEntryDTO.init),
+            settlementMilestones: settlementMilestones.map(SettlementMilestoneDTO.init),
             settings: SettingsDTO(
                 currencyCode: currencyCode,
                 exportedAt: Date()
@@ -180,12 +182,14 @@ enum BackupService {
                 ?? String(localized: "No person")
             let model = SettlementCaseItem(
                 dto: item,
-                counterpartyName: restoredPersonName
+                counterpartyName: restoredPersonName,
+                person: item.personID.flatMap { personMap[$0] }
             )
             settlementCaseMap[item.id] = model
             modelContext.insert(model)
         }
 
+        var settlementEntryMap: [UUID: SettlementEntryItem] = [:]
         for item in dto.settlementEntries {
             guard let caseItem = item.caseID.flatMap({ settlementCaseMap[$0] }) else {
                 continue
@@ -195,8 +199,22 @@ enum BackupService {
                 caseItem: caseItem,
                 linkedTransaction: item.linkedTransactionID.flatMap { transactionMap[$0] }
             )
+            settlementEntryMap[item.id] = entry
             modelContext.insert(entry)
             caseItem.entries.append(entry)
+        }
+
+        for item in dto.settlementMilestones {
+            guard let caseItem = item.caseID.flatMap({ settlementCaseMap[$0] }) else {
+                continue
+            }
+            let milestone = SettlementMilestoneItem(
+                dto: item,
+                caseItem: caseItem,
+                linkedEntry: item.linkedEntryID.flatMap { settlementEntryMap[$0] }
+            )
+            modelContext.insert(milestone)
+            caseItem.milestones.append(milestone)
         }
 
         for item in dto.transactionPersonTags {
@@ -244,6 +262,7 @@ enum BackupService {
     private static func deleteExistingData(in modelContext: ModelContext) throws {
         try modelContext.delete(model: TransactionPersonTagItem.self)
         try modelContext.delete(model: RecurringRulePersonTagItem.self)
+        try modelContext.delete(model: SettlementMilestoneItem.self)
         try modelContext.delete(model: SettlementEntryItem.self)
         try modelContext.delete(model: SettlementCaseItem.self)
         try modelContext.delete(model: TransactionItem.self)
@@ -321,7 +340,10 @@ private extension SettlementCaseDTO {
             directionRaw: item.directionRaw,
             currencyCode: item.currencyCode,
             note: item.note,
-            personID: nil,
+            personID: item.person?.id,
+            dueDate: item.dueDate,
+            closedAt: item.closedAt,
+            archived: item.archived,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt
         )
@@ -331,7 +353,8 @@ private extension SettlementCaseDTO {
 private extension SettlementCaseItem {
     convenience init(
         dto: SettlementCaseDTO,
-        counterpartyName: String
+        counterpartyName: String,
+        person: PersonItem? = nil
     ) {
         self.init(
             id: dto.id,
@@ -340,7 +363,10 @@ private extension SettlementCaseItem {
             direction: SettlementDirection(rawValue: dto.directionRaw) ?? .theyOweYou,
             currencyCode: dto.currencyCode,
             note: dto.note,
-            person: nil,
+            person: person,
+            dueDate: dto.dueDate,
+            closedAt: dto.closedAt,
+            archived: dto.archived,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )
@@ -379,6 +405,44 @@ private extension SettlementEntryItem {
             reference: dto.reference,
             caseItem: caseItem,
             linkedTransaction: linkedTransaction,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension SettlementMilestoneDTO {
+    init(_ item: SettlementMilestoneItem) {
+        self.init(
+            id: item.id,
+            title: item.title,
+            amountMinor: item.amountMinor,
+            dueDate: item.dueDate,
+            note: item.note,
+            statusRaw: item.statusRaw,
+            caseID: item.caseItem?.id,
+            linkedEntryID: item.linkedEntry?.id,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension SettlementMilestoneItem {
+    convenience init(
+        dto: SettlementMilestoneDTO,
+        caseItem: SettlementCaseItem? = nil,
+        linkedEntry: SettlementEntryItem? = nil
+    ) {
+        self.init(
+            id: dto.id,
+            title: dto.title,
+            amountMinor: dto.amountMinor,
+            dueDate: dto.dueDate,
+            note: dto.note,
+            status: SettlementMilestoneStatus(rawValue: dto.statusRaw) ?? .pending,
+            caseItem: caseItem,
+            linkedEntry: linkedEntry,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )

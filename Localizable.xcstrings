@@ -244,6 +244,16 @@
         }
       }
     },
+    "%@ has %@ due." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ has %2$@ due."
+          }
+        }
+      }
+    },
     "%@ has %@ remaining." : {
       "localizations" : {
         "bn" : {
@@ -989,6 +999,12 @@
           }
         }
       }
+    },
+    "Add milestone" : {
+
+    },
+    "Add milestones when this settlement will be paid over time." : {
+
     },
     "Add pending row" : {
       "localizations" : {
@@ -1879,6 +1895,9 @@
         }
       }
     },
+    "Closed" : {
+
+    },
     "Color" : {
       "localizations" : {
         "bn" : {
@@ -2180,6 +2199,9 @@
         }
       }
     },
+    "Current" : {
+
+    },
     "Current goal" : {
       "localizations" : {
         "bn" : {
@@ -2199,6 +2221,9 @@
           }
         }
       }
+    },
+    "Custom person" : {
+
     },
     "Custom range" : {
       "localizations" : {
@@ -2419,6 +2444,9 @@
         }
       }
     },
+    "Delete milestone" : {
+
+    },
     "Delete pending row" : {
       "localizations" : {
         "bn" : {
@@ -2590,6 +2618,18 @@
         }
       }
     },
+    "Due date" : {
+
+    },
+    "Due soon" : {
+
+    },
+    "Due this week" : {
+
+    },
+    "Due today" : {
+
+    },
     "Edit" : {
       "localizations" : {
         "bn" : {
@@ -2665,6 +2705,9 @@
           }
         }
       }
+    },
+    "Edit milestone" : {
+
     },
     "Edit note" : {
       "localizations" : {
@@ -3693,7 +3736,16 @@
         }
       }
     },
-    "Linked transaction" : {
+    "Link existing transaction" : {
+
+    },
+    "Link transaction" : {
+
+    },
+    "Linked payment" : {
+
+    },
+    "Linked transactions" : {
 
     },
     "List" : {
@@ -3806,6 +3858,12 @@
     "Marked resolved" : {
 
     },
+    "Matched" : {
+
+    },
+    "Matches" : {
+
+    },
     "Metric" : {
       "localizations" : {
         "bn" : {
@@ -3815,6 +3873,9 @@
           }
         }
       }
+    },
+    "Milestone" : {
+
     },
     "Missing details, duplicates, and large transactions." : {
       "extractionState" : "stale",
@@ -3931,6 +3992,9 @@
         }
       }
     },
+    "Needs attention" : {
+
+    },
     "Negative" : {
       "localizations" : {
         "bn" : {
@@ -4005,6 +4069,9 @@
           }
         }
       }
+    },
+    "New milestone" : {
+
     },
     "New Person" : {
 
@@ -4205,6 +4272,9 @@
           }
         }
       }
+    },
+    "No payment plan" : {
+
     },
     "No pending transactions" : {
       "localizations" : {
@@ -4597,6 +4667,9 @@
         }
       }
     },
+    "Overdue" : {
+
+    },
     "Overpaid" : {
 
     },
@@ -4611,6 +4684,9 @@
       }
     },
     "Paid" : {
+
+    },
+    "Partial match" : {
 
     },
     "Partially paid" : {
@@ -4637,6 +4713,9 @@
       }
     },
     "Payment" : {
+
+    },
+    "Payment plan" : {
 
     },
     "pending" : {
@@ -4756,6 +4835,9 @@
         }
       }
     },
+    "Person" : {
+
+    },
     "Person name" : {
 
     },
@@ -4778,6 +4860,9 @@
           }
         }
       }
+    },
+    "Plan" : {
+
     },
     "Portable data" : {
       "localizations" : {
@@ -5501,6 +5586,9 @@
         }
       }
     },
+    "Set due date" : {
+
+    },
     "Settings" : {
       "localizations" : {
         "bn" : {
@@ -5529,6 +5617,15 @@
     "Settlement" : {
 
     },
+    "Settlement due reminders" : {
+
+    },
+    "Settlement due today" : {
+
+    },
+    "Settlement time" : {
+
+    },
     "Settlements" : {
 
     },
@@ -5551,6 +5648,9 @@
           }
         }
       }
+    },
+    "Skipped" : {
+
     },
     "Sort" : {
       "localizations" : {
@@ -6409,6 +6509,15 @@
           }
         }
       }
+    },
+    "Unlink transaction" : {
+
+    },
+    "Unlinked" : {
+
+    },
+    "Unlinked payment" : {
+
     },
     "Unlock" : {
       "localizations" : {

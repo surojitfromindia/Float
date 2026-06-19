@@ -38,6 +38,7 @@ struct FloatBackupDTO: Codable {
     var categoryBudgets: [CategoryBudgetDTO]
     var settlementCases: [SettlementCaseDTO]
     var settlementEntries: [SettlementEntryDTO]
+    var settlementMilestones: [SettlementMilestoneDTO]
     var settings: SettingsDTO
 
     enum CodingKeys: String, CodingKey {
@@ -58,6 +59,7 @@ struct FloatBackupDTO: Codable {
         case categoryBudgets
         case settlementCases
         case settlementEntries
+        case settlementMilestones
         case settings
     }
 
@@ -79,6 +81,7 @@ struct FloatBackupDTO: Codable {
         categoryBudgets: [CategoryBudgetDTO] = [],
         settlementCases: [SettlementCaseDTO] = [],
         settlementEntries: [SettlementEntryDTO] = [],
+        settlementMilestones: [SettlementMilestoneDTO] = [],
         settings: SettingsDTO
     ) {
         self.accounts = accounts
@@ -98,6 +101,7 @@ struct FloatBackupDTO: Codable {
         self.categoryBudgets = categoryBudgets
         self.settlementCases = settlementCases
         self.settlementEntries = settlementEntries
+        self.settlementMilestones = settlementMilestones
         self.settings = settings
     }
 
@@ -120,6 +124,7 @@ struct FloatBackupDTO: Codable {
         categoryBudgets = try container.decodeIfPresent([CategoryBudgetDTO].self, forKey: .categoryBudgets) ?? []
         settlementCases = try container.decodeIfPresent([SettlementCaseDTO].self, forKey: .settlementCases) ?? []
         settlementEntries = try container.decodeIfPresent([SettlementEntryDTO].self, forKey: .settlementEntries) ?? []
+        settlementMilestones = try container.decodeIfPresent([SettlementMilestoneDTO].self, forKey: .settlementMilestones) ?? []
         settings = try container.decode(SettingsDTO.self, forKey: .settings)
     }
 }
@@ -217,8 +222,70 @@ struct SettlementCaseDTO: Codable {
     var currencyCode: String
     var note: String?
     var personID: UUID?
+    var dueDate: Date?
+    var closedAt: Date?
+    var archived: Bool
     var createdAt: Date
     var updatedAt: Date
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case counterpartyName
+        case directionRaw
+        case currencyCode
+        case note
+        case personID
+        case dueDate
+        case closedAt
+        case archived
+        case createdAt
+        case updatedAt
+    }
+
+    init(
+        id: UUID,
+        title: String,
+        counterpartyName: String?,
+        directionRaw: String,
+        currencyCode: String,
+        note: String?,
+        personID: UUID?,
+        dueDate: Date? = nil,
+        closedAt: Date? = nil,
+        archived: Bool = false,
+        createdAt: Date,
+        updatedAt: Date
+    ) {
+        self.id = id
+        self.title = title
+        self.counterpartyName = counterpartyName
+        self.directionRaw = directionRaw
+        self.currencyCode = currencyCode
+        self.note = note
+        self.personID = personID
+        self.dueDate = dueDate
+        self.closedAt = closedAt
+        self.archived = archived
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        counterpartyName = try container.decodeIfPresent(String.self, forKey: .counterpartyName)
+        directionRaw = try container.decode(String.self, forKey: .directionRaw)
+        currencyCode = try container.decode(String.self, forKey: .currencyCode)
+        note = try container.decodeIfPresent(String.self, forKey: .note)
+        personID = try container.decodeIfPresent(UUID.self, forKey: .personID)
+        dueDate = try container.decodeIfPresent(Date.self, forKey: .dueDate)
+        closedAt = try container.decodeIfPresent(Date.self, forKey: .closedAt)
+        archived = try container.decodeIfPresent(Bool.self, forKey: .archived) ?? false
+        createdAt = try container.decode(Date.self, forKey: .createdAt)
+        updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+    }
 }
 struct SettlementEntryDTO: Codable {
     var id: UUID
@@ -229,6 +296,18 @@ struct SettlementEntryDTO: Codable {
     var reference: String?
     var caseID: UUID?
     var linkedTransactionID: UUID?
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct SettlementMilestoneDTO: Codable {
+    var id: UUID
+    var title: String
+    var amountMinor: Int64
+    var dueDate: Date
+    var note: String?
+    var statusRaw: String
+    var caseID: UUID?
+    var linkedEntryID: UUID?
     var createdAt: Date
     var updatedAt: Date
 }

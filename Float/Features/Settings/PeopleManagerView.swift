@@ -176,7 +176,11 @@ struct PeopleManagerView: View {
                 tag.person?.id == personID
             }
         )
-        let settlementDescriptor = FetchDescriptor<SettlementCaseItem>()
+        let settlementDescriptor = FetchDescriptor<SettlementCaseItem>(
+            predicate: #Predicate<SettlementCaseItem> { caseItem in
+                caseItem.person?.id == personID
+            }
+        )
 
         if let transactionTags = try? modelContext.fetch(transactionTagDescriptor) {
             transactionTags.forEach { modelContext.delete($0) }
