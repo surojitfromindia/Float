@@ -6,7 +6,6 @@ struct SettlementsView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \SettlementCaseItem.updatedAt, order: .reverse) private var cases:
         [SettlementCaseItem]
-    @Query(sort: \PersonItem.name) private var people: [PersonItem]
     @State private var searchText = ""
     @State private var selectedStatus: SettlementCaseStatus?
     @State private var selectedDirection: SettlementDirection?
@@ -930,9 +929,6 @@ struct SettlementCaseDetailView: View {
             note: linkedTransactionNote(for: entry)
         )
         modelContext.insert(transaction)
-        if let person = caseItem.person {
-            transaction.replacePeople([person], in: modelContext)
-        }
         entry.linkedTransaction = transaction
         entry.updatedAt = Date()
         caseItem.updatedAt = Date()
@@ -1034,12 +1030,19 @@ private struct SettlementEntryRow: View {
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text(money(entry.amountMinor))
+                Text(displayAmount)
                     .moneyStyle(size: 15, weight: .semibold)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(amountTint)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
-                    .frame(minWidth: 92, alignment: .trailing)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .frame(minWidth: 104, alignment: .trailing)
+//                    .floatGlassSurface(
+//                        cornerRadius: 12,
+//                        tint: amountTint,
+//                        strokeOpacity: 0.04
+//                    )
             }
 
             VStack(alignment: .leading, spacing: 2) {
@@ -1089,6 +1092,30 @@ private struct SettlementEntryRow: View {
         }
     }
 
+    private var amountTint: Color {
+        switch entry.kind {
+        case .initialAmount:
+            Color(hex: "#2563EB")
+        case .addition, .adjustment:
+            Color(hex: "#B45309")
+        case .payment:
+            Color(hex: "#15803D")
+        case .discount, .waived, .correctionDown:
+            Color(hex: "#7C3AED")
+        }
+    }
+
+    private var displayAmount: String {
+        switch entry.kind {
+        case .initialAmount:
+            money(entry.amountMinor)
+        case .addition, .adjustment:
+            "+" + money(entry.amountMinor)
+        case .payment, .discount, .waived, .correctionDown:
+            "-" + money(entry.amountMinor)
+        }
+    }
+
     private func money(_ amount: Int64) -> String {
         MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
     }
@@ -1107,7 +1134,6 @@ private struct SettlementCaseEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \PersonItem.name) private var people: [PersonItem]
     let caseItem: SettlementCaseItem?
     @State private var title = ""
     @State private var personName = ""
@@ -1179,7 +1205,7 @@ private struct SettlementCaseEditorView: View {
     private func populate() {
         guard let caseItem else { return }
         title = caseItem.title
-        personName = caseItem.person?.name ?? ""
+        personName = caseItem.personName == String(localized: "No person") ? "" : caseItem.personName
         direction = caseItem.direction
         date = caseItem.createdAt
         note = caseItem.note ?? ""
@@ -1202,14 +1228,13 @@ private struct SettlementCaseEditorView: View {
             return
         }
 
-        let person = resolvedPerson(named: cleanPersonName)
         do {
             let repository = SettlementCaseRepository(modelContext: modelContext)
             if let caseItem {
                 try repository.update(
                     caseItem,
                     title: cleanTitle,
-                    person: person,
+                    personName: cleanPersonName,
                     direction: direction,
                     currencyCode: caseCurrencyCode(for: caseItem),
                     initialAmountMinor: amountMinor,
@@ -1219,7 +1244,7 @@ private struct SettlementCaseEditorView: View {
             } else {
                 _ = try repository.create(
                     title: cleanTitle,
-                    person: person,
+                    personName: cleanPersonName,
                     direction: direction,
                     initialAmountMinor: amountMinor,
                     date: date,
@@ -1231,17 +1256,6 @@ private struct SettlementCaseEditorView: View {
         } catch {
             validationMessage = error.localizedDescription
         }
-    }
-
-    private func resolvedPerson(named name: String) -> PersonItem {
-        if let existing = people.first(where: {
-            $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame
-        }) {
-            return existing
-        }
-        let person = PersonItem(name: name)
-        modelContext.insert(person)
-        return person
     }
 
     private func caseCurrencyCode(for caseItem: SettlementCaseItem) -> String {

@@ -710,9 +710,11 @@ final class CategoryBudgetItem {
 final class SettlementCaseItem {
     var id: UUID = UUID()
     var title: String = ""
+    var counterpartyName: String = ""
     var directionRaw: String = SettlementDirection.theyOweYou.rawValue
     var currencyCode: String = "USD"
     var note: String?
+    // Deprecated: settlements keep their own counterpartyName and should not depend on People.
     var person: PersonItem?
     @Relationship(deleteRule: .cascade, inverse: \SettlementEntryItem.caseItem)
     var entries: [SettlementEntryItem] = []
@@ -722,6 +724,7 @@ final class SettlementCaseItem {
     init(
         id: UUID = UUID(),
         title: String,
+        counterpartyName: String,
         direction: SettlementDirection,
         currencyCode: String,
         note: String? = nil,
@@ -732,6 +735,7 @@ final class SettlementCaseItem {
     ) {
         self.id = id
         self.title = title
+        self.counterpartyName = counterpartyName
         self.directionRaw = direction.rawValue
         self.currencyCode = currencyCode
         self.note = note?.nilIfBlank
@@ -1059,7 +1063,7 @@ extension SettlementCaseItem {
     }
 
     var personName: String {
-        person?.name.nilIfBlank ?? String(localized: "No person")
+        counterpartyName.nilIfBlank ?? String(localized: "No person")
     }
 
     var sortedEntries: [SettlementEntryItem] {

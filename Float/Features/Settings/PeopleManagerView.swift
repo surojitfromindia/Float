@@ -176,12 +176,21 @@ struct PeopleManagerView: View {
                 tag.person?.id == personID
             }
         )
+        let settlementDescriptor = FetchDescriptor<SettlementCaseItem>()
 
         if let transactionTags = try? modelContext.fetch(transactionTagDescriptor) {
             transactionTags.forEach { modelContext.delete($0) }
         }
         if let recurringTags = try? modelContext.fetch(recurringTagDescriptor) {
             recurringTags.forEach { modelContext.delete($0) }
+        }
+        if let settlementCases = try? modelContext.fetch(settlementDescriptor) {
+            settlementCases.forEach { caseItem in
+                if caseItem.counterpartyName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    caseItem.counterpartyName = person.name
+                }
+                caseItem.person = nil
+            }
         }
         modelContext.delete(person)
         try? modelContext.save()
@@ -219,8 +228,6 @@ private struct PersonEditorPresentation: Identifiable {
 private struct PersonDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \SettlementCaseItem.updatedAt, order: .reverse) private var settlementCases:
-        [SettlementCaseItem]
     let person: PersonItem
 
     var body: some View {
@@ -276,54 +283,6 @@ private struct PersonDetailView: View {
                     }
                 }
 
-                if !personSettlementCases.isEmpty {
-                    GlassCard {
-                        VStack(alignment: .leading, spacing: 14) {
-                            SectionHeader(title: "Settlements")
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
-                                SummaryMetricTile(
-                                    title: "They owe",
-                                    value: money(personSettlementSummary.receivableMinor),
-                                    captionText: AppLocalization.format(
-                                        "%lld open",
-                                        Int64(personSettlementSummary.receivableCases)
-                                    ),
-                                    icon: "arrow.down.circle.fill",
-                                    tint: appState.themePalette.positive
-                                )
-                                SummaryMetricTile(
-                                    title: "You owe",
-                                    value: money(personSettlementSummary.payableMinor),
-                                    captionText: AppLocalization.format(
-                                        "%lld open",
-                                        Int64(personSettlementSummary.payableCases)
-                                    ),
-                                    icon: "arrow.up.circle.fill",
-                                    tint: appState.themePalette.caution
-                                )
-                            }
-
-                            Divider()
-
-                            ForEach(personSettlementCases.prefix(5)) { caseItem in
-                                NavigationLink {
-                                    SettlementCaseDetailView(caseItem: caseItem)
-                                } label: {
-                                    PersonSettlementRow(
-                                        caseItem: caseItem,
-                                        fallbackCurrencyCode: appState.selectedCurrencyCode
-                                    )
-                                }
-                                .buttonStyle(.plain)
-
-                                if caseItem.id != personSettlementCases.prefix(5).last?.id {
-                                    Divider()
-                                }
-                            }
-                        }
-                    }
-                }
-
                 if !taggedRecurringRules.isEmpty {
                     GlassCard {
                         VStack(alignment: .leading, spacing: 10) {
@@ -352,14 +311,6 @@ private struct PersonDetailView: View {
 
     private var taggedRecurringRules: [RecurringRuleItem] {
         person.recurringRuleTags.compactMap(\.recurringRule)
-    }
-
-    private var personSettlementCases: [SettlementCaseItem] {
-        settlementCases.filter { $0.person?.id == person.id }
-    }
-
-    private var personSettlementSummary: SettlementDashboardSummary {
-        SettlementDashboardSummary(cases: personSettlementCases)
     }
 
     private var countsText: String {
@@ -412,61 +363,6 @@ private struct PersonDetailView: View {
         )
     }
 
-    private func money(_ amount: Int64) -> String {
-        MoneyFormatter.string(
-            minorUnits: amount,
-            currencyCode: appState.selectedCurrencyCode
-        )
-    }
-}
-
-private struct PersonSettlementRow: View {
-    let caseItem: SettlementCaseItem
-    let fallbackCurrencyCode: String
-
-    private var snapshot: SettlementBalanceSnapshot {
-        caseItem.balanceSnapshot
-    }
-
-    private var currencyCode: String {
-        let trimmed = caseItem.currencyCode.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? fallbackCurrencyCode : trimmed
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            FloatIconBadge(
-                icon: caseItem.direction == .theyOweYou
-                    ? "arrow.down.circle.fill"
-                    : "arrow.up.circle.fill",
-                tint: settlementStatusTint(for: snapshot.status),
-                size: 34
-            )
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(caseItem.displayTitle)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                Text(snapshot.status.title)
-                    .font(.caption)
-                    .foregroundStyle(settlementStatusTint(for: snapshot.status))
-            }
-
-            Spacer(minLength: 8)
-
-            Text(balanceText)
-                .moneyStyle(size: 14, weight: .bold)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-        }
-    }
-
-    private var balanceText: String {
-        MoneyFormatter.string(
-            minorUnits: snapshot.creditMinor > 0 ? snapshot.creditMinor : snapshot.remainingMinor,
-            currencyCode: currencyCode
-        )
-    }
 }
 
 private struct PersonEditorView: View {

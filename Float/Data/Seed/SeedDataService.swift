@@ -555,6 +555,7 @@ enum DataIntegrityService {
         }
 
         repairAmountsAndDates(modelContext: modelContext, now: now)
+        repairDeprecatedSettlementPeople(modelContext: modelContext, now: now)
         let didBackfillPersonCounts = backfillPersonCountsIfNeeded(modelContext: modelContext)
 
         if (try? modelContext.save()) != nil, didBackfillPersonCounts {
@@ -677,6 +678,25 @@ enum DataIntegrityService {
         }
 
         return true
+    }
+
+    @MainActor
+    private static func repairDeprecatedSettlementPeople(
+        modelContext: ModelContext,
+        now: Date
+    ) {
+        let cases = (try? modelContext.fetch(FetchDescriptor<SettlementCaseItem>())) ?? []
+        for caseItem in cases {
+            var didRepair = false
+            if caseItem.counterpartyName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                caseItem.counterpartyName = String(localized: "No person")
+                didRepair = true
+            }
+            caseItem.person = nil
+            if didRepair {
+                caseItem.updatedAt = max(caseItem.updatedAt, now)
+            }
+        }
     }
 
     private static func normalizedMoney(_ value: Int64) -> Int64 {

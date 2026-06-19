@@ -956,7 +956,7 @@ struct SettlementCaseRepository {
 
     func create(
         title: String,
-        person: PersonItem,
+        personName: String,
         direction: SettlementDirection,
         initialAmountMinor: Int64,
         date: Date,
@@ -968,10 +968,11 @@ struct SettlementCaseRepository {
         }
         let caseItem = SettlementCaseItem(
             title: title.trimmedNilIfBlank ?? String(localized: "Settlement"),
+            counterpartyName: personName.trimmedNilIfBlank ?? String(localized: "No person"),
             direction: direction,
             currencyCode: currencyCode,
             note: note?.trimmedNilIfBlank,
-            person: person,
+            person: nil,
             createdAt: date,
             updatedAt: date
         )
@@ -994,7 +995,7 @@ struct SettlementCaseRepository {
     func update(
         _ caseItem: SettlementCaseItem,
         title: String,
-        person: PersonItem,
+        personName: String,
         direction: SettlementDirection,
         currencyCode: String,
         initialAmountMinor: Int64,
@@ -1005,7 +1006,8 @@ struct SettlementCaseRepository {
             throw DataIntegrityError.invalidInput
         }
         caseItem.title = title.trimmedNilIfBlank ?? String(localized: "Settlement")
-        caseItem.person = person
+        caseItem.counterpartyName = personName.trimmedNilIfBlank ?? String(localized: "No person")
+        caseItem.person = nil
         caseItem.direction = direction
         caseItem.currencyCode = currencyCode
         caseItem.createdAt = date
@@ -1089,10 +1091,6 @@ struct SettlementCaseRepository {
             )
         )
         modelContext.insert(transaction)
-        if let person = caseItem.person {
-            transaction.replacePeople([person], in: modelContext)
-        }
-
         let entry = SettlementEntryItem(
             kind: kind,
             amountMinor: amountMinor,
@@ -1138,9 +1136,6 @@ struct SettlementCaseRepository {
                 note: note?.trimmedNilIfBlank,
                 reference: reference?.trimmedNilIfBlank
             )
-            if let person = entry.caseItem?.person {
-                transaction.replacePeople([person], in: modelContext)
-            }
         }
         try save()
     }

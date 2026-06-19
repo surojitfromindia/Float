@@ -175,9 +175,12 @@ enum BackupService {
 
         var settlementCaseMap: [UUID: SettlementCaseItem] = [:]
         for item in dto.settlementCases {
+            let restoredPersonName = item.counterpartyName?.trimmedBackupNilIfBlank
+                ?? item.personID.flatMap { personMap[$0]?.name.trimmedBackupNilIfBlank }
+                ?? String(localized: "No person")
             let model = SettlementCaseItem(
                 dto: item,
-                person: item.personID.flatMap { personMap[$0] }
+                counterpartyName: restoredPersonName
             )
             settlementCaseMap[item.id] = model
             modelContext.insert(model)
@@ -314,10 +317,11 @@ private extension SettlementCaseDTO {
         self.init(
             id: item.id,
             title: item.title,
+            counterpartyName: item.counterpartyName.trimmedBackupNilIfBlank,
             directionRaw: item.directionRaw,
             currencyCode: item.currencyCode,
             note: item.note,
-            personID: item.person?.id,
+            personID: nil,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt
         )
@@ -327,15 +331,16 @@ private extension SettlementCaseDTO {
 private extension SettlementCaseItem {
     convenience init(
         dto: SettlementCaseDTO,
-        person: PersonItem? = nil
+        counterpartyName: String
     ) {
         self.init(
             id: dto.id,
             title: dto.title,
+            counterpartyName: counterpartyName,
             direction: SettlementDirection(rawValue: dto.directionRaw) ?? .theyOweYou,
             currencyCode: dto.currencyCode,
             note: dto.note,
-            person: person,
+            person: nil,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )
@@ -884,5 +889,18 @@ private extension TransferItem {
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )
+    }
+}
+
+private extension String {
+    var trimmedBackupNilIfBlank: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+private extension Optional where Wrapped == String {
+    var trimmedBackupNilIfBlank: String? {
+        flatMap(\.trimmedBackupNilIfBlank)
     }
 }

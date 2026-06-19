@@ -212,6 +212,7 @@ struct PersonDTO: Codable {
 struct SettlementCaseDTO: Codable {
     var id: UUID
     var title: String
+    var counterpartyName: String?
     var directionRaw: String
     var currencyCode: String
     var note: String?
