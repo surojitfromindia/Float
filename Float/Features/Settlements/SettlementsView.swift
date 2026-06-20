@@ -6,7 +6,6 @@ struct SettlementsView: View {
     @EnvironmentObject private var appState: AppState
     @Query(sort: \SettlementCaseItem.updatedAt, order: .reverse) private var cases:
         [SettlementCaseItem]
-    @State private var searchText = ""
     @State private var selectedStatus: SettlementCaseStatus?
     @State private var selectedDirection: SettlementDirection?
     @State private var showActiveOnly = true
@@ -16,14 +15,10 @@ struct SettlementsView: View {
 
     private var filteredCases: [SettlementCaseItem] {
         cases.filter { caseItem in
-            let matchesSearch = searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                || caseItem.displayTitle.localizedCaseInsensitiveContains(searchText)
-                || caseItem.personName.localizedCaseInsensitiveContains(searchText)
-                || (caseItem.note?.localizedCaseInsensitiveContains(searchText) ?? false)
             let matchesStatus = selectedStatus == nil || caseItem.status == selectedStatus
             let matchesDirection = selectedDirection == nil || caseItem.direction == selectedDirection
             let matchesActive = !showActiveOnly || caseItem.isActive
-            return matchesSearch && matchesStatus && matchesDirection && matchesActive
+            return matchesStatus && matchesDirection && matchesActive
         }
     }
 
@@ -37,7 +32,6 @@ struct SettlementsView: View {
 
     private var shouldShowFilters: Bool {
         !cases.isEmpty || hasCustomFilters
-            || !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     private var needsAttentionCases: [SettlementCaseItem] {
@@ -87,20 +81,12 @@ struct SettlementsView: View {
             .padding(20)
             .padding(.bottom, 120)
         }
-        .navigationTitle("Settlements")
-        .searchable(text: $searchText, prompt: "Search cases or people")
+        .navigationTitle("")
+        .navigationBarTitleDisplayMode(.inline)
         .keyboardDismissControls()
         .floatBackground()
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    editorPresentation = SettlementCaseEditorPresentation(caseItem: nil)
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .accessibilityLabel("Add settlement case")
-            }
-        }
+        .ignoresSafeArea(edges: .top)
+        .toolbar(.hidden, for: .navigationBar)
         .sheet(item: $editorPresentation) { presentation in
             SettlementCaseEditorView(caseItem: presentation.caseItem)
         }
@@ -135,16 +121,18 @@ struct SettlementsView: View {
     }
 
     private var dashboardSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Overview")
-            SettlementOverviewCard(
-                dashboard: dashboard,
-                receivableValue: money(dashboard.receivableMinor),
-                payableValue: money(dashboard.payableMinor),
-                totalOutstandingValue: money(dashboard.outstandingMinor),
-                palette: appState.themePalette
-            )
-        }
+        SettlementOverviewCard(
+            dashboard: dashboard,
+            receivableValue: money(dashboard.receivableMinor),
+            payableValue: money(dashboard.payableMinor),
+            totalOutstandingValue: money(dashboard.outstandingMinor),
+            palette: appState.themePalette.hero,
+            onAdd: {
+                editorPresentation = SettlementCaseEditorPresentation(caseItem: nil)
+            }
+        )
+        .padding(.horizontal, -20)
+        .padding(.top, -20)
     }
 
     private var filtersSection: some View {
@@ -204,7 +192,8 @@ struct SettlementsView: View {
                     .buttonStyle(.plain)
                 }
             }
-            .padding(.vertical, 2)
+            .padding(.top, 16)
+            .padding(.bottom, 2)
         }
         .scrollClipDisabled()
     }
@@ -409,154 +398,440 @@ struct SettlementDashboardSummary {
 }
 
 private struct SettlementOverviewCard: View {
+    @Environment(\.colorScheme) private var colorScheme
     let dashboard: SettlementDashboardSummary
     let receivableValue: String
     let payableValue: String
     let totalOutstandingValue: String
-    let palette: FloatThemePalette
+    let palette: FloatHeroPalette
+    let onAdd: () -> Void
 
     var body: some View {
-        GlassCard(padding: 12) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .firstTextBaseline) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Outstanding")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(.secondary)
+        heroSurface {
+            heroGlassGroup {
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack(alignment: .top, spacing: 12) {
+                            HStack(spacing: 7) {
+                                Text("Settlements")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(heroSecondaryText)
+
+                                Text("·")
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(heroSecondaryText)
+
+                                Text("Outstanding")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(heroPrimaryText)
+                            }
+
+                            Spacer(minLength: 12)
+
+                            HStack(spacing: 8) {
+                                openCasesPill
+                                addButton
+                            }
+                            .fixedSize(horizontal: true, vertical: false)
+                        }
                         Text(totalOutstandingValue)
-                            .moneyStyle(size: 21, weight: .bold)
+                            .moneyStyle(size: 56, weight: .bold)
+                            .foregroundStyle(heroPrimaryText)
                             .lineLimit(1)
-                            .minimumScaleFactor(0.7)
+                            .minimumScaleFactor(0.52)
                     }
-                    Spacer(minLength: 12)
-                    HStack(spacing: 3) {
-                        Text(verbatim: "\(dashboard.openCases)")
-                        Text("open")
+
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 10) {
+                            SettlementHeroBalanceBlock(
+                                title: "To collect",
+                                value: receivableValue,
+                                count: dashboard.receivableCases,
+                                icon: "arrow.down.left.circle.fill",
+                                tint: palette.positive,
+                                primaryText: heroPrimaryText,
+                                secondaryText: heroSecondaryText
+                            )
+                            SettlementHeroBalanceBlock(
+                                title: "To pay",
+                                value: payableValue,
+                                count: dashboard.payableCases,
+                                icon: "arrow.up.right.circle.fill",
+                                tint: palette.caution,
+                                primaryText: heroPrimaryText,
+                                secondaryText: heroSecondaryText
+                            )
+                        }
+
+                        VStack(spacing: 10) {
+                            SettlementHeroBalanceBlock(
+                                title: "To collect",
+                                value: receivableValue,
+                                count: dashboard.receivableCases,
+                                icon: "arrow.down.left.circle.fill",
+                                tint: palette.positive,
+                                primaryText: heroPrimaryText,
+                                secondaryText: heroSecondaryText
+                            )
+                            SettlementHeroBalanceBlock(
+                                title: "To pay",
+                                value: payableValue,
+                                count: dashboard.payableCases,
+                                icon: "arrow.up.right.circle.fill",
+                                tint: palette.caution,
+                                primaryText: heroPrimaryText,
+                                secondaryText: heroSecondaryText
+                            )
+                        }
                     }
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(palette.accent)
+
+                    HStack(spacing: 0) {
+                        SettlementHeroMetricPill(
+                            title: "Open cases",
+                            value: String(dashboard.openCases),
+                            valueTint: heroPrimaryText
+                        )
+                        Divider()
+                            .overlay(metricDividerTint)
+                            .padding(.vertical, 4)
+                        SettlementHeroMetricPill(
+                            title: "Settled",
+                            value: String(dashboard.settledCases),
+                            valueTint: heroPrimaryText
+                        )
+                        Divider()
+                            .overlay(metricDividerTint)
+                            .padding(.vertical, 4)
+                        SettlementHeroMetricPill(
+                            title: "Completion",
+                            value: completionPercentText,
+                            valueTint: dashboard.settledFraction > 0
+                                ? palette.positive
+                                : heroSecondaryText
+                        )
+                    }
+                    .frame(height: 60)
                     .padding(.horizontal, 10)
-                    .frame(height: 26)
-                    .background(palette.accent.opacity(0.14), in: Capsule())
+                    .settlementHeroMetricsGlass()
                 }
-
-                HStack(spacing: 8) {
-                    SettlementMoneyLane(
-                        title: "To collect",
-                        value: receivableValue,
-                        count: dashboard.receivableCases,
-                        icon: "arrow.down.left.circle.fill",
-                        tint: palette.positive,
-                        fillFraction: fraction(dashboard.receivableMinor)
-                    )
-                    SettlementMoneyLane(
-                        title: "To pay",
-                        value: payableValue,
-                        count: dashboard.payableCases,
-                        icon: "arrow.up.right.circle.fill",
-                        tint: palette.caution,
-                        fillFraction: fraction(dashboard.payableMinor)
-                    )
-                }
-
-                HStack(spacing: 8) {
-                    SettlementOverviewFooterMetric(
-                        title: "Open cases",
-                        value: String(dashboard.openCases),
-                        tint: palette.accent
-                    )
-                    SettlementOverviewFooterMetric(
-                        title: "Settled",
-                        value: String(dashboard.settledCases),
-                        tint: palette.positive
-                    )
-                    SettlementOverviewFooterMetric(
-                        title: "Completion",
-                        value: "\(dashboard.settledCases)/\(dashboard.totalCases)",
-                        tint: palette.positive
-                    )
-                }
+                .padding(.top, 76)
+                .padding(.horizontal, 26)
+                .padding(.bottom, 30)
             }
         }
     }
 
-    private func fraction(_ value: Int64) -> Double {
-        guard dashboard.outstandingMinor > 0 else { return 0 }
-        return min(1, max(0.08, Double(value) / Double(dashboard.outstandingMinor)))
+    private var heroPrimaryText: Color {
+        colorScheme == .dark ? .white : Color.black.opacity(0.78)
+    }
+
+    private var heroSecondaryText: Color {
+        colorScheme == .dark ? .white.opacity(0.78) : Color.black.opacity(0.58)
+    }
+
+    private var metricDividerTint: Color {
+        colorScheme == .dark ? .white.opacity(0.18) : .black.opacity(0.10)
+    }
+
+    private var openCasesPillTint: Color {
+        dashboard.openCases == 0 ? palette.positive : palette.accent
+    }
+
+    private var completionPercentText: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .percent
+        formatter.maximumFractionDigits = 0
+        formatter.minimumFractionDigits = 0
+        formatter.locale = AppLocalization.locale
+        return formatter.string(from: NSNumber(value: dashboard.settledFraction))
+            ?? "\(Int((dashboard.settledFraction * 100).rounded()))%"
+    }
+
+    private var openCasesPill: some View {
+        HStack(spacing: 3) {
+            Text(verbatim: "\(dashboard.openCases)")
+            Text("open")
+        }
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(colorScheme == .dark ? .white : Color.black.opacity(0.68))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(
+            openCasesPillTint.opacity(colorScheme == .dark ? 0.32 : 0.18),
+            in: Capsule()
+        )
+        .overlay(
+            Capsule()
+                .strokeBorder(
+                    (colorScheme == .dark ? Color.white : Color.black)
+                        .opacity(colorScheme == .dark ? 0.20 : 0.08),
+                    lineWidth: 1
+                )
+        )
+    }
+
+    private var addButton: some View {
+        Button(action: onAdd) {
+            Image(systemName: "plus")
+                .font(.caption.weight(.bold))
+                .frame(width: 28, height: 28)
+                .background(
+                    (colorScheme == .dark ? Color.white : Color.black)
+                        .opacity(colorScheme == .dark ? 0.12 : 0.08),
+                    in: Circle()
+                )
+                .overlay {
+                    Circle()
+                        .strokeBorder(
+                            (colorScheme == .dark ? Color.white : Color.black)
+                                .opacity(colorScheme == .dark ? 0.16 : 0.08),
+                            lineWidth: 1
+                        )
+                }
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(heroPrimaryText)
+        .accessibilityLabel("Add settlement case")
+    }
+
+    @ViewBuilder
+    private func heroGlassGroup<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: 18) {
+                content()
+            }
+        } else {
+            content()
+        }
+    }
+
+    private func heroSurface<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        let shape = UnevenRoundedRectangle(
+            topLeadingRadius: 0,
+            bottomLeadingRadius: 34,
+            bottomTrailingRadius: 34,
+            topTrailingRadius: 0,
+            style: .continuous
+        )
+        let isDark = colorScheme == .dark
+        let bottomFade = isDark
+            ? Color(hex: "#07111F")
+            : Color(.systemGroupedBackground)
+
+        return content()
+            .background(.ultraThinMaterial, in: shape)
+            .background(
+                LinearGradient(
+                    stops: [
+                        Gradient.Stop(
+                            color: palette.backgroundTop.opacity(isDark ? 0.92 : 0.76),
+                            location: 0
+                        ),
+                        Gradient.Stop(
+                            color: palette.glow.opacity(isDark ? 0.58 : 0.38),
+                            location: 0.36
+                        ),
+                        Gradient.Stop(
+                            color: palette.accent.opacity(isDark ? 0.42 : 0.28),
+                            location: 0.68
+                        ),
+                        Gradient.Stop(
+                            color: palette.backgroundBottom.opacity(isDark ? 0.18 : 0.22),
+                            location: 1
+                        ),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: shape
+            )
+            .overlay(alignment: .topTrailing) {
+                ZStack {
+                    Circle()
+                        .fill(.white.opacity(isDark ? 0.20 : 0.16))
+                        .frame(width: 190, height: 190)
+                        .blur(radius: 38)
+                        .offset(x: 48, y: -58)
+                    Circle()
+                        .fill(palette.glow.opacity(isDark ? 0.28 : 0.20))
+                        .frame(width: 150, height: 150)
+                        .blur(radius: 34)
+                        .offset(x: -58, y: 54)
+                    Capsule()
+                        .fill(.white.opacity(isDark ? 0.10 : 0.08))
+                        .frame(width: 34, height: 210)
+                        .blur(radius: 8)
+                        .rotationEffect(.degrees(13))
+                        .offset(x: 22, y: -68)
+                    Capsule()
+                        .fill(.white.opacity(isDark ? 0.07 : 0.06))
+                        .frame(width: 26, height: 170)
+                        .blur(radius: 10)
+                        .rotationEffect(.degrees(-18))
+                        .offset(x: -128, y: -72)
+                }
+                .allowsHitTesting(false)
+            }
+            .overlay(alignment: .bottom) {
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        bottomFade.opacity(isDark ? 0.30 : 0.24),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 54)
+                .allowsHitTesting(false)
+            }
+            .clipShape(shape)
+            .background(alignment: .bottom) {
+                LinearGradient(
+                    colors: [
+                        palette.backgroundBottom.opacity(isDark ? 0.18 : 0.14),
+                        palette.backgroundBottom.opacity(isDark ? 0.15 : 0.10),
+                        bottomFade.opacity(0),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 118)
+                .offset(y: 52)
+                .allowsHitTesting(false)
+            }
+            .shadow(
+                color: .black.opacity(isDark ? 0.26 : 0.1),
+                radius: 18,
+                x: 0,
+                y: 10
+            )
     }
 }
 
-private struct SettlementMoneyLane: View {
+private struct SettlementHeroBalanceBlock: View {
+    @Environment(\.colorScheme) private var colorScheme
     let title: LocalizedStringResource
     let value: String
     let count: Int
     let icon: String
     let tint: Color
-    let fillFraction: Double
+    let primaryText: Color
+    let secondaryText: Color
 
     var body: some View {
+        let shape = RoundedRectangle(
+            cornerRadius: FloatTheme.controlRadius,
+            style: .continuous
+        )
+
         VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 7) {
-                FloatIconBadge(icon: icon, tint: tint, size: 28)
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(tint)
                 Text(title)
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(secondaryText)
                     .lineLimit(1)
             }
+
             Text(value)
-                .moneyStyle(size: 16, weight: .bold)
+                .moneyStyle(size: 18, weight: .bold)
+                .foregroundStyle(primaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.62)
-            VStack(alignment: .leading, spacing: 5) {
-                GeometryReader { proxy in
-                    Capsule()
-                        .fill(Color.primary.opacity(0.08))
-                        .overlay(alignment: .leading) {
-                            Capsule()
-                                .fill(tint)
-                                .frame(width: proxy.size.width * fillFraction)
-                        }
-                }
-                .frame(height: 4)
-                HStack(spacing: 3) {
-                    Text(verbatim: "\(count)")
-                    Text("open")
-                }
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(.secondary)
+
+            HStack(spacing: 3) {
+                Text(verbatim: "\(count)")
+                Text("open")
             }
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(secondaryText)
         }
-        .padding(10)
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: FloatTheme.tileRadius, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: FloatTheme.tileRadius, style: .continuous)
-                .stroke(tint.opacity(0.24), lineWidth: 1)
-        }
+        .background(
+            (colorScheme == .dark ? Color.white : Color.black)
+                .opacity(colorScheme == .dark ? 0.10 : 0.08),
+            in: shape
+        )
+        .background(tint.opacity(colorScheme == .dark ? 0.10 : 0.07), in: shape)
+        .overlay(
+            shape.strokeBorder(
+                (colorScheme == .dark ? Color.white : Color.black)
+                    .opacity(colorScheme == .dark ? 0.14 : 0.06),
+                lineWidth: 1
+            )
+        )
     }
 }
 
-private struct SettlementOverviewFooterMetric: View {
+private struct SettlementHeroMetricPill: View {
+    @Environment(\.colorScheme) private var colorScheme
     let title: LocalizedStringResource
     let value: String
-    let tint: Color
+    let valueTint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .center, spacing: 3) {
             Text(title)
                 .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
+                .foregroundStyle(colorScheme == .dark ? .white.opacity(0.62) : .black.opacity(0.46))
             Text(verbatim: value)
-                .font(.callout.weight(.bold))
-                .monospacedDigit()
-                .foregroundStyle(tint)
+                .moneyStyle(size: 13, weight: .semibold)
+                .foregroundStyle(valueTint)
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
         }
-        .padding(.horizontal, 10)
-        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-        .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: FloatTheme.controlRadius, style: .continuous))
-        .accessibilityElement(children: .combine)
+        .frame(maxWidth: .infinity)
+    }
+}
+
+private extension View {
+    func settlementHeroMetricsGlass() -> some View {
+        modifier(SettlementHeroMetricsGlassModifier())
+    }
+}
+
+private struct SettlementHeroMetricsGlassModifier: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        let cornerRadius: CGFloat = 22
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let isDark = colorScheme == .dark
+
+        if #available(iOS 26.0, *) {
+            content
+                .background(
+                    (isDark ? Color.white.opacity(0.10) : Color.white.opacity(0.32)),
+                    in: shape
+                )
+                .glassEffect(
+                    .regular.tint(isDark ? .white.opacity(0.18) : .black.opacity(0.06)),
+                    in: .rect(cornerRadius: cornerRadius)
+                )
+                .overlay(
+                    shape.strokeBorder(
+                        (isDark ? Color.white : Color.black).opacity(isDark ? 0.16 : 0.07),
+                        lineWidth: 1
+                    )
+                )
+        } else {
+            content
+                .background(
+                    (isDark ? Color.white.opacity(0.10) : Color.white.opacity(0.34)),
+                    in: shape
+                )
+                .overlay(
+                    shape.strokeBorder(
+                        (isDark ? Color.white : Color.black).opacity(isDark ? 0.12 : 0.07),
+                        lineWidth: 1
+                    )
+                )
+        }
     }
 }
 
@@ -596,16 +871,27 @@ private struct SettlementCaseRow: View {
                             .font(.headline.weight(.semibold))
                             .lineLimit(1)
 
-                        HStack(spacing: 6) {
-                            Text(caseItem.personName)
-                                .lineLimit(1)
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: 6) {
+                                Text(counterpartyLabel)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.88)
+                                    .layoutPriority(1)
 
-                            Circle()
-                                .fill(Color.primary.opacity(0.24))
-                                .frame(width: 4, height: 4)
+                                Circle()
+                                    .fill(Color.primary.opacity(0.24))
+                                    .frame(width: 4, height: 4)
 
-                            Text(caseItem.direction.title)
-                                .lineLimit(1)
+                                Text(caseItem.direction.title)
+                                    .lineLimit(1)
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(counterpartyLabel)
+                                    .lineLimit(1)
+                                Text(caseItem.direction.title)
+                                    .lineLimit(1)
+                            }
                         }
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.secondary)
@@ -683,6 +969,13 @@ private struct SettlementCaseRow: View {
             return money(snapshot.creditMinor)
         }
         return money(snapshot.remainingMinor)
+    }
+
+    private var counterpartyLabel: String {
+        let noPersonLabel = String(localized: "No person")
+        return caseItem.personName == noPersonLabel
+            ? String(localized: "Unassigned")
+            : caseItem.personName
     }
 
     private var balanceMetricTitle: LocalizedStringResource {
