@@ -835,9 +835,6 @@
         }
       }
     },
-    "Active matters" : {
-
-    },
     "Active only" : {
 
     },
@@ -1930,9 +1927,6 @@
         }
       }
     },
-    "Completed" : {
-
-    },
     "Completed goals are hidden for now." : {
       "localizations" : {
         "bn" : {
@@ -1942,6 +1936,9 @@
           }
         }
       }
+    },
+    "Completion" : {
+
     },
     "Continue" : {
       "localizations" : {
@@ -2622,9 +2619,6 @@
 
     },
     "Due soon" : {
-
-    },
-    "Due this week" : {
 
     },
     "Due today" : {
@@ -4478,6 +4472,9 @@
         }
       }
     },
+    "open" : {
+
+    },
     "Open a specific area of Float." : {
       "localizations" : {
         "bn" : {
@@ -4613,6 +4610,9 @@
       }
     },
     "Original" : {
+
+    },
+    "Outstanding" : {
 
     },
     "Over budget" : {

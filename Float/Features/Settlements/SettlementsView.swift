@@ -137,36 +137,13 @@ struct SettlementsView: View {
     private var dashboardSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(title: "Overview")
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                SummaryMetricTile(
-                    title: "To collect",
-                    value: money(dashboard.receivableMinor),
-                    captionText: "\(dashboard.receivableCases) open",
-                    icon: "arrow.down.circle.fill",
-                    tint: appState.themePalette.positive
-                )
-                SummaryMetricTile(
-                    title: "To pay",
-                    value: money(dashboard.payableMinor),
-                    captionText: "\(dashboard.payableCases) open",
-                    icon: "arrow.up.circle.fill",
-                    tint: appState.themePalette.caution
-                )
-                SummaryMetricTile(
-                    title: "Open cases",
-                    value: "\(dashboard.openCases)",
-                    caption: "Active matters",
-                    icon: "tray.full.fill",
-                    tint: appState.themePalette.accent
-                )
-                SummaryMetricTile(
-                    title: "Settled",
-                    value: "\(dashboard.settledCases)",
-                    caption: "Completed",
-                    icon: "checkmark.seal.fill",
-                    tint: appState.themePalette.positive
-                )
-            }
+            SettlementOverviewCard(
+                dashboard: dashboard,
+                receivableValue: money(dashboard.receivableMinor),
+                payableValue: money(dashboard.payableMinor),
+                totalOutstandingValue: money(dashboard.outstandingMinor),
+                palette: appState.themePalette
+            )
         }
     }
 
@@ -383,6 +360,12 @@ struct SettlementDashboardSummary {
     let payableCases: Int
     let openCases: Int
     let settledCases: Int
+    var outstandingMinor: Int64 { receivableMinor + payableMinor }
+    var totalCases: Int { openCases + settledCases }
+    var settledFraction: Double {
+        guard totalCases > 0 else { return 0 }
+        return Double(settledCases) / Double(totalCases)
+    }
 
     init(cases: [SettlementCaseItem]) {
         var receivableMinor: Int64 = 0
@@ -422,6 +405,158 @@ struct SettlementDashboardSummary {
         self.payableCases = payableCases
         self.openCases = openCases
         self.settledCases = settledCases
+    }
+}
+
+private struct SettlementOverviewCard: View {
+    let dashboard: SettlementDashboardSummary
+    let receivableValue: String
+    let payableValue: String
+    let totalOutstandingValue: String
+    let palette: FloatThemePalette
+
+    var body: some View {
+        GlassCard(padding: 12) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Outstanding")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.secondary)
+                        Text(totalOutstandingValue)
+                            .moneyStyle(size: 21, weight: .bold)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    Spacer(minLength: 12)
+                    HStack(spacing: 3) {
+                        Text(verbatim: "\(dashboard.openCases)")
+                        Text("open")
+                    }
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(palette.accent)
+                    .padding(.horizontal, 10)
+                    .frame(height: 26)
+                    .background(palette.accent.opacity(0.14), in: Capsule())
+                }
+
+                HStack(spacing: 8) {
+                    SettlementMoneyLane(
+                        title: "To collect",
+                        value: receivableValue,
+                        count: dashboard.receivableCases,
+                        icon: "arrow.down.left.circle.fill",
+                        tint: palette.positive,
+                        fillFraction: fraction(dashboard.receivableMinor)
+                    )
+                    SettlementMoneyLane(
+                        title: "To pay",
+                        value: payableValue,
+                        count: dashboard.payableCases,
+                        icon: "arrow.up.right.circle.fill",
+                        tint: palette.caution,
+                        fillFraction: fraction(dashboard.payableMinor)
+                    )
+                }
+
+                HStack(spacing: 8) {
+                    SettlementOverviewFooterMetric(
+                        title: "Open cases",
+                        value: String(dashboard.openCases),
+                        tint: palette.accent
+                    )
+                    SettlementOverviewFooterMetric(
+                        title: "Settled",
+                        value: String(dashboard.settledCases),
+                        tint: palette.positive
+                    )
+                    SettlementOverviewFooterMetric(
+                        title: "Completion",
+                        value: "\(dashboard.settledCases)/\(dashboard.totalCases)",
+                        tint: palette.positive
+                    )
+                }
+            }
+        }
+    }
+
+    private func fraction(_ value: Int64) -> Double {
+        guard dashboard.outstandingMinor > 0 else { return 0 }
+        return min(1, max(0.08, Double(value) / Double(dashboard.outstandingMinor)))
+    }
+}
+
+private struct SettlementMoneyLane: View {
+    let title: LocalizedStringResource
+    let value: String
+    let count: Int
+    let icon: String
+    let tint: Color
+    let fillFraction: Double
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 7) {
+                FloatIconBadge(icon: icon, tint: tint, size: 28)
+                Text(title)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Text(value)
+                .moneyStyle(size: 16, weight: .bold)
+                .lineLimit(1)
+                .minimumScaleFactor(0.62)
+            VStack(alignment: .leading, spacing: 5) {
+                GeometryReader { proxy in
+                    Capsule()
+                        .fill(Color.primary.opacity(0.08))
+                        .overlay(alignment: .leading) {
+                            Capsule()
+                                .fill(tint)
+                                .frame(width: proxy.size.width * fillFraction)
+                        }
+                }
+                .frame(height: 4)
+                HStack(spacing: 3) {
+                    Text(verbatim: "\(count)")
+                    Text("open")
+                }
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: FloatTheme.tileRadius, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: FloatTheme.tileRadius, style: .continuous)
+                .stroke(tint.opacity(0.24), lineWidth: 1)
+        }
+    }
+}
+
+private struct SettlementOverviewFooterMetric: View {
+    let title: LocalizedStringResource
+    let value: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text(verbatim: value)
+                .font(.callout.weight(.bold))
+                .monospacedDigit()
+                .foregroundStyle(tint)
+        }
+        .padding(.horizontal, 10)
+        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+        .background(Color.primary.opacity(0.055), in: RoundedRectangle(cornerRadius: FloatTheme.controlRadius, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 

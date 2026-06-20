@@ -293,73 +293,16 @@ struct HomeView: View {
                 NavigationLink {
                     SettlementsView()
                 } label: {
-                    VStack(spacing: 14) {
-                        HStack(spacing: 10) {
-                            SummaryMetricTile(
-                                title: LocalizedStringResource("To collect"),
-                                value: money(summary.receivableMinor),
-                                captionText: AppLocalization.format(
-                                    "%lld open",
-                                    Int64(summary.receivableCases)
-                                ),
-                                icon: "arrow.down.circle.fill",
-                                tint: appState.themePalette.positive
-                            )
-                            SummaryMetricTile(
-                                title: LocalizedStringResource("To pay"),
-                                value: money(summary.payableMinor),
-                                captionText: AppLocalization.format(
-                                    "%lld open",
-                                    Int64(summary.payableCases)
-                                ),
-                                icon: "arrow.up.circle.fill",
-                                tint: appState.themePalette.caution
-                            )
-                        }
-
-                        if attention.hasAttention {
-                            Divider()
-                            HStack(spacing: 10) {
-                                SummaryMetricTile(
-                                    title: LocalizedStringResource("Overdue"),
-                                    value: "\(attention.overdueCount)",
-                                    captionText: AppLocalization.format(
-                                        "%lld cases",
-                                        Int64(attention.overdueCount)
-                                    ),
-                                    icon: "exclamationmark.triangle.fill",
-                                    tint: Color(hex: "#B91C1C")
-                                )
-                                SummaryMetricTile(
-                                    title: LocalizedStringResource("Due this week"),
-                                    value: money(attention.dueThisWeekMinor),
-                                    captionText: AppLocalization.format(
-                                        "%lld open",
-                                        Int64(attention.dueThisWeekCount)
-                                    ),
-                                    icon: "calendar.badge.clock",
-                                    tint: appState.themePalette.accent
-                                )
-                            }
-                        }
-
-                        if !featured.isEmpty {
-                            Divider()
-                            VStack(spacing: 10) {
-                                ForEach(featured) { caseItem in
-                                    HomeSettlementRow(
-                                        caseItem: caseItem,
-                                        fallbackCurrencyCode: appState.selectedCurrencyCode
-                                    )
-                                    if caseItem.id != featured.last?.id {
-                                        Divider()
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(18)
-                    .transactionSectionGlassSurface(cornerRadius: 24)
+                    HomeSettlementsCompactCard(
+                        summary: summary,
+                        featuredCases: featured,
+                        receivableValue: money(summary.receivableMinor),
+                        payableValue: money(summary.payableMinor),
+                        outstandingValue: money(summary.outstandingMinor),
+                        fallbackCurrencyCode: appState.selectedCurrencyCode,
+                        palette: appState.themePalette
+                    )
+                    .transactionSectionGlassSurface(cornerRadius: 20)
                 }
                 .buttonStyle(.plain)
             }
@@ -1905,6 +1848,147 @@ private struct HomeSettlementAttentionSummary {
     }
 }
 
+private struct HomeSettlementsCompactCard: View {
+    let summary: SettlementDashboardSummary
+    let featuredCases: [SettlementCaseItem]
+    let receivableValue: String
+    let payableValue: String
+    let outstandingValue: String
+    let fallbackCurrencyCode: String
+    let palette: FloatThemePalette
+
+    private var visibleCases: [SettlementCaseItem] {
+        Array(featuredCases.prefix(2))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 10) {
+                FloatIconBadge(
+                    icon: "person.2.fill",
+                    tint: palette.accent,
+                    size: 30
+                )
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        Text(verbatim: "\(summary.openCases)")
+                        Text("open")
+                    }
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.secondary)
+
+                    Text(outstandingValue)
+                        .moneyStyle(size: 17, weight: .bold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                }
+
+                Spacer(minLength: 10)
+
+                Text("Outstanding")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+
+                Image(systemName: "chevron.forward")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(12)
+
+            Divider()
+                .padding(.horizontal, 12)
+
+            HStack(spacing: 8) {
+                HomeSettlementBalanceLine(
+                    title: "To collect",
+                    value: receivableValue,
+                    count: summary.receivableCases,
+                    icon: "arrow.down.left",
+                    tint: palette.positive
+                )
+                HomeSettlementBalanceLine(
+                    title: "To pay",
+                    value: payableValue,
+                    count: summary.payableCases,
+                    icon: "arrow.up.right",
+                    tint: palette.caution
+                )
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+
+            if !visibleCases.isEmpty {
+                Divider()
+                    .padding(.horizontal, 12)
+
+                VStack(spacing: 0) {
+                    ForEach(visibleCases) { caseItem in
+                        HomeSettlementRow(
+                            caseItem: caseItem,
+                            fallbackCurrencyCode: fallbackCurrencyCode
+                        )
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 9)
+
+                        if caseItem.id != visibleCases.last?.id {
+                            Divider()
+                                .padding(.leading, 52)
+                                .padding(.trailing, 12)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct HomeSettlementBalanceLine: View {
+    let title: LocalizedStringResource
+    let value: String
+    let count: Int
+    let icon: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(tint)
+                .frame(width: 18, height: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Text(value)
+                    .moneyStyle(size: 15, weight: .bold)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
+                HStack(spacing: 3) {
+                    Text(verbatim: "\(count)")
+                    Text("open")
+                }
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.tertiary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
+        .background(
+            Color.primary.opacity(0.045),
+            in: RoundedRectangle(
+                cornerRadius: FloatTheme.controlRadius,
+                style: .continuous
+            )
+        )
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private struct HomeSettlementRow: View {
     let caseItem: SettlementCaseItem
     let fallbackCurrencyCode: String
@@ -1929,15 +2013,15 @@ private struct HomeSettlementRow: View {
                     ? "arrow.down.circle.fill"
                     : "arrow.up.circle.fill",
                 tint: settlementStatusTint(for: snapshot.status),
-                size: 34
+                size: 26
             )
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(caseItem.displayTitle)
-                    .font(.subheadline.weight(.semibold))
+                    .font(.callout.weight(.semibold))
                     .lineLimit(1)
                 Text(caseItem.personName)
-                    .font(.caption)
+                    .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                 if let dueText {
@@ -1950,9 +2034,9 @@ private struct HomeSettlementRow: View {
 
             Spacer(minLength: 8)
 
-            VStack(alignment: .trailing, spacing: 3) {
+            VStack(alignment: .trailing, spacing: 2) {
                 Text(balanceText)
-                    .moneyStyle(size: 14, weight: .bold)
+                    .moneyStyle(size: 13, weight: .semibold)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
                 Text(snapshot.status.title)
