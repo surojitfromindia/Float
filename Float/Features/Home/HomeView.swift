@@ -119,6 +119,8 @@ struct HomeView: View {
                     currencyCode: appState.selectedCurrencyCode,
                     palette: appState.themePalette.hero
                 )
+                .padding(.horizontal, -20)
+                .padding(.top, -20)
 
                 quickActions
                 settlementsSection
@@ -134,31 +136,11 @@ struct HomeView: View {
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text("Float")
-                    .font(.headline.weight(.bold))
-                    .foregroundStyle(.primary)
-            }
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    isBulkEntrySheetPresented = true
-                } label: {
-                    Image(systemName: "square.stack.3d.up.fill")
-                }
-                .accessibilityLabel(LocalizedStringResource("Bulk add transactions"))
-
-                Button {
-                    presentNewTransaction()
-                } label: {
-                    Image(systemName: "plus")
-                }
-                .accessibilityLabel(LocalizedStringResource("Add transaction"))
-            }
-        }
+        .toolbar(.hidden, for: .navigationBar)
         .toolbarBackground(.hidden, for: .navigationBar)
+        .ignoresSafeArea(edges: .top)
         .background {
-            HomeCalmBackground()
+            HomeCalmBackground(palette: appState.themePalette.hero)
                 .ignoresSafeArea()
         }
         .sheet(item: $recurringRuleToEdit) { rule in
@@ -240,21 +222,21 @@ struct HomeView: View {
             HomeActionButton(
                 title: LocalizedStringResource("Expense"),
                 icon: "minus.circle.fill",
-                tint: appState.themePalette.caution
+                tint: HomeActionPalette.moneyOut
             ) {
                 presentNewTransaction(isExpense: true)
             }
             HomeActionButton(
                 title: LocalizedStringResource("Income"),
                 icon: "plus.circle.fill",
-                tint: appState.themePalette.positive
+                tint: HomeActionPalette.moneyIn
             ) {
                 presentNewTransaction(isExpense: false)
             }
             HomeActionButton(
                 title: LocalizedStringResource("Transfer"),
                 icon: "arrow.left.arrow.right.circle.fill",
-                tint: appState.themePalette.accent,
+                tint: HomeActionPalette.transfer,
                 isEnabled: accounts.filter { !$0.archived }.count >= 2
             ) {
                 appState.presentNewTransfer()
@@ -262,7 +244,7 @@ struct HomeView: View {
             HomeActionButton(
                 title: LocalizedStringResource("Add to goal"),
                 icon: "target",
-                tint: Color(hex: "#8B5CF6"),
+                tint: HomeActionPalette.goal,
                 isEnabled: nearestOpenGoal != nil
             ) {
                 contributionGoal = nearestOpenGoal
@@ -270,7 +252,7 @@ struct HomeView: View {
             HomeActionButton(
                 title: LocalizedStringResource("Pay recurring"),
                 icon: "checkmark.circle.fill",
-                tint: appState.themePalette.caution,
+                tint: HomeActionPalette.moneyOut,
                 isEnabled: upcomingRecurringExpense != nil
             ) {
                 recurringRulePendingPayment = upcomingRecurringExpense
@@ -963,10 +945,36 @@ private struct HomeSummaryTile: View {
 
 private struct HomeCalmBackground: View {
     @Environment(\.colorScheme) private var colorScheme
+    let palette: FloatHeroPalette
 
     var body: some View {
-        Color(colorScheme == .dark ? .systemBackground : .systemGroupedBackground)
+        if colorScheme == .dark {
+            HomeVisualStyle.darkNavyBase
+                .overlay {
+                    LinearGradient(
+                        colors: [
+                            palette.backgroundBottom.opacity(0.18),
+                            HomeVisualStyle.darkNavyBase.opacity(0.96),
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
+        } else {
+            Color(.systemGroupedBackground)
+        }
     }
+}
+
+private enum HomeVisualStyle {
+    static let darkNavyBase = Color(hex: "#07111F")
+}
+
+private enum HomeActionPalette {
+    static let moneyOut = Color(.systemRed)
+    static let moneyIn = Color(.systemGreen)
+    static let transfer = Color(.systemBlue)
+    static let goal = Color(.systemPurple)
 }
 
 private struct HomeGlassPanel<Content: View>: View {
@@ -1276,64 +1284,73 @@ struct SafeToSpendHeroCard: View {
 
     var body: some View {
         heroSurface(
-            VStack(alignment: .leading, spacing: 18) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 5) {
-                        Text(LocalizedStringResource("Spendable"))
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.secondary)
+            heroGlassGroup {
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack(alignment: .top) {
+                            Text(LocalizedStringResource("Spendable"))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(heroSecondaryText)
+                            Spacer(minLength: 12)
+                            HStack(spacing: 6) {
+                                statusPill
+                                budgetSpentPill
+                            }
+                            .fixedSize(horizontal: true, vertical: false)
+                        }
+
                         Text(
                             MoneyFormatter.string(
                                 minorUnits: result.safeToSpendMinor,
                                 currencyCode: currencyCode
                             )
                         )
-                        .moneyStyle(size: 46, weight: .bold)
+                        .moneyStyle(size: 56, weight: .bold)
+                        .foregroundStyle(heroPrimaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.52)
                     }
-                    Spacer(minLength: 12)
-                    statusPill
-                }
 
-                Text(statusCaption)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text(statusCaption)
+                        .font(.subheadline)
+                        .foregroundStyle(heroSecondaryText)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                ProgressRail(
-                    progress: result.spendingProgress,
-                    tint: statusTint,
-                    track: palette.railTrack
-                )
-
-                HStack(spacing: 0) {
-                    MetricPill(
-                        title: LocalizedStringResource("Daily"),
-                        value: MoneyFormatter.string(
-                            minorUnits: result.dailyAllowanceMinor,
-                            currencyCode: currencyCode
+                    HStack(spacing: 0) {
+                        MetricPill(
+                            title: LocalizedStringResource("Daily"),
+                            value: MoneyFormatter.string(
+                                minorUnits: result.dailyAllowanceMinor,
+                                currencyCode: currencyCode
+                            )
                         )
-                    )
-                    Divider().padding(.vertical, 4)
-                    MetricPill(
-                        title: LocalizedStringResource("Left"),
-                        value: localizedFormat("%lldd", Int64(result.daysRemaining))
-                    )
-                    Divider().padding(.vertical, 4)
-                    MetricPill(
-                        title: LocalizedStringResource("Spent"),
-                        value: MoneyFormatter.string(
-                            minorUnits: result.variableSpentMinor,
-                            currencyCode: currencyCode
+                        Divider()
+                            .overlay(metricDividerTint)
+                            .padding(.vertical, 4)
+                        MetricPill(
+                            title: LocalizedStringResource("Left"),
+                            value: localizedFormat("%lldd", Int64(result.daysRemaining))
                         )
-                    )
+                        Divider()
+                            .overlay(metricDividerTint)
+                            .padding(.vertical, 4)
+                        MetricPill(
+                            title: LocalizedStringResource("Spent"),
+                            value: MoneyFormatter.string(
+                                minorUnits: result.variableSpentMinor,
+                                currencyCode: currencyCode
+                            )
+                        )
+                    }
+                    .frame(height: 60)
+                    .padding(.horizontal, 10)
+                    .heroMetricsGlass()
                 }
-                .frame(height: 54)
-                .padding(.horizontal, 4)
+                .padding(.top, 76)
+                .padding(.horizontal, 26)
+                .padding(.bottom, 34)
             }
-            .padding(20)
         )
     }
 
@@ -1349,6 +1366,32 @@ struct SafeToSpendHeroCard: View {
         result.overAmountMinor > 0 ? cautionTint : positiveTint
     }
 
+    private var heroPrimaryText: Color {
+        colorScheme == .dark ? .white : Color.black.opacity(0.78)
+    }
+
+    private var heroSecondaryText: Color {
+        colorScheme == .dark ? .white.opacity(0.78) : Color.black.opacity(0.58)
+    }
+
+    private var metricDividerTint: Color {
+        colorScheme == .dark ? .white.opacity(0.18) : .black.opacity(0.10)
+    }
+
+    private var clampedSpendingProgress: Double {
+        min(max(result.spendingProgress, 0), 1)
+    }
+
+    private var budgetSpentPercentText: String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .percent
+        formatter.maximumFractionDigits = 0
+        formatter.minimumFractionDigits = 0
+        formatter.locale = AppLocalization.locale
+        return formatter.string(from: NSNumber(value: clampedSpendingProgress))
+            ?? "\(Int((clampedSpendingProgress * 100).rounded()))%"
+    }
+
     private var statusPill: some View {
         Text(
             result.overAmountMinor > 0
@@ -1356,16 +1399,58 @@ struct SafeToSpendHeroCard: View {
                 : LocalizedStringResource("Safe")
         )
         .font(.caption.weight(.semibold))
-        .foregroundStyle(statusTint)
+        .foregroundStyle(colorScheme == .dark ? .white : Color.black.opacity(0.68))
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(
-            statusTint.opacity(colorScheme == .dark ? 0.22 : 0.12),
-            in: RoundedRectangle(
-                cornerRadius: FloatTheme.tileRadius,
-                style: .continuous
-            )
+            statusTint.opacity(colorScheme == .dark ? 0.32 : 0.18),
+            in: Capsule()
         )
+        .overlay(
+            Capsule()
+                .strokeBorder(
+                    (colorScheme == .dark ? Color.white : Color.black)
+                        .opacity(colorScheme == .dark ? 0.20 : 0.08),
+                    lineWidth: 1
+                )
+        )
+    }
+
+    private var budgetSpentPill: some View {
+        Text(localizedFormat("%@ of budget spent", budgetSpentPercentText))
+            .font(.caption2.weight(.semibold))
+            .monospacedDigit()
+            .foregroundStyle(heroSecondaryText)
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .frame(minHeight: 28)
+            .background(
+                (colorScheme == .dark ? Color.white : Color.black)
+                    .opacity(colorScheme == .dark ? 0.12 : 0.08),
+                in: Capsule()
+            )
+            .overlay(
+                Capsule()
+                    .strokeBorder(
+                        (colorScheme == .dark ? Color.white : Color.black)
+                            .opacity(colorScheme == .dark ? 0.14 : 0.06),
+                        lineWidth: 1
+                    )
+            )
+    }
+
+    @ViewBuilder private func heroGlassGroup<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        if #available(iOS 26.0, *) {
+            GlassEffectContainer(spacing: 18) {
+                content()
+            }
+        } else {
+            content()
+        }
     }
 
     private var statusCaption: String {
@@ -1384,18 +1469,39 @@ struct SafeToSpendHeroCard: View {
     }
 
     private func heroSurface<Content: View>(_ content: Content) -> some View {
-        let shape = RoundedRectangle(
-            cornerRadius: 30,
+        let shape = UnevenRoundedRectangle(
+            topLeadingRadius: 0,
+            bottomLeadingRadius: 34,
+            bottomTrailingRadius: 34,
+            topTrailingRadius: 0,
             style: .continuous
         )
         let isDark = colorScheme == .dark
+        let bottomFade = isDark
+            ? HomeVisualStyle.darkNavyBase
+            : Color(.systemGroupedBackground)
 
         return content
+            .background(.ultraThinMaterial, in: shape)
             .background(
                 LinearGradient(
-                    colors: [
-                        palette.backgroundTop,
-                        palette.backgroundBottom,
+                    stops: [
+                        Gradient.Stop(
+                            color: palette.backgroundTop.opacity(isDark ? 0.92 : 0.76),
+                            location: 0
+                        ),
+                        Gradient.Stop(
+                            color: palette.glow.opacity(isDark ? 0.58 : 0.38),
+                            location: 0.36
+                        ),
+                        Gradient.Stop(
+                            color: palette.accent.opacity(isDark ? 0.42 : 0.28),
+                            location: 0.68
+                        ),
+                        Gradient.Stop(
+                            color: palette.backgroundBottom.opacity(isDark ? 0.18 : 0.22),
+                            location: 1
+                        ),
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
@@ -1403,34 +1509,69 @@ struct SafeToSpendHeroCard: View {
                 in: shape
             )
             .overlay(alignment: .topTrailing) {
-                Circle()
-                    .fill(palette.glow.opacity(isDark ? 0.24 : 0.12))
-                    .frame(width: 112, height: 112)
-                    .blur(radius: 28)
-                    .offset(x: 26, y: -34)
-                    .allowsHitTesting(false)
-                Circle()
-                    .fill(statusTint.opacity(isDark ? 0.14 : 0.08))
-                    .frame(width: 78, height: 78)
-                    .blur(radius: 20)
-                    .offset(x: -2, y: -10)
-                    .allowsHitTesting(false)
+                ZStack {
+                    Circle()
+                        .fill(.white.opacity(isDark ? 0.20 : 0.16))
+                        .frame(width: 190, height: 190)
+                        .blur(radius: 38)
+                        .offset(x: 48, y: -58)
+                    Circle()
+                        .fill(palette.glow.opacity(isDark ? 0.28 : 0.20))
+                        .frame(width: 150, height: 150)
+                        .blur(radius: 34)
+                        .offset(x: -58, y: 54)
+                    Capsule()
+                        .fill(.white.opacity(isDark ? 0.10 : 0.08))
+                        .frame(width: 34, height: 210)
+                        .blur(radius: 8)
+                        .rotationEffect(.degrees(13))
+                        .offset(x: 22, y: -68)
+                    Capsule()
+                        .fill(.white.opacity(isDark ? 0.07 : 0.06))
+                        .frame(width: 26, height: 170)
+                        .blur(radius: 10)
+                        .rotationEffect(.degrees(-18))
+                        .offset(x: -128, y: -72)
+                }
+                .allowsHitTesting(false)
             }
-            .overlay(
-                shape.strokeBorder(
-                    palette.accent.opacity(isDark ? 0.22 : 0.12),
-                    lineWidth: 1
+            .overlay(alignment: .bottom) {
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        bottomFade.opacity(isDark ? 0.30 : 0.24),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-            )
+                .frame(height: 54)
+                .allowsHitTesting(false)
+            }
+            .clipShape(shape)
+            .background(alignment: .bottom) {
+                LinearGradient(
+                    colors: [
+                        palette.backgroundBottom.opacity(isDark ? 0.18 : 0.14),
+                        palette.backgroundBottom.opacity(isDark ? 0.15 : 0.10),
+                        bottomFade.opacity(0),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 118)
+                .offset(y: 52)
+                .allowsHitTesting(false)
+            }
             .shadow(
-                color: .black.opacity(isDark ? 0.26 : 0.075),
-                radius: 24,
+                color: .black.opacity(isDark ? 0.26 : 0.1),
+                radius: 18,
                 x: 0,
-                y: 14
+                y: 10
             )
     }
 
     private struct MetricPill: View {
+        @Environment(\.colorScheme) private var colorScheme
         let title: LocalizedStringResource
         let value: String
 
@@ -1438,9 +1579,10 @@ struct SafeToSpendHeroCard: View {
             VStack(alignment: .center, spacing: 3) {
                 Text(title)
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(colorScheme == .dark ? .white.opacity(0.62) : .black.opacity(0.46))
                 Text(value)
                     .moneyStyle(size: 13, weight: .semibold)
+                    .foregroundStyle(colorScheme == .dark ? .white.opacity(0.92) : .black.opacity(0.68))
                     .lineLimit(1)
                     .minimumScaleFactor(0.68)
             }
@@ -1448,39 +1590,50 @@ struct SafeToSpendHeroCard: View {
         }
     }
 
-    private struct ProgressRail: View {
-        @Environment(\.colorScheme) private var colorScheme
-        let progress: Double
-        let tint: Color
-        let track: Color
+}
 
-        private var clampedProgress: Double {
-            min(max(progress, 0), 1)
-        }
+private extension View {
+    func heroMetricsGlass() -> some View {
+        modifier(HeroMetricsGlassModifier())
+    }
+}
 
-        var body: some View {
-            GeometryReader { proxy in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(track.opacity(colorScheme == .dark ? 0.65 : 0.52))
-                    Capsule()
-                        .fill(tint.gradient)
-                        .frame(
-                            width: max(
-                                8,
-                                proxy.size.width * CGFloat(clampedProgress)
-                            )
-                        )
-                        .shadow(
-                            color: tint.opacity(colorScheme == .dark ? 0.32 : 0.18),
-                            radius: 8,
-                            y: 2
-                        )
-                }
-            }
-            .frame(height: 7)
-            .padding(2)
-            .background(track.opacity(colorScheme == .dark ? 0.22 : 0.34), in: Capsule())
+private struct HeroMetricsGlassModifier: ViewModifier {
+    @Environment(\.colorScheme) private var colorScheme
+
+    func body(content: Content) -> some View {
+        let cornerRadius: CGFloat = 22
+        let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+        let isDark = colorScheme == .dark
+
+        if #available(iOS 26.0, *) {
+            content
+                .background(
+                    (isDark ? Color.white.opacity(0.10) : Color.white.opacity(0.32)),
+                    in: shape
+                )
+                .glassEffect(
+                    .regular.tint(isDark ? .white.opacity(0.18) : .black.opacity(0.06)),
+                    in: .rect(cornerRadius: cornerRadius)
+                )
+                .overlay(
+                    shape.strokeBorder(
+                        (isDark ? Color.white : Color.black).opacity(isDark ? 0.16 : 0.07),
+                        lineWidth: 1
+                    )
+                )
+        } else {
+            content
+                .background(
+                    (isDark ? Color.white.opacity(0.10) : Color.white.opacity(0.34)),
+                    in: shape
+                )
+                .overlay(
+                    shape.strokeBorder(
+                        (isDark ? Color.white : Color.black).opacity(isDark ? 0.12 : 0.07),
+                        lineWidth: 1
+                    )
+                )
         }
     }
 }
