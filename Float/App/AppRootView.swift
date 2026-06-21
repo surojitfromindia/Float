@@ -273,16 +273,6 @@ private struct LaunchSplashView: View {
 
     var body: some View {
         ZStack {
-//            LinearGradient(
-//                colors: [
-//                    palette.backgroundTop,
-//                    palette.backgroundBottom,
-//                ],
-//                startPoint: .topLeading,
-//                endPoint: .bottomTrailing
-//            )
-//            .ignoresSafeArea()
-
             VStack(spacing: 18) {
                 Image("SplashIcon")
                     .resizable()

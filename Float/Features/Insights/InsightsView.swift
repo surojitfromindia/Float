@@ -104,40 +104,41 @@ struct InsightsView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                rangeToolbar
+            VStack(alignment: .leading, spacing: 16) {
+                InsightsHeaderBar(
+                    selectedRange: $selectedRange,
+                    dateRangeText: report.dateRangeText
+                )
 
                 if selectedRange == .custom {
-                    customRangeControls
+                    InsightsCustomRangeCard(
+                        customStart: $customStart,
+                        customEnd: $customEnd
+                    )
                 }
 
                 if isLoadingReport && report.transactions.isEmpty {
-                    loadingReportCard
+                    InsightsLoadingCard()
                 } else if let reportError {
-                    reportErrorCard(reportError)
+                    InsightsErrorCard(
+                        message: reportError,
+                        tint: appState.themePalette.caution,
+                        retry: loadReportTransactions
+                    )
                 } else {
-                    executiveSummary
-                    budgetHealthCard
-                    calendarInsightCard
-                    spendActivityCard
-                    categoryBudgetCard
-                    categoryCard
-                    cashFlowTrendCard
-                    recurringCard
-                    goalsCard
-                    topTransactionsCard
+                    dashboardContent
                 }
             }
             .padding(20)
             .padding(.bottom, 40)
         }
-        .navigationTitle("Reports")
+        .navigationTitle(String(localized: "Insights"))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: exportReport) {
                     Image(systemName: "square.and.arrow.up")
                 }
-                .accessibilityLabel("Export report")
+                .accessibilityLabel(String(localized: "Export report"))
             }
         }
         .fileExporter(
@@ -163,677 +164,13 @@ struct InsightsView: View {
         .floatBackground()
     }
 
-    private var rangeToolbar: some View {
-        HStack {
-            Menu {
-                Picker("Range", selection: $selectedRange) {
-                    ForEach(InsightRange.allCases) {
-                        Text($0.title).tag($0)
-                    }
-                }
-            } label: {
-                Label(selectedRange.title, systemImage: "calendar")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(.thinMaterial, in: Capsule())
-                    .overlay(
-                        Capsule()
-                            .strokeBorder(Color.primary.opacity(0.08), lineWidth: 1)
-                    )
-            }
-            .menuOrder(.fixed)
-
-            Spacer()
-
-            Text(report.dateRangeText)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-        }
-    }
-
-    private var customRangeControls: some View {
-        GlassCard {
-            VStack(spacing: 12) {
-                DatePicker("From", selection: $customStart, displayedComponents: .date)
-                DatePicker("To", selection: $customEnd, displayedComponents: .date)
-            }
-        }
-    }
-
-    private var loadingReportCard: some View {
-        GlassCard {
-            HStack(spacing: 12) {
-                ProgressView()
-                Text("Loading report")
-                    .font(.subheadline.weight(.medium))
-                Spacer()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private func reportErrorCard(_ message: String) -> some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Label("Report could not load", systemImage: "exclamationmark.triangle.fill")
-                    .font(.headline)
-                    .foregroundStyle(appState.themePalette.caution)
-                Text(message)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Button("Retry", action: loadReportTransactions)
-                    .buttonStyle(.bordered)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private var executiveSummary: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Executive summary")
-                            .font(.headline)
-                        Text(report.narrative)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                    NetFlowBadge(value: report.netCashFlowMinor)
-                }
-
-                LazyVGrid(
-                    columns: [GridItem(.flexible()), GridItem(.flexible())],
-                    spacing: 12
-                ) {
-                    reportMetric(
-                        "Income",
-                        amount: report.incomeTotalMinor,
-                        icon: "arrow.down.circle.fill",
-                        tint: Color(hex: "#1B8A5A")
-                    )
-                    reportMetric(
-                        "Expenses",
-                        amount: report.expenseTotalMinor,
-                        icon: "arrow.up.circle.fill",
-                        tint: Color(hex: "#B4613B")
-                    )
-                    reportMetric(
-                        "Net",
-                        amount: report.netCashFlowMinor,
-                        icon: "equal.circle.fill",
-                        tint: report.netCashFlowMinor >= 0
-                            ? Color(hex: "#1B8A5A") : Color(hex: "#B4613B")
-                    )
-                    reportMetric(
-                        "Daily average",
-                        amount: report.dailyAverageExpenseMinor,
-                        icon: "calendar.badge.clock",
-                        tint: Color(hex: "#0E7C7B")
-                    )
-                }
-
-                HStack(spacing: 12) {
-                    insightFact("Top category", report.topCategory?.name ?? "None")
-                    insightFact("Biggest", report.biggestTransactionLabel)
-                }
-            }
-        }
-    }
-
-    private var budgetHealthCard: some View {
-        insightCard(
-            title: "Budget health",
-            subtitle: "Safe-to-spend position against period timing"
-        ) {
-            VStack(spacing: 12) {
-                progressRow(
-                    title: "Period elapsed",
-                    detail: report.percentText(report.safeToSpend.periodProgress),
-                    progress: report.safeToSpend.periodProgress,
-                    tint: Color(hex: "#0E7C7B")
-                )
-                progressRow(
-                    title: "Spending used",
-                    detail: report.percentText(report.safeToSpend.spendingProgress),
-                    progress: report.safeToSpend.spendingProgress,
-                    tint: report.safeToSpend.spendingProgress > report.safeToSpend.periodProgress
-                        ? Color(hex: "#B4613B") : Color(hex: "#1B8A5A")
-                )
-
-                LazyVGrid(
-                    columns: [GridItem(.flexible()), GridItem(.flexible())],
-                    spacing: 12
-                ) {
-                    reportMetric(
-                        "Safe to spend",
-                        amount: report.safeToSpend.safeToSpendMinor,
-                        icon: "checkmark.seal.fill",
-                        tint: Color(hex: "#1B8A5A")
-                    )
-                    reportMetric(
-                        "Daily limit",
-                        amount: report.safeToSpend.dailyAllowanceMinor,
-                        icon: "calendar",
-                        tint: Color(hex: "#0E7C7B")
-                    )
-                    reportMetric(
-                        "Recurring due",
-                        amount: report.safeToSpend.recurringDueMinor,
-                        icon: "repeat",
-                        tint: Color(hex: "#B4613B")
-                    )
-                    reportMetric(
-                        "Goals needed",
-                        amount: report.safeToSpend.goalContributionMinor,
-                        icon: "target",
-                        tint: Color(hex: "#8B5CF6")
-                    )
-                }
-
-                Text(report.budgetHealthMessage)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-
-    private var calendarInsightCard: some View {
-        insightCard(
-            title: "Calendar insights",
-            subtitle: "Day and week patterns from this report range"
-        ) {
-            LazyVGrid(
-                columns: [GridItem(.flexible()), GridItem(.flexible())],
-                spacing: 12
-            ) {
-                reportMetric(
-                    "Highest day",
-                    value: report.highestExpenseDay?.summaryText(currencyCode: appState.selectedCurrencyCode)
-                        ?? "None",
-                    icon: "calendar.badge.exclamationmark",
-                    tint: appState.themePalette.caution
-                )
-                reportMetric(
-                    "Lightest day",
-                    value: report.lowestExpenseDay?.summaryText(currencyCode: appState.selectedCurrencyCode)
-                        ?? "None",
-                    icon: "calendar",
-                    tint: appState.themePalette.positive
-                )
-                reportMetric(
-                    "Busiest day",
-                    value: report.busiestDay?.countText ?? "None",
-                    icon: "list.bullet.rectangle",
-                    tint: appState.themePalette.accent
-                )
-                reportMetric(
-                    "Week trend",
-                    value: report.weekTrendText,
-                    icon: "chart.line.uptrend.xyaxis",
-                    tint: report.weekExpenseDeltaMinor <= 0
-                        ? appState.themePalette.positive
-                        : appState.themePalette.caution
-                )
-            }
-        }
-    }
-
-    private var spendActivityCard: some View {
-        insightCard(
-            title: "Spend activity",
-            subtitle: spendActivityMode == .year
-                ? "Expense intensity by day across \(report.spendActivityYearText)"
-                : "Expense intensity by day across this report range"
-        ) {
-            SpendActivityHeatmap(
-                days: spendActivityMode == .year
-                    ? report.yearSpendActivityDays
-                    : report.spendActivityDays,
-                mode: $spendActivityMode,
-                currencyCode: appState.selectedCurrencyCode
-            )
-        }
-    }
-
-    private var categoryCard: some View {
-        insightCard(
-            title: "Category breakdown",
-            subtitle: "Expense concentration by category"
-        ) {
-            if report.categoryInsights.isEmpty {
-                EmptyStateView(
-                    icon: "chart.pie",
-                    title: "No spending yet",
-                    message: "Category reports update after transactions are added."
-                )
-            } else {
-                VStack(spacing: 18) {
-                    ZStack {
-                        Chart(report.categoryInsights) { item in
-                            SectorMark(
-                                angle: .value("Amount", item.amountMinor),
-                                innerRadius: .ratio(0.64),
-                                angularInset: 2
-                            )
-                            .cornerRadius(8)
-                            .foregroundStyle(item.color)
-                        }
-                        .chartLegend(.hidden)
-
-                        VStack(spacing: 4) {
-                            Text("Total")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(money(report.expenseTotalMinor))
-                                .moneyStyle(size: 20, weight: .bold)
-                                .minimumScaleFactor(0.75)
-                        }
-                    }
-                    .frame(height: 250)
-
-                    VStack(spacing: 10) {
-                        ForEach(report.categoryInsights) { item in
-                            Button {
-                                selectedCategory = report.drillDown(for: item)
-                            } label: {
-                                categoryRow(item)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private var categoryBudgetCard: some View {
-        insightCard(
-            title: "Category budgets",
-            subtitle: "Spending against category limits for this range"
-        ) {
-            if report.categoryBudgetInsights.isEmpty {
-                EmptyStateView(
-                    icon: "slider.horizontal.3",
-                    title: "No category budgets",
-                    message: "Set category limits in Budget settings to track them here."
-                )
-            } else {
-                VStack(spacing: 14) {
-                    HStack(spacing: 12) {
-                        reportMetric(
-                            "Allocated",
-                            amount: report.totalCategoryBudgetMinor,
-                            icon: "chart.pie.fill",
-                            tint: appState.themePalette.accent
-                        )
-                        reportMetric(
-                            "Spent",
-                            amount: report.totalCategoryBudgetSpentMinor,
-                            icon: "creditcard.fill",
-                            tint: report.overCategoryBudgetCount > 0
-                                ? appState.themePalette.caution : appState.themePalette.positive
-                        )
-                    }
-
-                    ForEach(report.categoryBudgetInsights) { item in
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(spacing: 10) {
-                                Image(systemName: item.icon)
-                                    .foregroundStyle(Color(hex: item.colorHex))
-                                    .frame(width: 28, height: 28)
-                                    .background(
-                                        Color(hex: item.colorHex).opacity(0.12),
-                                        in: Circle()
-                                    )
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.name)
-                                        .font(.subheadline.weight(.semibold))
-                                    Text(item.statusText(currencyCode: appState.selectedCurrencyCode))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Text(money(item.spentMinor))
-                                    .moneyStyle(size: 14, weight: .semibold)
-                            }
-
-                            ProgressView(value: min(item.progress, 1))
-                                .tint(item.isOverBudget ? appState.themePalette.caution : Color(hex: item.colorHex))
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private var cashFlowTrendCard: some View {
-        insightCard(
-            title: "Cash flow trend",
-            subtitle: "Income, expenses, and net movement over time"
-        ) {
-            if report.cashFlowTrend.isEmpty {
-                EmptyStateView(
-                    icon: "chart.line.uptrend.xyaxis",
-                    title: "No trend yet",
-                    message: "Add dated income and expenses to build a trend."
-                )
-            } else {
-                Chart {
-                    ForEach(report.cashFlowTrend) { item in
-                        LineMark(
-                            x: .value("Period", item.date, unit: report.cashFlowTrendUnit),
-                            y: .value("Amount", item.incomeMinor),
-                            series: .value("Type", "Income")
-                        )
-                            .foregroundStyle(appState.themePalette.positive)
-                        .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
-
-                        LineMark(
-                            x: .value("Period", item.date, unit: report.cashFlowTrendUnit),
-                            y: .value("Amount", item.expenseMinor),
-                            series: .value("Type", "Expenses")
-                        )
-                            .foregroundStyle(appState.themePalette.caution)
-                        .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round))
-
-                        BarMark(
-                            x: .value("Period", item.date, unit: report.cashFlowTrendUnit),
-                            y: .value("Net", item.netMinor)
-                        )
-                        .foregroundStyle(
-                            item.netMinor >= 0
-                                ? appState.themePalette.positive.opacity(0.22)
-                                : appState.themePalette.caution.opacity(0.22)
-                        )
-                    }
-                }
-                .chartLegend(position: .bottom, alignment: .leading)
-                .chartXAxis {
-                    AxisMarks(values: .automatic(desiredCount: 4))
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading, values: .automatic(desiredCount: 4))
-                }
-                .frame(height: 260)
-
-                HStack(spacing: 12) {
-                    reportMetric(
-                        "Income",
-                        amount: report.incomeTotalMinor,
-                        icon: "arrow.down",
-                        tint: appState.themePalette.positive
-                    )
-                    reportMetric(
-                        "Expense",
-                        amount: report.expenseTotalMinor,
-                        icon: "arrow.up",
-                        tint: appState.themePalette.caution
-                    )
-                }
-            }
-        }
-    }
-
-    private var recurringCard: some View {
-        insightCard(
-            title: "Recurring commitments",
-            subtitle: "Predictable bills and subscriptions"
-        ) {
-            if report.recurringInsights.isEmpty {
-                EmptyStateView(
-                    icon: "repeat",
-                    title: "No active recurring expenses",
-                    message: "Recurring commitments appear here once added."
-                )
-            } else {
-                VStack(spacing: 12) {
-                    HStack(spacing: 12) {
-                        reportMetric(
-                            "Active",
-                            value: "\(report.activeRecurringCount)",
-                            icon: "repeat",
-                            tint: Color(hex: "#0E7C7B")
-                        )
-                        reportMetric(
-                            "Monthly load",
-                            amount: report.monthlyRecurringLoadMinor,
-                            icon: "calendar",
-                            tint: Color(hex: "#B4613B")
-                        )
-                    }
-
-                    ForEach(report.recurringInsights.prefix(5)) { item in
-                        compactMoneyRow(
-                            title: item.name,
-                            subtitle: item.detail,
-                            amount: item.amountMinor,
-                            icon: item.icon,
-                            tint: Color(hex: "#B4613B")
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    private var goalsCard: some View {
-        insightCard(
-            title: "Goals progress",
-            subtitle: "Funding pressure from open targets"
-        ) {
-            if report.goalInsights.isEmpty {
-                EmptyStateView(
-                    icon: "target",
-                    title: "No goals yet",
-                    message: "Create a goal to include it in reports."
-                )
-            } else {
-                VStack(spacing: 12) {
-                    HStack(spacing: 12) {
-                        reportMetric(
-                            "Saved",
-                            amount: report.totalGoalSavedMinor,
-                            icon: "checkmark.circle",
-                            tint: Color(hex: "#1B8A5A")
-                        )
-                        reportMetric(
-                            "Remaining",
-                            amount: report.totalGoalRemainingMinor,
-                            icon: "target",
-                            tint: Color(hex: "#8B5CF6")
-                        )
-                    }
-
-                    ForEach(report.goalInsights.prefix(4)) { item in
-                        VStack(alignment: .leading, spacing: 7) {
-                            HStack {
-                                Text(item.name)
-                                    .font(.subheadline.weight(.semibold))
-                                Spacer()
-                                Text(report.percentText(item.progress))
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                            }
-                            ProgressView(value: item.progress)
-                                .tint(Color(hex: item.colorHex))
-                            HStack {
-                                Text(item.detail)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Spacer()
-                                Text(money(item.remainingMinor))
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private var topTransactionsCard: some View {
-        insightCard(
-            title: "Top transactions",
-            subtitle: "Largest expenses in this report range"
-        ) {
-            if report.topTransactions.isEmpty {
-                EmptyStateView(
-                    icon: "list.bullet.rectangle",
-                    title: "No expenses yet",
-                    message: "Large expenses will appear here."
-                )
-            } else {
-                VStack(spacing: 8) {
-                    ForEach(report.topTransactions) { transaction in
-                        TransactionRowView(
-                            transaction: transaction,
-                            currencyCode: appState.selectedCurrencyCode
-                        )
-                        if transaction.id != report.topTransactions.last?.id {
-                            Divider()
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func insightCard<Content: View>(
-        title: LocalizedStringResource,
-        subtitle: LocalizedStringResource,
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.headline)
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                content()
-            }
-        }
-    }
-
-    private func reportMetric(
-        _ title: LocalizedStringResource,
-        amount: Int64,
-        icon: String,
-        tint: Color
-    ) -> some View {
-        reportMetric(title, value: money(amount), icon: icon, tint: tint)
-    }
-
-    private func reportMetric(
-        _ title: LocalizedStringResource,
-        value: String,
-        icon: String,
-        tint: Color
-    ) -> some View {
-        SummaryMetricTile(
-            title: title,
-            value: value,
-            icon: icon,
-            tint: tint
-        )
-    }
-
-    private func progressRow(
-        title: LocalizedStringResource,
-        detail: String,
-        progress: Double,
-        tint: Color
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            HStack {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                Spacer()
-                Text(detail)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-            }
-            ProgressView(value: min(max(progress, 0), 1))
-                .tint(tint)
-        }
-    }
-
-    private func insightFact(_ title: LocalizedStringResource, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.subheadline.weight(.semibold))
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private func categoryRow(_ item: CategoryInsight) -> some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(item.color)
-                .frame(width: 10, height: 10)
-            Text(item.name)
-                .font(.subheadline.weight(.medium))
-            Spacer()
-            Text(report.percentText(item.share))
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Text(money(item.amountMinor))
-                .moneyStyle(size: 14, weight: .semibold)
-                .frame(minWidth: 88, alignment: .trailing)
-            Image(systemName: "chevron.right")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.tertiary)
-        }
-        .padding(.vertical, 4)
-        .contentShape(Rectangle())
-    }
-
-    private func compactMoneyRow(
-        title: String,
-        subtitle: String,
-        amount: Int64,
-        icon: String,
-        tint: Color
-    ) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .foregroundStyle(tint)
-                .frame(width: 34, height: 34)
-                .background(tint.opacity(0.12), in: Circle())
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                Text(subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            Spacer()
-            Text(money(amount))
-                .moneyStyle(size: 14, weight: .semibold)
-        }
-    }
-
-    private func money(_ amount: Int64) -> String {
-        MoneyFormatter.string(
-            minorUnits: amount,
-            currencyCode: appState.selectedCurrencyCode
+    private var dashboardContent: some View {
+        InsightsDashboardContent(
+            report: report,
+            spendActivityMode: $spendActivityMode,
+            selectedCategory: $selectedCategory,
+            currencyCode: appState.selectedCurrencyCode,
+            palette: appState.themePalette
         )
     }
 
@@ -926,20 +263,1099 @@ private struct InsightReportLoadKey: Hashable {
     let themeMode: String
 }
 
+private struct InsightsHeaderBar: View {
+    @Binding var selectedRange: InsightRange
+    let dateRangeText: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Report range")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+
+                Menu {
+                    Picker("Range", selection: $selectedRange) {
+                        ForEach(InsightRange.allCases) {
+                            Text($0.title).tag($0)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "calendar")
+                            .font(.caption.weight(.semibold))
+                        Text(selectedRange.title)
+                            .font(.subheadline.weight(.semibold))
+                            .lineLimit(1)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.secondary)
+                    }
+                    .foregroundStyle(.primary)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .floatGlassSurface(
+                        cornerRadius: FloatTheme.controlRadius,
+                        material: .thinMaterial,
+                        strokeOpacity: 0.06
+                    )
+                }
+                .menuOrder(.fixed)
+            }
+
+            Spacer(minLength: 0)
+
+            VStack(alignment: .trailing, spacing: 4) {
+                Text("Live window")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(dateRangeText)
+                    .font(.subheadline.weight(.semibold))
+                    .multilineTextAlignment(.trailing)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.78)
+            }
+        }
+    }
+}
+
+private struct InsightsCustomRangeCard: View {
+    @Binding var customStart: Date
+    @Binding var customEnd: Date
+
+    var body: some View {
+        GlassCard(padding: 16) {
+            VStack(spacing: 12) {
+                InsightsDateField(
+                    title: "From",
+                    selection: $customStart
+                )
+                InsightsDateField(
+                    title: "To",
+                    selection: $customEnd
+                )
+            }
+        }
+    }
+}
+
+private struct InsightsDateField: View {
+    let title: LocalizedStringResource
+    @Binding var selection: Date
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+            Spacer()
+            DatePicker(
+                title,
+                selection: $selection,
+                displayedComponents: .date
+            )
+            .labelsHidden()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .floatGlassSurface(
+            cornerRadius: FloatTheme.tileRadius,
+            material: .thinMaterial,
+            strokeOpacity: 0.05
+        )
+    }
+}
+
+private struct InsightsLoadingCard: View {
+    var body: some View {
+        GlassCard {
+            HStack(spacing: 12) {
+                ProgressView()
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Loading insights")
+                        .font(.headline)
+                    Text("Rebuilding your report for the selected range.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+        }
+    }
+}
+
+private struct InsightsErrorCard: View {
+    let message: String
+    let tint: Color
+    let retry: () -> Void
+
+    var body: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                Label("Insights could not load", systemImage: "exclamationmark.triangle.fill")
+                    .font(.headline)
+                    .foregroundStyle(tint)
+                Text(message)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Button("Retry", action: retry)
+                    .buttonStyle(.bordered)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+private struct InsightsDashboardContent: View {
+    let report: InsightReport
+    @Binding var spendActivityMode: SpendActivityMode
+    @Binding var selectedCategory: CategoryDrillDown?
+    let currencyCode: String
+    let palette: FloatThemePalette
+
+    var body: some View {
+        VStack(spacing: 16) {
+            InsightsHeroPanel(
+                report: report,
+                currencyCode: currencyCode,
+                palette: palette
+            )
+            InsightsBudgetControlPanel(
+                report: report,
+                currencyCode: currencyCode,
+                palette: palette
+            )
+
+            ViewThatFits {
+                HStack(alignment: .top, spacing: 16) {
+                    VStack(spacing: 16) {
+                        InsightsCategoryPanel(
+                            report: report,
+                            currencyCode: currencyCode,
+                            onSelectCategory: { selectedCategory = report.drillDown(for: $0) }
+                        )
+                        InsightsCommitmentsPanel(
+                            report: report,
+                            currencyCode: currencyCode,
+                            palette: palette
+                        )
+                    }
+                    .frame(maxWidth: .infinity, alignment: .top)
+
+                    VStack(spacing: 16) {
+                        InsightsActivityPanel(
+                            report: report,
+                            mode: $spendActivityMode,
+                            currencyCode: currencyCode
+                        )
+                        InsightsTopTransactionsPanel(
+                            transactions: report.topTransactions,
+                            currencyCode: currencyCode
+                        )
+                    }
+                    .frame(maxWidth: .infinity, alignment: .top)
+                }
+
+                VStack(spacing: 16) {
+                    InsightsCategoryPanel(
+                        report: report,
+                        currencyCode: currencyCode,
+                        onSelectCategory: { selectedCategory = report.drillDown(for: $0) }
+                    )
+                    InsightsActivityPanel(
+                        report: report,
+                        mode: $spendActivityMode,
+                        currencyCode: currencyCode
+                    )
+                    InsightsCommitmentsPanel(
+                        report: report,
+                        currencyCode: currencyCode,
+                        palette: palette
+                    )
+                    InsightsTopTransactionsPanel(
+                        transactions: report.topTransactions,
+                        currencyCode: currencyCode
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct InsightsPanel<Content: View>: View {
+    let title: LocalizedStringResource
+    let subtitle: LocalizedStringResource
+    let content: Content
+
+    init(
+        title: LocalizedStringResource,
+        subtitle: LocalizedStringResource,
+        @ViewBuilder content: () -> Content
+    ) {
+        self.title = title
+        self.subtitle = subtitle
+        self.content = content()
+    }
+
+    var body: some View {
+        GlassCard(padding: 18) {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                content
+            }
+        }
+    }
+}
+
+private struct InsightsHeroPanel: View {
+    let report: InsightReport
+    let currencyCode: String
+    let palette: FloatThemePalette
+
+    private var weekPulseDetail: String {
+        if report.weekExpenseDeltaMinor == 0 {
+            return String(localized: "Flat")
+        }
+        return signedMoney(report.weekExpenseDeltaMinor)
+    }
+
+    var body: some View {
+        InsightsPanel(
+            title: "Spending behavior",
+            subtitle: "How money moved across this range"
+        ) {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 12) {
+                    Text(report.narrative)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    NetFlowBadge(value: report.netCashFlowMinor)
+                }
+
+                if report.cashFlowTrend.isEmpty {
+                    EmptyStateView(
+                        icon: "chart.line.uptrend.xyaxis",
+                        title: "No trend yet",
+                        message: "Add dated income and expenses to build a trend."
+                    )
+                } else {
+                    Chart {
+                        ForEach(report.cashFlowTrend) { item in
+                            BarMark(
+                                x: .value("Period", item.date, unit: report.cashFlowTrendUnit),
+                                y: .value("Net", item.netMinor)
+                            )
+                            .foregroundStyle(
+                                item.netMinor >= 0
+                                    ? palette.positive.opacity(0.18)
+                                    : palette.caution.opacity(0.18)
+                            )
+
+                            LineMark(
+                                x: .value("Period", item.date, unit: report.cashFlowTrendUnit),
+                                y: .value("Income", item.incomeMinor)
+                            )
+                            .foregroundStyle(palette.positive)
+                            .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+
+                            LineMark(
+                                x: .value("Period", item.date, unit: report.cashFlowTrendUnit),
+                                y: .value("Expenses", item.expenseMinor)
+                            )
+                            .foregroundStyle(palette.caution)
+                            .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                        }
+                    }
+                    .chartLegend(.hidden)
+                    .chartXAxis {
+                        AxisMarks(values: .automatic(desiredCount: 4))
+                    }
+                    .chartYAxis {
+                        AxisMarks(position: .leading, values: .automatic(desiredCount: 3))
+                    }
+                    .frame(height: 210)
+
+                    HStack(spacing: 14) {
+                        InsightsLegendLabel(
+                            title: "Income",
+                            color: palette.positive
+                        )
+                        InsightsLegendLabel(
+                            title: "Expenses",
+                            color: palette.caution
+                        )
+                        InsightsLegendLabel(
+                            title: "Net",
+                            color: Color.primary.opacity(0.24)
+                        )
+                    }
+                }
+
+                InsightsMetricCard(
+                    title: "Net position",
+                    value: signedMoney(report.netCashFlowMinor),
+                    detail: report.dateRangeText,
+                    icon: "equal.circle.fill",
+                    tint: report.netCashFlowMinor >= 0 ? palette.positive : palette.caution,
+                    emphasis: .featured
+                )
+
+                InsightsMetricStrip {
+                    ViewThatFits {
+                        HStack(spacing: 0) {
+                            InsightsCompactMetricCell(
+                                title: "Run rate",
+                                value: money(report.dailyAverageExpenseMinor),
+                                detail: String(localized: "Average per day"),
+                                icon: "calendar.badge.clock",
+                                tint: palette.accent
+                            )
+                            Divider()
+                            InsightsCompactMetricCell(
+                                title: "Top spend day",
+                                value: money(report.highestExpenseDay?.expenseMinor ?? 0),
+                                detail: report.highestExpenseDay?.date.formatted(date: .abbreviated, time: .omitted)
+                                    ?? String(localized: "None"),
+                                icon: "calendar.badge.exclamationmark",
+                                tint: palette.caution
+                            )
+                            Divider()
+                            InsightsCompactMetricCell(
+                                title: "Week pulse",
+                                value: report.weekTrendText,
+                                detail: weekPulseDetail,
+                                icon: "waveform.path.ecg",
+                                tint: report.weekExpenseDeltaMinor <= 0 ? palette.positive : palette.caution
+                            )
+                        }
+
+                        VStack(spacing: 0) {
+                            InsightsCompactMetricCell(
+                                title: "Run rate",
+                                value: money(report.dailyAverageExpenseMinor),
+                                detail: String(localized: "Average per day"),
+                                icon: "calendar.badge.clock",
+                                tint: palette.accent
+                            )
+                            Divider()
+                            InsightsCompactMetricCell(
+                                title: "Top spend day",
+                                value: money(report.highestExpenseDay?.expenseMinor ?? 0),
+                                detail: report.highestExpenseDay?.date.formatted(date: .abbreviated, time: .omitted)
+                                    ?? String(localized: "None"),
+                                icon: "calendar.badge.exclamationmark",
+                                tint: palette.caution
+                            )
+                            Divider()
+                            InsightsCompactMetricCell(
+                                title: "Week pulse",
+                                value: report.weekTrendText,
+                                detail: weekPulseDetail,
+                                icon: "waveform.path.ecg",
+                                tint: report.weekExpenseDeltaMinor <= 0 ? palette.positive : palette.caution
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func money(_ amount: Int64) -> String {
+        MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
+    }
+
+    private func signedMoney(_ amount: Int64) -> String {
+        let absolute = MoneyFormatter.string(
+            minorUnits: abs(amount),
+            currencyCode: currencyCode
+        )
+        if amount == 0 {
+            return absolute
+        }
+        return amount > 0 ? "+\(absolute)" : "-\(absolute)"
+    }
+}
+
+private struct InsightsBudgetControlPanel: View {
+    let report: InsightReport
+    let currencyCode: String
+    let palette: FloatThemePalette
+
+    var body: some View {
+        InsightsPanel(
+            title: "Budget control",
+            subtitle: "Safe-to-spend position and category pressure"
+        ) {
+            VStack(spacing: 14) {
+                LazyVGrid(
+                    columns: [GridItem(.flexible()), GridItem(.flexible())],
+                    spacing: 10
+                ) {
+                    InsightsMetricCard(
+                        title: "Safe to spend",
+                        value: money(report.safeToSpend.safeToSpendMinor),
+                        detail: report.safeToSpend.safeToSpendMinor >= 0
+                            ? String(localized: "Available now")
+                            : String(localized: "Overspent"),
+                        icon: "checkmark.seal.fill",
+                        tint: report.safeToSpend.safeToSpendMinor >= 0 ? palette.positive : palette.caution
+                    )
+                    InsightsMetricCard(
+                        title: "Daily room",
+                        value: money(report.safeToSpend.dailyAllowanceMinor),
+                        detail: String(localized: "Remaining pace"),
+                        icon: "calendar",
+                        tint: palette.accent
+                    )
+                    InsightsMetricCard(
+                        title: "Recurring due",
+                        value: money(report.safeToSpend.recurringDueMinor),
+                        detail: String(localized: "Known commitments"),
+                        icon: "repeat",
+                        tint: palette.caution
+                    )
+                    InsightsMetricCard(
+                        title: "Goals needed",
+                        value: money(report.safeToSpend.goalContributionMinor),
+                        detail: String(localized: "Target funding"),
+                        icon: "target",
+                        tint: Color(hex: "#8B5CF6")
+                    )
+                }
+
+                InsightsProgressRow(
+                    title: "Period elapsed",
+                    detail: report.percentText(report.safeToSpend.periodProgress),
+                    progress: report.safeToSpend.periodProgress,
+                    tint: palette.accent
+                )
+                InsightsProgressRow(
+                    title: "Spending used",
+                    detail: report.percentText(report.safeToSpend.spendingProgress),
+                    progress: report.safeToSpend.spendingProgress,
+                    tint: report.safeToSpend.spendingProgress > report.safeToSpend.periodProgress
+                        ? palette.caution
+                        : palette.positive
+                )
+
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 10) {
+                        InsightsMetricCard(
+                            title: "Allocated",
+                            value: money(report.totalCategoryBudgetMinor),
+                            detail: String(localized: "Category budgets"),
+                            icon: "chart.pie.fill",
+                            tint: palette.accent
+                        )
+                        InsightsMetricCard(
+                            title: "Spent",
+                            value: money(report.totalCategoryBudgetSpentMinor),
+                            detail: report.overCategoryBudgetCount == 0
+                                ? String(localized: "Within plan")
+                                : AppLocalization.format(
+                                    "%lld over limit",
+                                    Int64(report.overCategoryBudgetCount)
+                                ),
+                            icon: "creditcard.fill",
+                            tint: report.overCategoryBudgetCount == 0 ? palette.positive : palette.caution
+                        )
+                    }
+
+                    Text(report.budgetHealthMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+    }
+
+    private func money(_ amount: Int64) -> String {
+        MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
+    }
+}
+
+private struct InsightsCategoryPanel: View {
+    let report: InsightReport
+    let currencyCode: String
+    let onSelectCategory: (CategoryInsight) -> Void
+
+    var body: some View {
+        InsightsPanel(
+            title: "Category mix",
+            subtitle: "Where expenses concentrate"
+        ) {
+            if report.categoryInsights.isEmpty {
+                EmptyStateView(
+                    icon: "chart.pie",
+                    title: "No spending yet",
+                    message: "Category reports update after transactions are added."
+                )
+            } else {
+                ViewThatFits {
+                    HStack(alignment: .top, spacing: 16) {
+                        donutSummary
+                            .frame(width: 154)
+                        categoryList
+                    }
+
+                    VStack(spacing: 16) {
+                        donutSummary
+                        categoryList
+                    }
+                }
+            }
+        }
+    }
+
+    private var donutSummary: some View {
+        ZStack {
+            Chart(report.categoryInsights.prefix(5)) { item in
+                SectorMark(
+                    angle: .value("Amount", item.amountMinor),
+                    innerRadius: .ratio(0.66),
+                    angularInset: 2
+                )
+                .cornerRadius(7)
+                .foregroundStyle(item.color)
+            }
+            .chartLegend(.hidden)
+
+            VStack(spacing: 3) {
+                Text("Total")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(money(report.expenseTotalMinor))
+                    .moneyStyle(size: 17, weight: .bold)
+                    .minimumScaleFactor(0.72)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(height: 154)
+    }
+
+    private var categoryList: some View {
+        VStack(spacing: 10) {
+            ForEach(report.categoryInsights.prefix(5)) { item in
+                let budget = report.categoryBudgetInsights.first { $0.name == item.name }
+                Button {
+                    onSelectCategory(item)
+                } label: {
+                    InsightsCategoryRow(
+                        item: item,
+                        budgetInsight: budget,
+                        currencyCode: currencyCode
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func money(_ amount: Int64) -> String {
+        MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
+    }
+}
+
+private struct InsightsActivityPanel: View {
+    let report: InsightReport
+    @Binding var mode: SpendActivityMode
+    let currencyCode: String
+
+    private var subtitle: LocalizedStringResource {
+        mode == .year ? "Intensity across this year" : "Intensity across the selected days"
+    }
+
+    private var heatmapDays: [SpendActivityDay] {
+        mode == .year ? report.yearSpendActivityDays : report.spendActivityDays
+    }
+
+    var body: some View {
+        InsightsPanel(
+            title: "Spend activity",
+            subtitle: subtitle
+        ) {
+            SpendActivityHeatmap(
+                days: heatmapDays,
+                mode: $mode,
+                currencyCode: currencyCode
+            )
+        }
+    }
+}
+
+private struct InsightsCommitmentsPanel: View {
+    let report: InsightReport
+    let currencyCode: String
+    let palette: FloatThemePalette
+
+    private var isEmpty: Bool {
+        report.recurringInsights.isEmpty && report.goalInsights.isEmpty
+    }
+
+    var body: some View {
+        InsightsPanel(
+            title: "Commitments and goals",
+            subtitle: "Fixed outflow and target funding"
+        ) {
+            if isEmpty {
+                EmptyStateView(
+                    icon: "calendar.badge.clock",
+                    title: "No commitments yet",
+                    message: "Recurring bills and goals will appear here."
+                )
+            } else {
+                VStack(spacing: 14) {
+                    LazyVGrid(
+                        columns: [GridItem(.flexible()), GridItem(.flexible())],
+                        spacing: 10
+                    ) {
+                        InsightsMetricCard(
+                            title: "Active recurring",
+                            value: "\(report.activeRecurringCount)",
+                            detail: String(localized: "Rules running"),
+                            icon: "repeat",
+                            tint: palette.accent
+                        )
+                        InsightsMetricCard(
+                            title: "Monthly load",
+                            value: money(report.monthlyRecurringLoadMinor),
+                            detail: String(localized: "Expected outflow"),
+                            icon: "calendar",
+                            tint: palette.caution
+                        )
+                        InsightsMetricCard(
+                            title: "Saved",
+                            value: money(report.totalGoalSavedMinor),
+                            detail: String(localized: "Across goals"),
+                            icon: "checkmark.circle",
+                            tint: palette.positive
+                        )
+                        InsightsMetricCard(
+                            title: "Remaining",
+                            value: money(report.totalGoalRemainingMinor),
+                            detail: String(localized: "Still to fund"),
+                            icon: "target",
+                            tint: Color(hex: "#8B5CF6")
+                        )
+                    }
+
+                    if !report.recurringInsights.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Recurring")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                            ForEach(report.recurringInsights.prefix(3)) { item in
+                                InsightsCommitmentRow(
+                                    title: item.name,
+                                    subtitle: item.detail,
+                                    amountText: money(item.amountMinor),
+                                    icon: item.icon,
+                                    tint: palette.caution
+                                )
+                            }
+                        }
+                    }
+
+                    if !report.recurringInsights.isEmpty && !report.goalInsights.isEmpty {
+                        Divider()
+                    }
+
+                    if !report.goalInsights.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Goals")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                            ForEach(report.goalInsights.prefix(3)) { item in
+                                InsightsGoalProgressRow(
+                                    item: item,
+                                    currencyCode: currencyCode,
+                                    percentText: report.percentText(item.progress)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func money(_ amount: Int64) -> String {
+        MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
+    }
+}
+
+private struct InsightsTopTransactionsPanel: View {
+    let transactions: [TransactionItem]
+    let currencyCode: String
+
+    var body: some View {
+        InsightsPanel(
+            title: "Top transactions",
+            subtitle: "Largest expenses in this range"
+        ) {
+            if transactions.isEmpty {
+                EmptyStateView(
+                    icon: "list.bullet.rectangle",
+                    title: "No expenses yet",
+                    message: "Large expenses will appear here."
+                )
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(transactions) { transaction in
+                        TransactionRowView(
+                            transaction: transaction,
+                            currencyCode: currencyCode
+                        )
+                        if transaction.id != transactions.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct InsightsMetricCard: View {
+    enum Emphasis {
+        case regular
+        case featured
+    }
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: LocalizedStringResource
+    let value: String
+    let detail: String?
+    let icon: String
+    let tint: Color
+    var emphasis: Emphasis = .regular
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(
+            cornerRadius: emphasis == .featured ? 22 : FloatTheme.tileRadius,
+            style: .continuous
+        )
+    }
+
+    private var backgroundColor: Color {
+        Color(colorScheme == .dark ? .secondarySystemGroupedBackground : .systemBackground)
+    }
+
+    private var strokeColor: Color {
+        Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: emphasis == .featured ? 16 : 12) {
+            HStack(spacing: 10) {
+                FloatIconBadge(
+                    icon: icon,
+                    tint: tint,
+                    size: emphasis == .featured ? 34 : 28
+                )
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(value)
+                    .font(
+                        .system(
+                            size: emphasis == .featured ? 28 : 20,
+                            weight: .bold,
+                            design: .rounded
+                        )
+                        .monospacedDigit()
+                    )
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                if let detail {
+                    Text(detail)
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+            }
+        }
+        .padding(emphasis == .featured ? 18 : 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(backgroundColor, in: shape)
+        .overlay(shape.strokeBorder(strokeColor, lineWidth: 1))
+    }
+}
+
+private struct InsightsMetricStrip<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: 22, style: .continuous)
+    }
+
+    var body: some View {
+        content
+        .background(
+            Color(colorScheme == .dark ? .secondarySystemGroupedBackground : .systemBackground),
+            in: shape
+        )
+        .overlay(
+            shape.strokeBorder(
+                Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05),
+                lineWidth: 1
+            )
+        )
+    }
+}
+
+private struct InsightsCompactMetricCell: View {
+    let title: LocalizedStringResource
+    let value: String
+    let detail: String?
+    let icon: String
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                FloatIconBadge(icon: icon, tint: tint, size: 24)
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+
+            Text(value)
+                .font(.system(size: 17, weight: .bold, design: .rounded).monospacedDigit())
+                .lineLimit(1)
+                .minimumScaleFactor(0.78)
+
+            if let detail {
+                Text(detail)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+private struct InsightsLegendLabel: View {
+    let title: LocalizedStringResource
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
+private struct InsightsProgressRow: View {
+    let title: LocalizedStringResource
+    let detail: String
+    let progress: Double
+    let tint: Color
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Text(detail)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            ProgressView(value: min(max(progress, 0), 1))
+                .tint(tint)
+        }
+    }
+}
+
+private struct InsightsCategoryRow: View {
+    let item: CategoryInsight
+    let budgetInsight: CategoryBudgetInsight?
+    let currencyCode: String
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(item.color)
+                .frame(width: 9, height: 9)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(item.name)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                if let budgetInsight {
+                    Text(budgetInsight.statusText(currencyCode: currencyCode))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                } else {
+                    Text("No category budget")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 3) {
+                Text(money(item.amountMinor))
+                    .moneyStyle(size: 14, weight: .semibold)
+                Text(percentText)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.tertiary)
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+
+    private var percentText: String {
+        "\(Int((item.share * 100).rounded()))%"
+    }
+
+    private func money(_ amount: Int64) -> String {
+        MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
+    }
+}
+
+private struct InsightsCommitmentRow: View {
+    let title: String
+    let subtitle: String
+    let amountText: String
+    let icon: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 12) {
+            FloatIconBadge(icon: icon, tint: tint, size: 32)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer()
+            Text(amountText)
+                .moneyStyle(size: 14, weight: .semibold)
+        }
+    }
+}
+
+private struct InsightsGoalProgressRow: View {
+    let item: GoalInsight
+    let currencyCode: String
+    let percentText: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            HStack {
+                Text(item.name)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                Spacer()
+                Text(percentText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+
+            ProgressView(value: item.progress)
+                .tint(Color(hex: item.colorHex))
+
+            HStack {
+                Text(item.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(
+                    MoneyFormatter.string(
+                        minorUnits: item.remainingMinor,
+                        currencyCode: currencyCode
+                    )
+                )
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
 private struct NetFlowBadge: View {
     let value: Int64
 
+    private var tint: Color {
+        if value == 0 {
+            return .secondary
+        }
+        return value > 0 ? Color(hex: "#1B8A5A") : Color(hex: "#B4613B")
+    }
+
+    private var icon: String {
+        if value == 0 {
+            return "equal.circle.fill"
+        }
+        return value > 0 ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill"
+    }
+
+    private var title: LocalizedStringResource {
+        if value == 0 {
+            return "Flat"
+        }
+        return value > 0 ? "Positive" : "Negative"
+    }
+
     var body: some View {
-        Text(value >= 0 ? "Positive" : "Negative")
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(value >= 0 ? Color(hex: "#1B8A5A") : Color(hex: "#B4613B"))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(
-                (value >= 0 ? Color(hex: "#1B8A5A") : Color(hex: "#B4613B"))
-                    .opacity(0.12),
-                in: Capsule()
-            )
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+            Text(title)
+                .font(.caption.weight(.semibold))
+        }
+        .foregroundStyle(tint)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 7)
+        .background(tint.opacity(0.12), in: Capsule())
+        .overlay(
+            Capsule()
+                .strokeBorder(tint.opacity(0.12), lineWidth: 1)
+        )
     }
 }
 
@@ -950,8 +1366,8 @@ private struct SpendActivityHeatmap: View {
 
     @Environment(\.colorScheme) private var colorScheme
 
-    private let cellSize: CGFloat = 14
-    private let cellSpacing: CGFloat = 4
+    private let cellSize: CGFloat = 11
+    private let cellSpacing: CGFloat = 3
 
     private var weeks: [[SpendActivityDay]] {
         stride(from: 0, to: days.count, by: 7).map { index in
@@ -965,7 +1381,7 @@ private struct SpendActivityHeatmap: View {
 
     private var heatmapWidth: CGFloat {
         guard !weeks.isEmpty else { return 0 }
-        return 30
+        return 28
             + CGFloat(weeks.count) * cellSize
             + CGFloat(max(0, weeks.count - 1)) * cellSpacing
     }
@@ -992,16 +1408,20 @@ private struct SpendActivityHeatmap: View {
                     message: "Choose a report range to build the spend activity map."
                 )
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        monthHeader
-                        heatmapGrid
+                VStack(alignment: .leading, spacing: 10) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 6) {
+                            monthHeader
+                            heatmapGrid
+                        }
+                        .padding(.vertical, 2)
                     }
-                    .padding(.vertical, 2)
-                }
-                .accessibilityLabel("Spend activity heatmap")
+                    .accessibilityLabel("Spend activity heatmap")
 
-                footer
+                    footer
+                }
+                .padding(12)
+                .background(Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.035), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
         }
     }
@@ -1015,18 +1435,12 @@ private struct SpendActivityHeatmap: View {
                     Text(item.title)
                         .font(.caption2.weight(.semibold))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.84)
+                        .minimumScaleFactor(0.82)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 7)
                         .background(
-                            mode == item
-                                ? Color.primary.opacity(0.10)
-                                : Color.primary.opacity(0.04),
+                            mode == item ? Color.primary.opacity(0.10) : Color.clear,
                             in: Capsule()
-                        )
-                        .overlay(
-                            Capsule()
-                                .strokeBorder(Color.primary.opacity(mode == item ? 0.12 : 0.04), lineWidth: 1)
                         )
                 }
                 .buttonStyle(.plain)
@@ -1034,6 +1448,8 @@ private struct SpendActivityHeatmap: View {
                 .accessibilityLabel(item.accessibilityLabel)
             }
         }
+        .padding(4)
+        .background(Color.primary.opacity(0.05), in: Capsule())
     }
 
     private var monthHeader: some View {
@@ -1044,14 +1460,14 @@ private struct SpendActivityHeatmap: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
-                    .offset(x: 30 + CGFloat(index) * (cellSize + cellSpacing))
+                    .offset(x: 28 + CGFloat(index) * (cellSize + cellSpacing))
             }
         }
-        .frame(width: heatmapWidth, height: 16, alignment: .leading)
+        .frame(width: heatmapWidth, height: 14, alignment: .leading)
     }
 
     private var heatmapGrid: some View {
-        HStack(alignment: .top, spacing: 6) {
+        HStack(alignment: .top, spacing: 5) {
             weekdayLabels
 
             HStack(alignment: .top, spacing: cellSpacing) {
@@ -1080,37 +1496,43 @@ private struct SpendActivityHeatmap: View {
                 Text(index.isMultiple(of: 2) ? label : "")
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
-                    .frame(width: 24, height: cellSize, alignment: .trailing)
+                    .frame(width: 22, height: cellSize, alignment: .trailing)
             }
         }
     }
 
     private var footer: some View {
         HStack(spacing: 10) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text("\(activeDayCount) spending days")
-                    .font(.caption.weight(.semibold))
-                Text("Avg \(money(averageSpendMinor)) / day")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(
+                    AppLocalization.format(
+                        "%lld spending days",
+                        Int64(activeDayCount)
+                    )
+                )
+                .font(.caption.weight(.semibold))
+                Text(
+                    AppLocalization.format(
+                        "Avg %@ / day",
+                        money(averageSpendMinor)
+                    )
+                )
+                .font(.caption2)
+                .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            HStack(spacing: 5) {
-                Text("Less")
+            HStack(spacing: 4) {
+                Text("Low")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                 ForEach(0..<5, id: \.self) { level in
                     RoundedRectangle(cornerRadius: 3, style: .continuous)
                         .fill(legendColor(level: level))
-                        .frame(width: 12, height: 12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 3, style: .continuous)
-                                .strokeBorder(Color.primary.opacity(0.05), lineWidth: 1)
-                        )
+                        .frame(width: 10, height: 10)
                 }
-                Text("More")
+                Text("High")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -1154,13 +1576,13 @@ private struct SpendActivityHeatmap: View {
         case 0:
             return emptyCellColor
         case 1:
-            return Color(hex: "#A7F3D0")
+            return Color(hex: "#D7F0EE")
         case 2:
-            return Color(hex: "#34D399")
+            return Color(hex: "#83D8CE")
         case 3:
-            return Color(hex: "#F59E0B")
+            return Color(hex: "#0E7C7B")
         default:
-            return Color(hex: "#DC2626")
+            return Color(hex: "#B4613B")
         }
     }
 
@@ -1187,31 +1609,29 @@ private struct SpendActivityCell: View {
 
     private var fill: Color {
         guard day.isInsideRange else {
-            return Color.primary.opacity(colorScheme == .dark ? 0.055 : 0.035)
+            return Color.primary.opacity(colorScheme == .dark ? 0.05 : 0.03)
         }
         guard valueMinor > 0 else {
             return Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.07)
         }
         switch ratio {
-        case 0..<0.18:
-            return Color(hex: "#A7F3D0")
-        case 0.18..<0.38:
-            return Color(hex: "#34D399")
-        case 0.38..<0.62:
-            return Color(hex: "#F59E0B")
-        case 0.62..<0.82:
-            return Color(hex: "#F97316")
+        case 0..<0.2:
+            return Color(hex: "#D7F0EE")
+        case 0.2..<0.42:
+            return Color(hex: "#83D8CE")
+        case 0.42..<0.68:
+            return Color(hex: "#0E7C7B")
         default:
-            return Color(hex: "#DC2626")
+            return Color(hex: "#B4613B")
         }
     }
 
     var body: some View {
-        RoundedRectangle(cornerRadius: 3.5, style: .continuous)
+        RoundedRectangle(cornerRadius: 3, style: .continuous)
             .fill(fill)
             .overlay(
-                RoundedRectangle(cornerRadius: 3.5, style: .continuous)
-                    .strokeBorder(borderColor, lineWidth: day.isToday ? 1.4 : 1)
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .strokeBorder(borderColor, lineWidth: day.isToday ? 1.2 : 0.8)
             )
             .opacity(day.isInsideRange ? 1 : 0.46)
             .accessibilityLabel(accessibilityLabel)
@@ -1219,7 +1639,7 @@ private struct SpendActivityCell: View {
 
     private var borderColor: Color {
         if day.isToday {
-            return Color.accentColor.opacity(0.75)
+            return Color.accentColor.opacity(0.8)
         }
         return Color.primary.opacity(day.isInsideRange ? 0.05 : 0.03)
     }
@@ -1231,9 +1651,14 @@ private struct SpendActivityCell: View {
             currencyCode: currencyCode
         )
         if day.transactionCount == 1 {
-            return "\(date), \(amount), 1 expense"
+            return AppLocalization.format("%@, %@, 1 expense", date, amount)
         }
-        return "\(date), \(amount), \(day.transactionCount) expenses"
+        return AppLocalization.format(
+            "%@, %@, %lld expenses",
+            date,
+            amount,
+            Int64(day.transactionCount)
+        )
     }
 }
 
@@ -1731,6 +2156,242 @@ private struct InsightReport {
     }
 }
 
+private extension InsightReport {
+    static var previewPopulated: InsightReport {
+        let calendar = Calendar.current
+        let end = calendar.startOfDay(for: Date())
+        let start = calendar.date(byAdding: .day, value: -29, to: end) ?? end
+        let previousStart = calendar.date(byAdding: .day, value: -29, to: start) ?? start
+
+        let checking = AccountItem(name: "Checking", currencyCode: "USD")
+        let salary = CategoryItem(
+            name: "Salary",
+            iconKey: "banknote.fill",
+            colorHex: "#1B8A5A",
+            isIncome: true
+        )
+        let groceries = CategoryItem(
+            name: "Groceries",
+            iconKey: "cart.fill",
+            colorHex: "#0E7C7B"
+        )
+        let dining = CategoryItem(
+            name: "Dining",
+            iconKey: "fork.knife",
+            colorHex: "#B4613B"
+        )
+        let travel = CategoryItem(
+            name: "Travel",
+            iconKey: "airplane",
+            colorHex: "#0A6FAE"
+        )
+        let utilities = CategoryItem(
+            name: "Utilities",
+            iconKey: "bolt.fill",
+            colorHex: "#8B5CF6"
+        )
+        let transport = CategoryItem(
+            name: "Transport",
+            iconKey: "car.fill",
+            colorHex: "#F59E0B"
+        )
+
+        let transactions: [TransactionItem] = [
+            TransactionItem(
+                amountMinor: 650_000,
+                isExpense: false,
+                timestamp: calendar.date(byAdding: .day, value: 1, to: start) ?? start,
+                category: salary,
+                account: checking,
+                note: "Monthly pay"
+            ),
+            TransactionItem(
+                amountMinor: 12_400,
+                timestamp: calendar.date(byAdding: .day, value: 2, to: start) ?? start,
+                category: groceries,
+                account: checking,
+                note: "Weekly market"
+            ),
+            TransactionItem(
+                amountMinor: 5_600,
+                timestamp: calendar.date(byAdding: .day, value: 4, to: start) ?? start,
+                category: dining,
+                account: checking,
+                note: "Dinner with friends"
+            ),
+            TransactionItem(
+                amountMinor: 2_100,
+                timestamp: calendar.date(byAdding: .day, value: 6, to: start) ?? start,
+                category: transport,
+                account: checking,
+                note: "Metro card"
+            ),
+            TransactionItem(
+                amountMinor: 18_900,
+                timestamp: calendar.date(byAdding: .day, value: 8, to: start) ?? start,
+                category: travel,
+                account: checking,
+                note: "Flight booking"
+            ),
+            TransactionItem(
+                amountMinor: 7_800,
+                timestamp: calendar.date(byAdding: .day, value: 13, to: start) ?? start,
+                category: utilities,
+                account: checking,
+                note: "Power bill"
+            ),
+            TransactionItem(
+                amountMinor: 4_900,
+                timestamp: calendar.date(byAdding: .day, value: 17, to: start) ?? start,
+                category: dining,
+                account: checking,
+                note: "Coffee and lunch"
+            ),
+            TransactionItem(
+                amountMinor: 8_400,
+                timestamp: calendar.date(byAdding: .day, value: 20, to: start) ?? start,
+                category: groceries,
+                account: checking,
+                note: "Restock"
+            ),
+            TransactionItem(
+                amountMinor: 3_600,
+                timestamp: calendar.date(byAdding: .day, value: 24, to: start) ?? start,
+                category: transport,
+                account: checking,
+                note: "Ride share"
+            ),
+            TransactionItem(
+                amountMinor: 6_200,
+                timestamp: calendar.date(byAdding: .day, value: 27, to: start) ?? start,
+                category: groceries,
+                account: checking,
+                note: "Farmer's market"
+            ),
+        ]
+
+        let previousTransactions: [TransactionItem] = [
+            TransactionItem(
+                amountMinor: 10_200,
+                timestamp: calendar.date(byAdding: .day, value: 3, to: previousStart) ?? previousStart,
+                category: groceries,
+                account: checking
+            ),
+            TransactionItem(
+                amountMinor: 3_900,
+                timestamp: calendar.date(byAdding: .day, value: 7, to: previousStart) ?? previousStart,
+                category: dining,
+                account: checking
+            ),
+            TransactionItem(
+                amountMinor: 5_000,
+                timestamp: calendar.date(byAdding: .day, value: 12, to: previousStart) ?? previousStart,
+                category: utilities,
+                account: checking
+            ),
+        ]
+
+        let recurringRules = [
+            RecurringRuleItem(
+                amountMinor: 7_800,
+                category: utilities,
+                account: checking,
+                note: "Power",
+                cadence: .monthly,
+                nextRunDate: calendar.date(byAdding: .day, value: 3, to: end) ?? end
+            ),
+            RecurringRuleItem(
+                amountMinor: 1_299,
+                category: dining,
+                account: checking,
+                note: "Music",
+                cadence: .monthly,
+                nextRunDate: calendar.date(byAdding: .day, value: 8, to: end) ?? end
+            ),
+        ]
+
+        let goals = [
+            GoalItem(
+                name: "Vacation",
+                targetMinor: 250_000,
+                savedMinor: 98_000,
+                targetDate: calendar.date(byAdding: .month, value: 3, to: end),
+                colorHex: "#0A6FAE"
+            ),
+            GoalItem(
+                name: "Emergency fund",
+                targetMinor: 500_000,
+                savedMinor: 275_000,
+                targetDate: calendar.date(byAdding: .month, value: 6, to: end),
+                colorHex: "#8B5CF6"
+            ),
+        ]
+
+        let budget = BudgetPeriodItem(
+            cadence: .monthly,
+            startDayOfMonth: 1,
+            expectedIncomeMinor: 650_000,
+            currencyCode: "USD",
+            isActive: true
+        )
+
+        let categoryBudgets = [
+            CategoryBudgetItem(
+                category: groceries,
+                amountMinor: 35_000,
+                currencyCode: "USD"
+            ),
+            CategoryBudgetItem(
+                category: dining,
+                amountMinor: 12_000,
+                currencyCode: "USD"
+            ),
+            CategoryBudgetItem(
+                category: travel,
+                amountMinor: 15_000,
+                currencyCode: "USD"
+            ),
+            CategoryBudgetItem(
+                category: utilities,
+                amountMinor: 9_000,
+                currencyCode: "USD"
+            ),
+        ]
+
+        return InsightReport(
+            title: String(localized: "Current period"),
+            range: BudgetPeriod(start: start, end: end),
+            transactions: transactions,
+            previousTransactions: previousTransactions,
+            allTransactions: transactions,
+            budgets: [budget],
+            categoryBudgets: categoryBudgets,
+            goals: goals,
+            recurringRules: recurringRules,
+            activeBudget: budget,
+            palette: FloatTheme.palette(for: "float").chartColors
+        )
+    }
+
+    static var previewEmpty: InsightReport {
+        let end = Calendar.current.startOfDay(for: Date())
+        let start = Calendar.current.date(byAdding: .day, value: -29, to: end) ?? end
+        return InsightReport(
+            title: String(localized: "Current period"),
+            range: BudgetPeriod(start: start, end: end),
+            transactions: [],
+            previousTransactions: [],
+            allTransactions: [],
+            budgets: [],
+            categoryBudgets: [],
+            goals: [],
+            recurringRules: [],
+            activeBudget: nil,
+            palette: FloatTheme.palette(for: "float").chartColors
+        )
+    }
+}
+
 private struct CategoryInsight: Identifiable {
     let id = UUID()
     let name: String
@@ -1797,13 +2458,31 @@ private struct CategoryDrillDownSheet: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(category.name)
                                     .font(.headline)
-                                Text("\(percentText(category.share)) of report expenses")
+                                Text("Share of report expenses")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
                             Text(money(category.amountMinor))
                                 .moneyStyle(size: 18, weight: .bold)
+                        }
+
+                        HStack(spacing: 10) {
+                            SummaryMetricTile(
+                                title: "Share",
+                                value: percentText(category.share),
+                                captionText: String(localized: "Of this report"),
+                                icon: "chart.pie.fill",
+                                tint: category.color
+                            )
+                            SummaryMetricTile(
+                                title: "Transactions",
+                                value: "\(category.transactions.count)",
+                                captionText: groupedTransactions.first?.0.formatted(date: .abbreviated, time: .omitted)
+                                    ?? String(localized: "None"),
+                                icon: "list.bullet.rectangle",
+                                tint: category.color
+                            )
                         }
                     }
                     .padding(.vertical, 4)
@@ -2109,5 +2788,61 @@ private extension String {
     var nilIfBlank: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+}
+
+#Preview("Insights Populated") {
+    InsightsPreviewScaffold {
+        InsightsDashboardContent(
+            report: .previewPopulated,
+            spendActivityMode: .constant(.daily),
+            selectedCategory: .constant(nil),
+            currencyCode: "USD",
+            palette: FloatTheme.palette(for: "float")
+        )
+    }
+}
+
+#Preview("Insights Empty") {
+    InsightsPreviewScaffold {
+        InsightsDashboardContent(
+            report: .previewEmpty,
+            spendActivityMode: .constant(.daily),
+            selectedCategory: .constant(nil),
+            currencyCode: "USD",
+            palette: FloatTheme.palette(for: "float")
+        )
+    }
+}
+
+#Preview("Insights Loading") {
+    InsightsPreviewScaffold {
+        InsightsLoadingCard()
+    }
+}
+
+#Preview("Insights Error") {
+    InsightsPreviewScaffold {
+        InsightsErrorCard(
+            message: "Preview error state",
+            tint: FloatTheme.palette(for: "float").caution,
+            retry: {}
+        )
+    }
+}
+
+private struct InsightsPreviewScaffold<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        ScrollView {
+            content
+                .padding(20)
+        }
+        .floatBackground()
     }
 }
