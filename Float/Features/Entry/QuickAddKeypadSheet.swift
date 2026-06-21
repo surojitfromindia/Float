@@ -122,20 +122,6 @@ struct QuickAddKeypadSheet: View {
             .prefix(8)
             .map { $0 }
     }
-    private var quickEntrySuggestions: [QuickEntrySuggestion] {
-        guard transactionToEdit == nil, !isPending else { return [] }
-        return QuickEntryIntelligenceUseCase.suggestions(
-            query: smartEntryText.nilIfBlankForQuickEntrySheet ?? note,
-            amountMinor: amountMinor,
-            isExpense: isExpense,
-            recentTransactions: recentTransactions,
-            merchantAliases: merchantAliases,
-            categories: categories,
-            accounts: accounts,
-            people: people,
-            currencyCode: appState.selectedCurrencyCode
-        )
-    }
 
     var body: some View {
         NavigationStack {
@@ -400,24 +386,6 @@ struct QuickAddKeypadSheet: View {
                     )
                     .strokeBorder(palette.accent.opacity(0.16), lineWidth: 1)
                 )
-
-                if !quickEntrySuggestions.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(quickEntrySuggestions) { suggestion in
-                                Button {
-                                    applyQuickSuggestion(suggestion)
-                                } label: {
-                                    QuickEntrySuggestionChip(
-                                        suggestion: suggestion,
-                                        currencyCode: appState.selectedCurrencyCode
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                }
             }
         }
     }
@@ -919,8 +887,14 @@ struct QuickAddKeypadSheet: View {
         guard let parsed = await QuickEntrySemanticInterpreter.interpret(
             text,
             context: context
-        ) else { return }
-        guard parsed.hasContent else { return }
+        ) else {
+            validationMessage = String(localized: "Smart entry could not read that yet.")
+            return
+        }
+        guard parsed.hasContent else {
+            validationMessage = String(localized: "Smart entry could not read that yet.")
+            return
+        }
         applyParsedEntry(parsed)
         validationMessage = nil
         Haptics.tick()
@@ -952,28 +926,6 @@ struct QuickAddKeypadSheet: View {
         if let parsedNote = parsed.note {
             note = parsedNote
         }
-    }
-
-    private func applyQuickSuggestion(_ suggestion: QuickEntrySuggestion) {
-        transactionKind = suggestion.isExpense ? .expense : .income
-        if let amountMinor = suggestion.amountMinor, amountMinor > 0 {
-            keypadText = String(amountMinor)
-        }
-        if let categoryID = suggestion.categoryID,
-           let category = categories.first(where: { $0.id == categoryID }) {
-            selectedCategory = category
-        }
-        if let accountID = suggestion.accountID,
-           let account = accounts.first(where: { $0.id == accountID }) {
-            selectedAccount = account
-        }
-        selectedPersonIDs.formUnion(suggestion.personIDs)
-        if let suggestedNote = suggestion.note?.nilIfBlankForQuickEntrySheet {
-            note = suggestedNote
-            smartEntryText = suggestedNote
-        }
-        validationMessage = nil
-        Haptics.tick()
     }
 
     private var resolvedPeople: [PersonItem] {
@@ -1122,78 +1074,6 @@ private struct CategoryPickerSheet: View {
                 }
             }
         }
-    }
-}
-
-private struct QuickEntrySuggestionChip: View {
-    let suggestion: QuickEntrySuggestion
-    let currencyCode: String
-
-    private var tint: Color {
-        Color(hex: suggestion.colorHex)
-    }
-
-    private var amountText: String? {
-        guard let amountMinor = suggestion.amountMinor, amountMinor > 0 else {
-            return nil
-        }
-        return MoneyFormatter.string(
-            minorUnits: amountMinor,
-            currencyCode: currencyCode
-        )
-    }
-
-    private var sourceText: LocalizedStringResource {
-        switch suggestion.source {
-        case .alias: "Learned"
-        case .history: "Recent"
-        case .parser: "Parsed"
-        }
-    }
-
-    var body: some View {
-        HStack(spacing: 9) {
-            Image(systemName: suggestion.icon)
-                .font(.caption.weight(.bold))
-                .foregroundStyle(tint)
-                .frame(width: 28, height: 28)
-                .background(tint.opacity(0.12), in: Circle())
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    Text(suggestion.title)
-                        .font(.caption.weight(.semibold))
-                        .lineLimit(1)
-                    Text(sourceText)
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(tint)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(tint.opacity(0.1), in: Capsule())
-                }
-                Text(amountText ?? suggestion.subtitle)
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .frame(maxWidth: 210, alignment: .leading)
-        .background(
-            tint.opacity(0.08),
-            in: RoundedRectangle(
-                cornerRadius: FloatTheme.tileRadius,
-                style: .continuous
-            )
-        )
-        .overlay(
-            RoundedRectangle(
-                cornerRadius: FloatTheme.tileRadius,
-                style: .continuous
-            )
-            .strokeBorder(tint.opacity(0.16), lineWidth: 1)
-        )
     }
 }
 

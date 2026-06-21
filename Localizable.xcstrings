@@ -3913,9 +3913,6 @@
         }
       }
     },
-    "Learned" : {
-
-    },
     "Left" : {
       "localizations" : {
         "bn" : {
@@ -5017,9 +5014,6 @@
     "Paid" : {
 
     },
-    "Parsed" : {
-
-    },
     "Partial match" : {
 
     },
@@ -6111,6 +6105,9 @@
 
     },
     "Smart entry" : {
+
+    },
+    "Smart entry could not read that yet." : {
 
     },
     "Smart insights" : {
