@@ -11,46 +11,6 @@
         }
       }
     },
-    "%@, %@, %lld expenses" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@, %2$@, %3$lld expenses"
-          }
-        }
-      }
-    },
-    "%@, %@, 1 expense" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@, %2$@, 1 expense"
-          }
-        }
-      }
-    },
-    "%lld over limit" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%lld over limit"
-          }
-        }
-      }
-    },
-    "%lld spending days" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%lld spending days"
-          }
-        }
-      }
-    },
     "·" : {
 
     },
@@ -178,456 +138,6 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ %2$@"
-          }
-        }
-      }
-    },
-    "Across goals" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Across goals"
-          }
-        }
-      }
-    },
-    "Active recurring" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Active recurring"
-          }
-        }
-      }
-    },
-    "Add dated income and expenses to build a trend." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Add dated income and expenses to build a trend."
-          }
-        }
-      }
-    },
-    "Average per day" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Average per day"
-          }
-        }
-      }
-    },
-    "Available now" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Available now"
-          }
-        }
-      }
-    },
-    "Avg %@ / day" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Avg %1$@ / day"
-          }
-        }
-      }
-    },
-    "Budget control" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Budget control"
-          }
-        }
-      }
-    },
-    "Category budgets" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Category budgets"
-          }
-        }
-      }
-    },
-    "Category mix" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Category mix"
-          }
-        }
-      }
-    },
-    "Choose a report range to build the spend activity map." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Choose a report range to build the spend activity map."
-          }
-        }
-      }
-    },
-    "Commitments and goals" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Commitments and goals"
-          }
-        }
-      }
-    },
-    "Daily room" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Daily room"
-          }
-        }
-      }
-    },
-    "Expected outflow" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Expected outflow"
-          }
-        }
-      }
-    },
-    "Fixed outflow and target funding" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Fixed outflow and target funding"
-          }
-        }
-      }
-    },
-    "How money moved across this range" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "How money moved across this range"
-          }
-        }
-      }
-    },
-    "High" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "High"
-          }
-        }
-      }
-    },
-    "Insights" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Insights"
-          }
-        }
-      }
-    },
-    "Insights could not load" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Insights could not load"
-          }
-        }
-      }
-    },
-    "Intensity across the selected days" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Intensity across the selected days"
-          }
-        }
-      }
-    },
-    "Intensity across this year" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Intensity across this year"
-          }
-        }
-      }
-    },
-    "Known commitments" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Known commitments"
-          }
-        }
-      }
-    },
-    "Largest expenses in this range" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Largest expenses in this range"
-          }
-        }
-      }
-    },
-    "Live window" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Live window"
-          }
-        }
-      }
-    },
-    "Loading insights" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Loading insights"
-          }
-        }
-      }
-    },
-    "Low" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Low"
-          }
-        }
-      }
-    },
-    "Net position" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Net position"
-          }
-        }
-      }
-    },
-    "No category budget" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "No category budget"
-          }
-        }
-      }
-    },
-    "No commitments yet" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "No commitments yet"
-          }
-        }
-      }
-    },
-    "No range selected" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "No range selected"
-          }
-        }
-      }
-    },
-    "Of this report" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Of this report"
-          }
-        }
-      }
-    },
-    "Overspent" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Overspent"
-          }
-        }
-      }
-    },
-    "Rebuilding your report for the selected range." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Rebuilding your report for the selected range."
-          }
-        }
-      }
-    },
-    "Remaining pace" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Remaining pace"
-          }
-        }
-      }
-    },
-    "Recurring bills and goals will appear here." : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Recurring bills and goals will appear here."
-          }
-        }
-      }
-    },
-    "Report range" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Report range"
-          }
-        }
-      }
-    },
-    "Rules running" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Rules running"
-          }
-        }
-      }
-    },
-    "Run rate" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Run rate"
-          }
-        }
-      }
-    },
-    "Share of report expenses" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Share of report expenses"
-          }
-        }
-      }
-    },
-    "Spending behavior" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Spending behavior"
-          }
-        }
-      }
-    },
-    "Still to fund" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Still to fund"
-          }
-        }
-      }
-    },
-    "Target funding" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Target funding"
-          }
-        }
-      }
-    },
-    "Top spend day" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Top spend day"
-          }
-        }
-      }
-    },
-    "Week pulse" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Week pulse"
-          }
-        }
-      }
-    },
-    "Where expenses concentrate" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Where expenses concentrate"
-          }
-        }
-      }
-    },
-    "Within plan" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Within plan"
           }
         }
       }
@@ -889,6 +399,7 @@
       }
     },
     "%@ of report expenses" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -1025,16 +536,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lldটি অপেক্ষমাণ"
-          }
-        }
-      }
-    },
-    "%lld spending days" : {
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lldটি খরচের দিন"
           }
         }
       }
@@ -1286,6 +787,16 @@
         }
       }
     },
+    "Across goals" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Across goals"
+          }
+        }
+      }
+    },
     "Action center" : {
       "localizations" : {
         "bn" : {
@@ -1333,6 +844,16 @@
     },
     "Active profile" : {
 
+    },
+    "Active recurring" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Active recurring"
+          }
+        }
+      }
     },
     "Add" : {
       "localizations" : {
@@ -1415,10 +936,10 @@
     },
     "Add dated income and expenses to build a trend." : {
       "localizations" : {
-        "bn" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ট্রেন্ড তৈরি করতে তারিখসহ আয় ও খরচ যোগ করুন।"
+            "state" : "new",
+            "value" : "Add dated income and expenses to build a trend."
           }
         }
       }
@@ -1932,6 +1453,16 @@
         }
       }
     },
+    "Available now" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Available now"
+          }
+        }
+      }
+    },
     "Average" : {
       "localizations" : {
         "bn" : {
@@ -1942,12 +1473,12 @@
         }
       }
     },
-    "Avg %@ / day" : {
+    "Average per day" : {
       "localizations" : {
-        "bn" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "গড় %@ / দিন"
+            "state" : "new",
+            "value" : "Average per day"
           }
         }
       }
@@ -1985,6 +1516,7 @@
       }
     },
     "Biggest" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -2036,7 +1568,18 @@
         }
       }
     },
+    "Budget control" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Budget control"
+          }
+        }
+      }
+    },
     "Budget health" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -2117,6 +1660,7 @@
       }
     },
     "Busiest day" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -2147,6 +1691,7 @@
       }
     },
     "Calendar insights" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -2202,6 +1747,7 @@
       }
     },
     "Cash flow trend" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -2287,10 +1833,20 @@
     },
     "Category budgets" : {
       "localizations" : {
-        "bn" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "বিভাগ বাজেট"
+            "state" : "new",
+            "value" : "Category budgets"
+          }
+        }
+      }
+    },
+    "Category mix" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Category mix"
           }
         }
       }
@@ -2349,10 +1905,10 @@
     },
     "Choose a report range to build the spend activity map." : {
       "localizations" : {
-        "bn" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "ব্যয় কার্যকলাপ মানচিত্র তৈরি করতে একটি রিপোর্ট রেঞ্জ বাছুন।"
+            "state" : "new",
+            "value" : "Choose a report range to build the spend activity map."
           }
         }
       }
@@ -2409,6 +1965,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "रंग"
+          }
+        }
+      }
+    },
+    "Commitments and goals" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Commitments and goals"
           }
         }
       }
@@ -2551,6 +2117,7 @@
       }
     },
     "Create a goal to include it in reports." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -2749,11 +2316,22 @@
       }
     },
     "Daily limit" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "দৈনিক সীমা"
+          }
+        }
+      }
+    },
+    "Daily room" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Daily room"
           }
         }
       }
@@ -2832,6 +2410,7 @@
       }
     },
     "Day and week patterns from this report range" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -3458,6 +3037,7 @@
       }
     },
     "Executive summary" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -3509,6 +3089,16 @@
         }
       }
     },
+    "Expected outflow" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Expected outflow"
+          }
+        }
+      }
+    },
     "Expense" : {
       "localizations" : {
         "bn" : {
@@ -3552,6 +3142,7 @@
       }
     },
     "Expense concentration by category" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -3562,6 +3153,7 @@
       }
     },
     "Expense intensity by day across %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -3572,6 +3164,7 @@
       }
     },
     "Expense intensity by day across this report range" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -3661,6 +3254,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ফিল্টার সক্রিয়"
+          }
+        }
+      }
+    },
+    "Fixed outflow and target funding" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Fixed outflow and target funding"
           }
         }
       }
@@ -3758,6 +3361,7 @@
       }
     },
     "Funding pressure from open targets" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -3850,6 +3454,7 @@
       }
     },
     "Goals progress" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -3919,7 +3524,18 @@
         }
       }
     },
+    "High" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "High"
+          }
+        }
+      }
+    },
     "Highest day" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -4002,6 +3618,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ঘণ্টা"
+          }
+        }
+      }
+    },
+    "How money moved across this range" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "How money moved across this range"
           }
         }
       }
@@ -4099,6 +3725,7 @@
       }
     },
     "Income, expenses, and net movement over time" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -4111,12 +3738,62 @@
     "Initial amount" : {
 
     },
+    "Insights" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Insights"
+          }
+        }
+      }
+    },
+    "Insights could not load" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Insights could not load"
+          }
+        }
+      }
+    },
+    "Intensity across the selected days" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Intensity across the selected days"
+          }
+        }
+      }
+    },
+    "Intensity across this year" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Intensity across this year"
+          }
+        }
+      }
+    },
     "Jump to month" : {
       "localizations" : {
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "মাসে যান"
+          }
+        }
+      }
+    },
+    "Known commitments" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Known commitments"
           }
         }
       }
@@ -4153,7 +3830,18 @@
         }
       }
     },
+    "Largest expenses in this range" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Largest expenses in this range"
+          }
+        }
+      }
+    },
     "Largest expenses in this report range" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -4194,6 +3882,7 @@
       }
     },
     "Less" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -4226,6 +3915,7 @@
       }
     },
     "Lightest day" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -4269,6 +3959,16 @@
         }
       }
     },
+    "Live window" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Live window"
+          }
+        }
+      }
+    },
     "Load older data" : {
       "localizations" : {
         "bn" : {
@@ -4285,6 +3985,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "পুরনো ইভেন্ট লোড করুন"
+          }
+        }
+      }
+    },
+    "Loading insights" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Loading insights"
           }
         }
       }
@@ -4310,11 +4020,22 @@
       }
     },
     "Loading report" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "রিপোর্ট লোড হচ্ছে"
+          }
+        }
+      }
+    },
+    "Low" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Low"
           }
         }
       }
@@ -4507,6 +4228,16 @@
         }
       }
     },
+    "Net position" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Net position"
+          }
+        }
+      }
+    },
     "New Account" : {
       "localizations" : {
         "bn" : {
@@ -4613,6 +4344,7 @@
       }
     },
     "No active recurring expenses" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -4652,12 +4384,33 @@
         }
       }
     },
+    "No category budget" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No category budget"
+          }
+        }
+      }
+    },
     "No category budgets" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "কোনো বিভাগের বাজেট নেই"
+          }
+        }
+      }
+    },
+    "No commitments yet" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No commitments yet"
           }
         }
       }
@@ -4777,10 +4530,10 @@
     },
     "No range selected" : {
       "localizations" : {
-        "bn" : {
+        "en" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "কোনো রেঞ্জ নির্বাচিত নয়"
+            "state" : "new",
+            "value" : "No range selected"
           }
         }
       }
@@ -4936,6 +4689,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "পর্যালোচনার কিছু নেই"
+          }
+        }
+      }
+    },
+    "Of this report" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Of this report"
           }
         }
       }
@@ -5161,6 +4924,16 @@
     },
     "Overpaid" : {
 
+    },
+    "Overspent" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Overspent"
+          }
+        }
+      }
     },
     "Overview" : {
       "localizations" : {
@@ -5399,6 +5172,7 @@
       }
     },
     "Predictable bills and subscriptions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -5548,6 +5322,16 @@
         }
       }
     },
+    "Rebuilding your report for the selected range." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rebuilding your report for the selected range."
+          }
+        }
+      }
+    },
     "Recent" : {
       "localizations" : {
         "bn" : {
@@ -5583,7 +5367,18 @@
         }
       }
     },
+    "Recurring bills and goals will appear here." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Recurring bills and goals will appear here."
+          }
+        }
+      }
+    },
     "Recurring commitments" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -5594,6 +5389,7 @@
       }
     },
     "Recurring commitments appear here once added." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -5702,6 +5498,16 @@
         }
       }
     },
+    "Remaining pace" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Remaining pace"
+          }
+        }
+      }
+    },
     "Reminders" : {
       "localizations" : {
         "bn" : {
@@ -5716,11 +5522,22 @@
 
     },
     "Report could not load" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "রিপোর্ট লোড করা যায়নি"
+          }
+        }
+      }
+    },
+    "Report range" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Report range"
           }
         }
       }
@@ -5831,6 +5648,26 @@
         }
       }
     },
+    "Rules running" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rules running"
+          }
+        }
+      }
+    },
+    "Run rate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Run rate"
+          }
+        }
+      }
+    },
     "safe" : {
       "localizations" : {
         "bn" : {
@@ -5872,6 +5709,7 @@
       }
     },
     "Safe-to-spend position against period timing" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -5880,6 +5718,9 @@
           }
         }
       }
+    },
+    "Safe-to-spend position and category pressure" : {
+
     },
     "same as yesterday" : {
       "extractionState" : "stale",
@@ -6075,6 +5916,7 @@
       }
     },
     "Set category limits in Budget settings to track them here." : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -6126,6 +5968,19 @@
     },
     "Settlements" : {
 
+    },
+    "Share" : {
+
+    },
+    "Share of report expenses" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Share of report expenses"
+          }
+        }
+      }
     },
     "Show completed" : {
       "localizations" : {
@@ -6233,11 +6088,22 @@
       }
     },
     "Spending against category limits for this range" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "এই রেঞ্জে বিভাগ সীমার তুলনায় ব্যয়"
+          }
+        }
+      }
+    },
+    "Spending behavior" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Spending behavior"
           }
         }
       }
@@ -6448,6 +6314,16 @@
         }
       }
     },
+    "Still to fund" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Still to fund"
+          }
+        }
+      }
+    },
     "Swap" : {
       "localizations" : {
         "bn" : {
@@ -6507,6 +6383,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "লক্ষ্য তারিখ"
+          }
+        }
+      }
+    },
+    "Target funding" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Target funding"
           }
         }
       }
@@ -6796,11 +6682,22 @@
       }
     },
     "Top category" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "শীর্ষ বিভাগ"
+          }
+        }
+      }
+    },
+    "Top spend day" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Top spend day"
           }
         }
       }
@@ -7202,7 +7099,18 @@
         }
       }
     },
+    "Week pulse" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Week pulse"
+          }
+        }
+      }
+    },
     "Week trend" : {
+      "extractionState" : "stale",
       "localizations" : {
         "bn" : {
           "stringUnit" : {
@@ -7222,12 +7130,32 @@
         }
       }
     },
+    "Where expenses concentrate" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Where expenses concentrate"
+          }
+        }
+      }
+    },
     "Will create" : {
       "localizations" : {
         "bn" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "তৈরি হবে"
+          }
+        }
+      }
+    },
+    "Within plan" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Within plan"
           }
         }
       }

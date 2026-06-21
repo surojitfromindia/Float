@@ -482,6 +482,8 @@ private struct InsightsDashboardContent: View {
 }
 
 private struct InsightsPanel<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let title: LocalizedStringResource
     let subtitle: LocalizedStringResource
     let content: Content
@@ -497,18 +499,29 @@ private struct InsightsPanel<Content: View>: View {
     }
 
     var body: some View {
-        GlassCard(padding: 18) {
-            VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.headline)
+                        .font(.headline.weight(.semibold))
                     Text(subtitle)
-                        .font(.caption)
+                        .font(.caption.weight(.medium))
                         .foregroundStyle(.secondary)
                 }
-                content
+                Spacer(minLength: 0)
             }
+
+            content
         }
+        .padding(18)
+        .floatGlassSurface(
+            cornerRadius: 24,
+            material: .ultraThinMaterial,
+            strokeOpacity: colorScheme == .dark ? 0.08 : 0.055,
+            shadowOpacity: colorScheme == .dark ? 0.05 : 0.035,
+            shadowRadius: 18,
+            shadowY: 10
+        )
     }
 }
 
@@ -538,65 +551,6 @@ private struct InsightsHeroPanel: View {
                     NetFlowBadge(value: report.netCashFlowMinor)
                 }
 
-                if report.cashFlowTrend.isEmpty {
-                    EmptyStateView(
-                        icon: "chart.line.uptrend.xyaxis",
-                        title: "No trend yet",
-                        message: "Add dated income and expenses to build a trend."
-                    )
-                } else {
-                    Chart {
-                        ForEach(report.cashFlowTrend) { item in
-                            BarMark(
-                                x: .value("Period", item.date, unit: report.cashFlowTrendUnit),
-                                y: .value("Net", item.netMinor)
-                            )
-                            .foregroundStyle(
-                                item.netMinor >= 0
-                                    ? palette.positive.opacity(0.18)
-                                    : palette.caution.opacity(0.18)
-                            )
-
-                            LineMark(
-                                x: .value("Period", item.date, unit: report.cashFlowTrendUnit),
-                                y: .value("Income", item.incomeMinor)
-                            )
-                            .foregroundStyle(palette.positive)
-                            .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
-
-                            LineMark(
-                                x: .value("Period", item.date, unit: report.cashFlowTrendUnit),
-                                y: .value("Expenses", item.expenseMinor)
-                            )
-                            .foregroundStyle(palette.caution)
-                            .lineStyle(StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                        }
-                    }
-                    .chartLegend(.hidden)
-                    .chartXAxis {
-                        AxisMarks(values: .automatic(desiredCount: 4))
-                    }
-                    .chartYAxis {
-                        AxisMarks(position: .leading, values: .automatic(desiredCount: 3))
-                    }
-                    .frame(height: 210)
-
-                    HStack(spacing: 14) {
-                        InsightsLegendLabel(
-                            title: "Income",
-                            color: palette.positive
-                        )
-                        InsightsLegendLabel(
-                            title: "Expenses",
-                            color: palette.caution
-                        )
-                        InsightsLegendLabel(
-                            title: "Net",
-                            color: Color.primary.opacity(0.24)
-                        )
-                    }
-                }
-
                 InsightsMetricCard(
                     title: "Net position",
                     value: signedMoney(report.netCashFlowMinor),
@@ -605,6 +559,20 @@ private struct InsightsHeroPanel: View {
                     tint: report.netCashFlowMinor >= 0 ? palette.positive : palette.caution,
                     emphasis: .featured
                 )
+
+                if report.incomeTotalMinor == 0 && report.expenseTotalMinor == 0 {
+                    EmptyStateView(
+                        icon: "chart.line.uptrend.xyaxis",
+                        title: "No trend yet",
+                        message: "Add dated income and expenses to build a trend."
+                    )
+                } else {
+                    InsightsSpendPulseChart(
+                        report: report,
+                        currencyCode: currencyCode,
+                        palette: palette
+                    )
+                }
 
                 InsightsMetricStrip {
                     ViewThatFits {
@@ -683,6 +651,155 @@ private struct InsightsHeroPanel: View {
     }
 }
 
+private struct InsightsSpendPulseChart: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let report: InsightReport
+    let currencyCode: String
+    let palette: FloatThemePalette
+
+    private var maxExpenseMinor: Int64 {
+        max(report.spendPulsePoints.map(\.expenseMinor).max() ?? 0, 1)
+    }
+
+    private var barWidth: MarkDimension {
+        report.spendPulseUnit == .month ? .fixed(18) : .fixed(5)
+    }
+
+    private var xAxisLabelFormat: Date.FormatStyle {
+        report.spendPulseUnit == .month
+            ? .dateTime.month(.abbreviated)
+            : .dateTime.month(.abbreviated).day()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ViewThatFits {
+                HStack(spacing: 8) {
+                    InsightsChartSummaryPill(
+                        title: "Spent",
+                        value: money(report.expenseTotalMinor),
+                        tint: palette.caution
+                    )
+                    InsightsChartSummaryPill(
+                        title: "Income",
+                        value: money(report.incomeTotalMinor),
+                        tint: palette.positive
+                    )
+                    InsightsChartSummaryPill(
+                        title: "Daily average",
+                        value: money(report.dailyAverageExpenseMinor),
+                        tint: palette.accent
+                    )
+                }
+
+                VStack(spacing: 8) {
+                    InsightsChartSummaryPill(
+                        title: "Spent",
+                        value: money(report.expenseTotalMinor),
+                        tint: palette.caution
+                    )
+                    HStack(spacing: 8) {
+                        InsightsChartSummaryPill(
+                            title: "Income",
+                            value: money(report.incomeTotalMinor),
+                            tint: palette.positive
+                        )
+                        InsightsChartSummaryPill(
+                            title: "Daily average",
+                            value: money(report.dailyAverageExpenseMinor),
+                            tint: palette.accent
+                        )
+                    }
+                }
+            }
+
+            Chart {
+                ForEach(report.spendPulsePoints) { item in
+                    BarMark(
+                        x: .value("Period", item.date, unit: report.spendPulseUnit),
+                        y: .value("Expenses", item.expenseMinor),
+                        width: barWidth
+                    )
+                    .foregroundStyle(barColor(for: item))
+                    .cornerRadius(4)
+                }
+
+                if report.dailyAverageExpenseMinor > 0 {
+                    RuleMark(y: .value("Daily average", report.dailyAverageExpenseMinor))
+                        .foregroundStyle(palette.accent.opacity(0.54))
+                        .lineStyle(StrokeStyle(lineWidth: 1, dash: [4, 5]))
+                }
+            }
+            .chartLegend(.hidden)
+            .chartXAxis {
+                AxisMarks(values: .automatic(desiredCount: 4)) {
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 4]))
+                        .foregroundStyle(Color.primary.opacity(0.08))
+                    AxisValueLabel(format: xAxisLabelFormat)
+                        .font(.caption2.weight(.medium))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .chartYAxis(.hidden)
+            .chartPlotStyle { plotArea in
+                plotArea
+                    .padding(.top, 4)
+                    .padding(.horizontal, 4)
+                    .background(
+                        Color.primary.opacity(colorScheme == .dark ? 0.045 : 0.024),
+                        in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    )
+            }
+            .frame(height: 128)
+            .accessibilityLabel(Text("Spending behavior"))
+        }
+    }
+
+    private func barColor(for item: SpendingPulsePoint) -> Color {
+        guard item.expenseMinor > 0 else {
+            return Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.08)
+        }
+        if item.expenseMinor == maxExpenseMinor {
+            return palette.caution
+        }
+        return palette.accent.opacity(colorScheme == .dark ? 0.74 : 0.62)
+    }
+
+    private func money(_ amount: Int64) -> String {
+        MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode)
+    }
+}
+
+private struct InsightsChartSummaryPill: View {
+    let title: LocalizedStringResource
+    let value: String
+    let tint: Color
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Circle()
+                .fill(tint)
+                .frame(width: 6, height: 6)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                Text(value)
+                    .font(.caption.weight(.bold).monospacedDigit())
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.74)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .frame(minWidth: 112, maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.035), in: Capsule())
+    }
+}
+
 private struct InsightsBudgetControlPanel: View {
     let report: InsightReport
     let currencyCode: String
@@ -694,40 +811,71 @@ private struct InsightsBudgetControlPanel: View {
             subtitle: "Safe-to-spend position and category pressure"
         ) {
             VStack(spacing: 14) {
-                LazyVGrid(
-                    columns: [GridItem(.flexible()), GridItem(.flexible())],
-                    spacing: 10
-                ) {
-                    InsightsMetricCard(
-                        title: "Safe to spend",
-                        value: money(report.safeToSpend.safeToSpendMinor),
-                        detail: report.safeToSpend.safeToSpendMinor >= 0
-                            ? String(localized: "Available now")
-                            : String(localized: "Overspent"),
-                        icon: "checkmark.seal.fill",
-                        tint: report.safeToSpend.safeToSpendMinor >= 0 ? palette.positive : palette.caution
-                    )
-                    InsightsMetricCard(
-                        title: "Daily room",
-                        value: money(report.safeToSpend.dailyAllowanceMinor),
-                        detail: String(localized: "Remaining pace"),
-                        icon: "calendar",
-                        tint: palette.accent
-                    )
-                    InsightsMetricCard(
-                        title: "Recurring due",
-                        value: money(report.safeToSpend.recurringDueMinor),
-                        detail: String(localized: "Known commitments"),
-                        icon: "repeat",
-                        tint: palette.caution
-                    )
-                    InsightsMetricCard(
-                        title: "Goals needed",
-                        value: money(report.safeToSpend.goalContributionMinor),
-                        detail: String(localized: "Target funding"),
-                        icon: "target",
-                        tint: Color(hex: "#8B5CF6")
-                    )
+                InsightsMetricCard(
+                    title: "Safe to spend",
+                    value: money(report.safeToSpend.safeToSpendMinor),
+                    detail: report.safeToSpend.safeToSpendMinor >= 0
+                        ? String(localized: "Available now")
+                        : String(localized: "Overspent"),
+                    icon: "checkmark.seal.fill",
+                    tint: report.safeToSpend.safeToSpendMinor >= 0 ? palette.positive : palette.caution,
+                    emphasis: .featured
+                )
+
+                InsightsMetricStrip {
+                    ViewThatFits {
+                        HStack(spacing: 0) {
+                            InsightsCompactMetricCell(
+                                title: "Daily room",
+                                value: money(report.safeToSpend.dailyAllowanceMinor),
+                                detail: String(localized: "Remaining pace"),
+                                icon: "calendar",
+                                tint: palette.accent
+                            )
+                            Divider()
+                            InsightsCompactMetricCell(
+                                title: "Recurring due",
+                                value: money(report.safeToSpend.recurringDueMinor),
+                                detail: String(localized: "Known commitments"),
+                                icon: "repeat",
+                                tint: palette.caution
+                            )
+                            Divider()
+                            InsightsCompactMetricCell(
+                                title: "Goals needed",
+                                value: money(report.safeToSpend.goalContributionMinor),
+                                detail: String(localized: "Target funding"),
+                                icon: "target",
+                                tint: palette.positive
+                            )
+                        }
+
+                        VStack(spacing: 0) {
+                            InsightsCompactMetricCell(
+                                title: "Daily room",
+                                value: money(report.safeToSpend.dailyAllowanceMinor),
+                                detail: String(localized: "Remaining pace"),
+                                icon: "calendar",
+                                tint: palette.accent
+                            )
+                            Divider()
+                            InsightsCompactMetricCell(
+                                title: "Recurring due",
+                                value: money(report.safeToSpend.recurringDueMinor),
+                                detail: String(localized: "Known commitments"),
+                                icon: "repeat",
+                                tint: palette.caution
+                            )
+                            Divider()
+                            InsightsCompactMetricCell(
+                                title: "Goals needed",
+                                value: money(report.safeToSpend.goalContributionMinor),
+                                detail: String(localized: "Target funding"),
+                                icon: "target",
+                                tint: palette.positive
+                            )
+                        }
+                    }
                 }
 
                 InsightsProgressRow(
@@ -746,26 +894,29 @@ private struct InsightsBudgetControlPanel: View {
                 )
 
                 VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 10) {
-                        InsightsMetricCard(
-                            title: "Allocated",
-                            value: money(report.totalCategoryBudgetMinor),
-                            detail: String(localized: "Category budgets"),
-                            icon: "chart.pie.fill",
-                            tint: palette.accent
-                        )
-                        InsightsMetricCard(
-                            title: "Spent",
-                            value: money(report.totalCategoryBudgetSpentMinor),
-                            detail: report.overCategoryBudgetCount == 0
-                                ? String(localized: "Within plan")
-                                : AppLocalization.format(
-                                    "%lld over limit",
-                                    Int64(report.overCategoryBudgetCount)
-                                ),
-                            icon: "creditcard.fill",
-                            tint: report.overCategoryBudgetCount == 0 ? palette.positive : palette.caution
-                        )
+                    InsightsMetricStrip {
+                        HStack(spacing: 0) {
+                            InsightsCompactMetricCell(
+                                title: "Allocated",
+                                value: money(report.totalCategoryBudgetMinor),
+                                detail: String(localized: "Category budgets"),
+                                icon: "chart.pie.fill",
+                                tint: palette.accent
+                            )
+                            Divider()
+                            InsightsCompactMetricCell(
+                                title: "Spent",
+                                value: money(report.totalCategoryBudgetSpentMinor),
+                                detail: report.overCategoryBudgetCount == 0
+                                    ? String(localized: "Within plan")
+                                    : AppLocalization.format(
+                                        "%lld over limit",
+                                        Int64(report.overCategoryBudgetCount)
+                                    ),
+                                icon: "creditcard.fill",
+                                tint: report.overCategoryBudgetCount == 0 ? palette.positive : palette.caution
+                            )
+                        }
                     }
 
                     Text(report.budgetHealthMessage)
@@ -913,38 +1064,44 @@ private struct InsightsCommitmentsPanel: View {
                 )
             } else {
                 VStack(spacing: 14) {
-                    LazyVGrid(
-                        columns: [GridItem(.flexible()), GridItem(.flexible())],
-                        spacing: 10
-                    ) {
-                        InsightsMetricCard(
-                            title: "Active recurring",
-                            value: "\(report.activeRecurringCount)",
-                            detail: String(localized: "Rules running"),
-                            icon: "repeat",
-                            tint: palette.accent
-                        )
-                        InsightsMetricCard(
-                            title: "Monthly load",
-                            value: money(report.monthlyRecurringLoadMinor),
-                            detail: String(localized: "Expected outflow"),
-                            icon: "calendar",
-                            tint: palette.caution
-                        )
-                        InsightsMetricCard(
-                            title: "Saved",
-                            value: money(report.totalGoalSavedMinor),
-                            detail: String(localized: "Across goals"),
-                            icon: "checkmark.circle",
-                            tint: palette.positive
-                        )
-                        InsightsMetricCard(
-                            title: "Remaining",
-                            value: money(report.totalGoalRemainingMinor),
-                            detail: String(localized: "Still to fund"),
-                            icon: "target",
-                            tint: Color(hex: "#8B5CF6")
-                        )
+                    InsightsMetricStrip {
+                        HStack(spacing: 0) {
+                            InsightsCompactMetricCell(
+                                title: "Active recurring",
+                                value: "\(report.activeRecurringCount)",
+                                detail: String(localized: "Rules running"),
+                                icon: "repeat",
+                                tint: palette.accent
+                            )
+                            Divider()
+                            InsightsCompactMetricCell(
+                                title: "Monthly load",
+                                value: money(report.monthlyRecurringLoadMinor),
+                                detail: String(localized: "Expected outflow"),
+                                icon: "calendar",
+                                tint: palette.caution
+                            )
+                        }
+                    }
+
+                    InsightsMetricStrip {
+                        HStack(spacing: 0) {
+                            InsightsCompactMetricCell(
+                                title: "Saved",
+                                value: money(report.totalGoalSavedMinor),
+                                detail: String(localized: "Across goals"),
+                                icon: "checkmark.circle",
+                                tint: palette.positive
+                            )
+                            Divider()
+                            InsightsCompactMetricCell(
+                                title: "Remaining",
+                                value: money(report.totalGoalRemainingMinor),
+                                detail: String(localized: "Still to fund"),
+                                icon: "target",
+                                tint: palette.positive
+                            )
+                        }
                     }
 
                     if !report.recurringInsights.isEmpty {
@@ -1041,57 +1198,82 @@ private struct InsightsMetricCard: View {
 
     private var shape: RoundedRectangle {
         RoundedRectangle(
-            cornerRadius: emphasis == .featured ? 22 : FloatTheme.tileRadius,
+            cornerRadius: emphasis == .featured ? 24 : 14,
             style: .continuous
         )
     }
 
     private var backgroundColor: Color {
-        Color(colorScheme == .dark ? .secondarySystemGroupedBackground : .systemBackground)
+        Color.primary.opacity(colorScheme == .dark ? 0.045 : 0.025)
     }
 
     private var strokeColor: Color {
-        Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05)
+        Color.primary.opacity(colorScheme == .dark ? 0.09 : 0.06)
+    }
+
+    private var featuredGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.primary.opacity(colorScheme == .dark ? 0.055 : 0.026),
+                tint.opacity(colorScheme == .dark ? 0.07 : 0.035)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: emphasis == .featured ? 16 : 12) {
-            HStack(spacing: 10) {
-                FloatIconBadge(
-                    icon: icon,
-                    tint: tint,
-                    size: emphasis == .featured ? 34 : 28
-                )
-                Text(title)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 0)
-            }
+        HStack(alignment: .top, spacing: emphasis == .featured ? 14 : 10) {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(tint)
+                .frame(width: emphasis == .featured ? 4 : 3)
+                .opacity(emphasis == .featured ? 0.82 : 0.64)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(value)
-                    .font(
-                        .system(
-                            size: emphasis == .featured ? 28 : 20,
-                            weight: .bold,
-                            design: .rounded
-                        )
-                        .monospacedDigit()
-                    )
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-
-                if let detail {
-                    Text(detail)
-                        .font(.caption.weight(.medium))
+            VStack(alignment: .leading, spacing: emphasis == .featured ? 14 : 9) {
+                HStack(spacing: 7) {
+                    Image(systemName: icon)
+                        .font(.system(size: emphasis == .featured ? 14 : 12, weight: .semibold))
+                        .foregroundStyle(tint)
+                    Text(title)
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                        .lineLimit(1)
+                    Spacer(minLength: 0)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(value)
+                        .font(
+                            .system(
+                                size: emphasis == .featured ? 31 : 20,
+                                weight: .bold,
+                                design: .rounded
+                            )
+                            .monospacedDigit()
+                        )
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.68)
+
+                    if let detail {
+                        Text(detail)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
                 }
             }
         }
-        .padding(emphasis == .featured ? 18 : 14)
+        .padding(emphasis == .featured ? 18 : 13)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(backgroundColor, in: shape)
+        .background {
+            if emphasis == .featured {
+                featuredGradient
+                    .clipShape(shape)
+            } else {
+                backgroundColor
+                    .clipShape(shape)
+            }
+        }
         .overlay(shape.strokeBorder(strokeColor, lineWidth: 1))
     }
 }
@@ -1106,21 +1288,21 @@ private struct InsightsMetricStrip<Content: View>: View {
     }
 
     private var shape: RoundedRectangle {
-        RoundedRectangle(cornerRadius: 22, style: .continuous)
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
     }
 
     var body: some View {
         content
-        .background(
-            Color(colorScheme == .dark ? .secondarySystemGroupedBackground : .systemBackground),
-            in: shape
-        )
-        .overlay(
-            shape.strokeBorder(
-                Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05),
-                lineWidth: 1
+            .background(
+                Color.primary.opacity(colorScheme == .dark ? 0.045 : 0.025),
+                in: shape
             )
-        )
+            .overlay(
+                shape.strokeBorder(
+                    Color.primary.opacity(colorScheme == .dark ? 0.08 : 0.05),
+                    lineWidth: 1
+                )
+            )
     }
 }
 
@@ -1132,9 +1314,11 @@ private struct InsightsCompactMetricCell: View {
     let tint: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
-                FloatIconBadge(icon: icon, tint: tint, size: 24)
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(tint)
                 Text(title)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(.secondary)
@@ -1143,19 +1327,20 @@ private struct InsightsCompactMetricCell: View {
             }
 
             Text(value)
-                .font(.system(size: 17, weight: .bold, design: .rounded).monospacedDigit())
+                .font(.system(size: 18, weight: .bold, design: .rounded).monospacedDigit())
                 .lineLimit(1)
-                .minimumScaleFactor(0.78)
+                .minimumScaleFactor(0.74)
 
             if let detail {
                 Text(detail)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.78)
+                    .minimumScaleFactor(0.74)
             }
         }
-        .padding(14)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 13)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -1731,6 +1916,10 @@ private struct InsightReport {
         rangeDayCount > 95 ? .month : .day
     }
 
+    var spendPulseUnit: Calendar.Component {
+        cashFlowTrendUnit
+    }
+
     var safeToSpend: SafeToSpendResult {
         SafeToSpendUseCase.calculate(
             budget: activeBudget,
@@ -1881,6 +2070,30 @@ private struct InsightReport {
             )
         }
         .sorted { $0.date < $1.date }
+    }
+
+    var spendPulsePoints: [SpendingPulsePoint] {
+        let calendar = Calendar.current
+        let unit = spendPulseUnit
+        let components: Set<Calendar.Component> = unit == .month
+            ? [.year, .month] : [.year, .month, .day]
+        let grouped = Dictionary(grouping: transactions) {
+            calendar.date(from: calendar.dateComponents(components, from: $0.timestamp))
+                ?? calendar.startOfDay(for: $0.timestamp)
+        }
+
+        return pulseDates(calendar: calendar, unit: unit).map { date in
+            let items = grouped[date] ?? []
+            return SpendingPulsePoint(
+                date: date,
+                incomeMinor: items.filter(\.isPostedIncome).reduce(Int64(0)) {
+                    $0 + $1.amountMinor
+                },
+                expenseMinor: items.filter(\.isPostedExpense).reduce(Int64(0)) {
+                    $0 + $1.amountMinor
+                }
+            )
+        }
     }
 
     var dailyExpenseInsights: [CalendarExpenseInsight] {
@@ -2112,6 +2325,37 @@ private struct InsightReport {
         while cursor <= last {
             results.append(cursor)
             guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else {
+                break
+            }
+            cursor = next
+        }
+        return results
+    }
+
+    private func pulseDates(calendar: Calendar, unit: Calendar.Component) -> [Date] {
+        if unit == .month {
+            let start = calendar.date(
+                from: calendar.dateComponents([.year, .month], from: range.start)
+            ) ?? calendar.startOfDay(for: range.start)
+            let end = calendar.date(
+                from: calendar.dateComponents([.year, .month], from: range.end)
+            ) ?? calendar.startOfDay(for: range.end)
+            return datesByAdding(.month, from: start, through: end, calendar: calendar)
+        }
+        return dates(from: range.start, through: range.end, calendar: calendar)
+    }
+
+    private func datesByAdding(
+        _ component: Calendar.Component,
+        from start: Date,
+        through end: Date,
+        calendar: Calendar
+    ) -> [Date] {
+        var results: [Date] = []
+        var cursor = start
+        while cursor <= end {
+            results.append(cursor)
+            guard let next = calendar.date(byAdding: component, value: 1, to: cursor) else {
                 break
             }
             cursor = next
@@ -2467,22 +2711,25 @@ private struct CategoryDrillDownSheet: View {
                                 .moneyStyle(size: 18, weight: .bold)
                         }
 
-                        HStack(spacing: 10) {
-                            SummaryMetricTile(
-                                title: "Share",
-                                value: percentText(category.share),
-                                captionText: String(localized: "Of this report"),
-                                icon: "chart.pie.fill",
-                                tint: category.color
-                            )
-                            SummaryMetricTile(
-                                title: "Transactions",
-                                value: "\(category.transactions.count)",
-                                captionText: groupedTransactions.first?.0.formatted(date: .abbreviated, time: .omitted)
-                                    ?? String(localized: "None"),
-                                icon: "list.bullet.rectangle",
-                                tint: category.color
-                            )
+                        InsightsMetricStrip {
+                            HStack(spacing: 0) {
+                                InsightsCompactMetricCell(
+                                    title: "Share",
+                                    value: percentText(category.share),
+                                    detail: String(localized: "Of this report"),
+                                    icon: "chart.pie.fill",
+                                    tint: category.color
+                                )
+                                Divider()
+                                InsightsCompactMetricCell(
+                                    title: "Transactions",
+                                    value: "\(category.transactions.count)",
+                                    detail: groupedTransactions.first?.0.formatted(date: .abbreviated, time: .omitted)
+                                        ?? String(localized: "None"),
+                                    icon: "list.bullet.rectangle",
+                                    tint: category.color
+                                )
+                            }
                         }
                     }
                     .padding(.vertical, 4)
@@ -2519,6 +2766,14 @@ private struct CashFlowTrendPoint: Identifiable {
     let incomeMinor: Int64
     let expenseMinor: Int64
     let netMinor: Int64
+}
+
+private struct SpendingPulsePoint: Identifiable {
+    var id: Date { date }
+
+    let date: Date
+    let incomeMinor: Int64
+    let expenseMinor: Int64
 }
 
 private struct CalendarExpenseInsight: Identifiable {
