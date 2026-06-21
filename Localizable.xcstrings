@@ -1210,9 +1210,6 @@
     "After scenarios" : {
 
     },
-    "Apply smart entry" : {
-
-    },
     "Alias" : {
 
     },
@@ -1404,7 +1401,7 @@
         }
       }
     },
-    "Apply" : {
+    "Apply smart entry" : {
 
     },
     "Archive" : {
@@ -1950,6 +1947,9 @@
           }
         }
       }
+    },
+    "Clear smart entry" : {
+
     },
     "Close and over" : {
       "extractionState" : "stale",
@@ -3913,6 +3913,9 @@
         }
       }
     },
+    "Learned" : {
+
+    },
     "Left" : {
       "localizations" : {
         "bn" : {
@@ -4784,6 +4787,9 @@
         }
       }
     },
+    "On-device" : {
+
+    },
     "One time" : {
 
     },
@@ -5009,6 +5015,9 @@
       }
     },
     "Paid" : {
+
+    },
+    "Parsed" : {
 
     },
     "Partial match" : {
@@ -5390,6 +5399,9 @@
           }
         }
       }
+    },
+    "Reading" : {
+
     },
     "Rebuilding your report for the selected range." : {
       "localizations" : {
@@ -6096,6 +6108,9 @@
       }
     },
     "Skipped" : {
+
+    },
+    "Smart entry" : {
 
     },
     "Smart insights" : {
@@ -7157,6 +7172,9 @@
         }
       }
     },
+    "Use natural language for amount, category, account, people, and date." : {
+
+    },
     "used" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7314,33 +7332,9 @@
             "state" : "translated",
             "value" : "আপনি যোগ করলে আপনার লেনদেন এখানে দেখাবে।"
           }
-          }
         }
       }
-    },
-    "Clear smart entry" : {
-
-    },
-    "Learned" : {
-
-    },
-    "On-device" : {
-
-    },
-    "Parsed" : {
-
-    },
-    "Reading" : {
-
-    },
-    "Recent" : {
-
-    },
-    "Smart entry" : {
-
-    },
-    "Use natural language for amount, category, account, people, and date." : {
-
-    },
+    }
+  },
   "version" : "1.0"
 }
