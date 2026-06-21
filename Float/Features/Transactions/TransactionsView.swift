@@ -39,6 +39,7 @@ struct TransactionsView: View {
     @State private var isEntrySheetPresented = false
     @State private var isTransferSheetPresented = false
     @State private var isBulkEntrySheetPresented = false
+    @State private var activeContextMenuItemID: String?
 
     private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
     private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
@@ -281,6 +282,7 @@ struct TransactionsView: View {
                             )
                             .contentShape(Rectangle())
                         }
+                        .opacity(activeContextMenuItemID == item.id ? 0 : 1)
                         .buttonStyle(.plain)
                         .contentShape(Rectangle())
                         .contextMenu {
@@ -309,13 +311,21 @@ struct TransactionsView: View {
                                 redDeleteLabel
                             }
                             .tint(.red)
-                        } preview: {
+                        }
+                        
+                        preview: {
                             TransactionRowView(
                                 transaction: transaction,
                                 currencyCode: appState.selectedCurrencyCode
                             )
                             .padding(16)
-                            .frame(maxWidth: 420)
+                            .frame(maxWidth: 720)
+                            .onAppear {
+                                activeContextMenuItemID = item.id
+                            }
+                            .onDisappear {
+                                clearActiveContextMenuItem(item.id)
+                            }
                         }
                         .onAppear {
                             loadOlderPageIfNeeded(afterDisplaying: item)
@@ -330,6 +340,7 @@ struct TransactionsView: View {
                             )
                             .contentShape(Rectangle())
                         }
+                        .opacity(activeContextMenuItemID == item.id ? 0 : 1)
                         .buttonStyle(.plain)
                         .contentShape(Rectangle())
                         .contextMenu {
@@ -346,6 +357,12 @@ struct TransactionsView: View {
                             )
                             .padding(16)
                             .frame(maxWidth: 420)
+                            .onAppear {
+                                activeContextMenuItemID = item.id
+                            }
+                            .onDisappear {
+                                clearActiveContextMenuItem(item.id)
+                            }
                         }
                         .onAppear {
                             loadOlderPageIfNeeded(afterDisplaying: item)
@@ -368,6 +385,12 @@ struct TransactionsView: View {
         } icon: {
             Image(systemName: "trash")
                 .foregroundStyle(.red)
+        }
+    }
+
+    private func clearActiveContextMenuItem(_ itemID: String) {
+        if activeContextMenuItemID == itemID {
+            activeContextMenuItemID = nil
         }
     }
 
