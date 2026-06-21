@@ -424,6 +424,10 @@ private struct InsightsDashboardContent: View {
                 currencyCode: currencyCode,
                 palette: palette
             )
+            InsightsSignalsPanel(
+                report: report,
+                currencyCode: currencyCode
+            )
 
             ViewThatFits {
                 HStack(alignment: .top, spacing: 16) {
@@ -475,6 +479,38 @@ private struct InsightsDashboardContent: View {
                         transactions: report.topTransactions,
                         currencyCode: currencyCode
                     )
+                }
+            }
+        }
+    }
+}
+
+private struct InsightsSignalsPanel: View {
+    let report: InsightReport
+    let currencyCode: String
+
+    var body: some View {
+        InsightsPanel(
+            title: "Smart insights",
+            subtitle: "Local signals from this report range"
+        ) {
+            if report.insightSignals.isEmpty {
+                EmptyStateView(
+                    icon: "sparkles",
+                    title: "No signals yet",
+                    message: "Float did not find unusual spending, duplicate charges, or budget risks in this range."
+                )
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(report.insightSignals.prefix(5)) { signal in
+                        InsightSignalRowView(
+                            signal: signal,
+                            currencyCode: currencyCode
+                        )
+                        if signal.id != report.insightSignals.prefix(5).last?.id {
+                            Divider()
+                        }
+                    }
                 }
             }
         }
@@ -2011,6 +2047,28 @@ private struct InsightReport {
                 }
                 return $0.progress > $1.progress
             }
+    }
+
+    var budgetAlerts: [BudgetAlertItem] {
+        BudgetAlertsUseCase.calculate(
+            categoryBudgets: categoryBudgets,
+            transactions: transactions,
+            period: range
+        )
+    }
+
+    var insightSignals: [InsightSignal] {
+        InsightSignalsUseCase.generate(
+            period: range,
+            transactions: transactions,
+            previousTransactions: previousTransactions,
+            allTransactions: allTransactions,
+            categoryBudgets: categoryBudgets,
+            recurringRules: recurringRules,
+            activeBudget: activeBudget,
+            budgetAlerts: budgetAlerts,
+            currencyCode: activeBudget?.currencyCode ?? MoneyFormatter.currencyCodeFromLocale()
+        )
     }
 
     var totalCategoryBudgetMinor: Int64 {

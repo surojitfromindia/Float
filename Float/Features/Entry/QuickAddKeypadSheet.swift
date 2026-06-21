@@ -29,6 +29,8 @@ struct QuickAddKeypadSheet: View {
     @Query(sort: \CategoryItem.sortOrder) private var allCategories: [CategoryItem]
     @Query(sort: \AccountItem.createdAt) private var allAccounts: [AccountItem]
     @Query(sort: \PersonItem.createdAt) private var allPeople: [PersonItem]
+    @Query(sort: \MerchantAliasItem.lastUsedAt, order: .reverse) private var allMerchantAliases:
+        [MerchantAliasItem]
 
     let transactionToEdit: TransactionItem?
     let event: EventItem?
@@ -43,6 +45,7 @@ struct QuickAddKeypadSheet: View {
     @State private var timestamp = Date()
     @State private var expectedDueDate = Date()
     @State private var validationMessage: String?
+    @State private var smartEntryText = ""
     @State private var showingCategoryPicker = false
     @State private var showingSplitEntry = false
     @State private var recentTransactions: [TransactionItem] = []
@@ -57,6 +60,7 @@ struct QuickAddKeypadSheet: View {
     private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
     private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
     private var people: [PersonItem] { filterActiveProfile(allPeople) }
+    private var merchantAliases: [MerchantAliasItem] { filterActiveProfile(allMerchantAliases) }
 
     init(
         transactionToEdit: TransactionItem?,
@@ -117,6 +121,20 @@ struct QuickAddKeypadSheet: View {
             .prefix(8)
             .map { $0 }
     }
+    private var quickEntrySuggestions: [QuickEntrySuggestion] {
+        guard transactionToEdit == nil, !isPending else { return [] }
+        return QuickEntryIntelligenceUseCase.suggestions(
+            query: smartEntryText.nilIfBlankForQuickEntrySheet ?? note,
+            amountMinor: amountMinor,
+            isExpense: isExpense,
+            recentTransactions: recentTransactions,
+            merchantAliases: merchantAliases,
+            categories: categories,
+            accounts: accounts,
+            people: people,
+            currencyCode: appState.selectedCurrencyCode
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -139,6 +157,10 @@ struct QuickAddKeypadSheet: View {
                     .contentTransition(.numericText())
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 6)
+
+                    if transactionToEdit == nil {
+                        smartEntrySection
+                    }
 
                     if transactionToEdit != nil && !isPending {
                         splitAmountButton
@@ -268,6 +290,9 @@ struct QuickAddKeypadSheet: View {
             .onChange(of: note) { _, _ in
                 applySmartCategorySuggestion()
             }
+            .onSubmit {
+                applySmartEntryText()
+            }
             .sheet(isPresented: $showingCategoryPicker) {
                 CategoryPickerSheet(
                     title: isExpense
@@ -286,6 +311,47 @@ struct QuickAddKeypadSheet: View {
                 )
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var smartEntrySection: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    Image(systemName: "sparkles")
+                        .foregroundStyle(palette.accent)
+                    TextField(
+                        "Try \"coffee 4.50 cash yesterday\"",
+                        text: $smartEntryText,
+                        axis: .vertical
+                    )
+                    .textFieldStyle(.plain)
+                    .lineLimit(1...2)
+                    .submitLabel(.done)
+                    Button("Apply", action: applySmartEntryText)
+                        .font(.caption.weight(.bold))
+                        .disabled(smartEntryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+
+                if !quickEntrySuggestions.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(quickEntrySuggestions) { suggestion in
+                                Button {
+                                    applyQuickSuggestion(suggestion)
+                                } label: {
+                                    QuickEntrySuggestionChip(
+                                        suggestion: suggestion,
+                                        currencyCode: appState.selectedCurrencyCode
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -718,12 +784,19 @@ struct QuickAddKeypadSheet: View {
                     people: resolvedPeople
                 )
             }
+            learnMerchantAlias(
+                note: cleanNote,
+                isExpense: isExpense,
+                category: category,
+                account: account
+            )
             appState.lastUsedCategoryID = category.id.uuidString
             appState.lastUsedAccountID = account.id.uuidString
             Haptics.confirm()
             if keepOpen {
                 keypadText = ""
                 note = ""
+                smartEntryText = ""
                 validationMessage = nil
                 timestamp = initialTimestamp ?? Date()
             } else {
@@ -757,6 +830,72 @@ struct QuickAddKeypadSheet: View {
         Haptics.tick()
     }
 
+    private func applySmartEntryText() {
+        let text = smartEntryText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        let parsed = QuickEntryIntelligenceUseCase.parse(
+            text,
+            currencyCode: appState.selectedCurrencyCode,
+            categories: categories.filter { !$0.archived },
+            accounts: accounts,
+            people: people
+        )
+        guard parsed.hasContent else { return }
+        applyParsedEntry(parsed)
+        validationMessage = nil
+        Haptics.tick()
+    }
+
+    private func applyParsedEntry(_ parsed: QuickEntryParseResult) {
+        if let isExpense = parsed.isExpense {
+            transactionKind = isExpense ? .expense : .income
+        }
+        if let amountMinor = parsed.amountMinor {
+            keypadText = String(amountMinor)
+        }
+        if let timestamp = parsed.timestamp {
+            self.timestamp = timestamp
+            expectedDueDate = timestamp
+        }
+        if let accountID = parsed.accountID,
+           let account = accounts.first(where: { $0.id == accountID && !$0.archived }) {
+            selectedAccount = account
+        }
+        if let categoryID = parsed.categoryID,
+           let category = categories.first(where: { $0.id == categoryID && !$0.archived }) {
+            transactionKind = category.isIncome ? .income : .expense
+            selectedCategory = category
+        }
+        if !parsed.personIDs.isEmpty {
+            selectedPersonIDs.formUnion(parsed.personIDs)
+        }
+        if let parsedNote = parsed.note {
+            note = parsedNote
+        }
+    }
+
+    private func applyQuickSuggestion(_ suggestion: QuickEntrySuggestion) {
+        transactionKind = suggestion.isExpense ? .expense : .income
+        if let amountMinor = suggestion.amountMinor, amountMinor > 0 {
+            keypadText = String(amountMinor)
+        }
+        if let categoryID = suggestion.categoryID,
+           let category = categories.first(where: { $0.id == categoryID }) {
+            selectedCategory = category
+        }
+        if let accountID = suggestion.accountID,
+           let account = accounts.first(where: { $0.id == accountID }) {
+            selectedAccount = account
+        }
+        selectedPersonIDs.formUnion(suggestion.personIDs)
+        if let suggestedNote = suggestion.note?.nilIfBlankForQuickEntrySheet {
+            note = suggestedNote
+            smartEntryText = suggestedNote
+        }
+        validationMessage = nil
+        Haptics.tick()
+    }
+
     private var resolvedPeople: [PersonItem] {
         people.filter { selectedPersonIDs.contains($0.id) }
     }
@@ -774,6 +913,43 @@ struct QuickAddKeypadSheet: View {
         }) {
             selectedCategory = match
         }
+    }
+
+    private func learnMerchantAlias(
+        note: String,
+        isExpense: Bool,
+        category: CategoryItem,
+        account: AccountItem
+    ) {
+        let displayName = note.nilIfBlankForQuickEntrySheet
+            ?? smartEntryText.nilIfBlankForQuickEntrySheet
+        guard let displayName else { return }
+        let alias = displayName.normalizedMerchantAlias
+        guard alias.count >= 2 else { return }
+
+        let existing = merchantAliases.first {
+            $0.alias == alias && $0.isExpense == isExpense
+        }
+        if let existing {
+            existing.canonicalName = displayName
+            existing.category = category
+            existing.account = account
+            existing.usageCount += 1
+            existing.lastUsedAt = Date()
+            existing.updatedAt = Date()
+        } else {
+            modelContext.insert(
+                MerchantAliasItem(
+                    alias: alias,
+                    canonicalName: displayName,
+                    isExpense: isExpense,
+                    category: category,
+                    account: account,
+                    usageCount: 1
+                )
+            )
+        }
+        try? modelContext.save()
     }
 
     private func deleteTransaction() {
@@ -869,6 +1045,61 @@ private struct CategoryPickerSheet: View {
     }
 }
 
+private struct QuickEntrySuggestionChip: View {
+    let suggestion: QuickEntrySuggestion
+    let currencyCode: String
+
+    private var tint: Color {
+        Color(hex: suggestion.colorHex)
+    }
+
+    private var amountText: String? {
+        guard let amountMinor = suggestion.amountMinor, amountMinor > 0 else {
+            return nil
+        }
+        return MoneyFormatter.string(
+            minorUnits: amountMinor,
+            currencyCode: currencyCode
+        )
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: suggestion.icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(tint)
+                .frame(width: 24, height: 24)
+                .background(tint.opacity(0.12), in: Circle())
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(suggestion.title)
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                Text(amountText ?? suggestion.subtitle)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(
+            tint.opacity(0.08),
+            in: RoundedRectangle(
+                cornerRadius: FloatTheme.tileRadius,
+                style: .continuous
+            )
+        )
+        .overlay(
+            RoundedRectangle(
+                cornerRadius: FloatTheme.tileRadius,
+                style: .continuous
+            )
+            .strokeBorder(tint.opacity(0.16), lineWidth: 1)
+        )
+    }
+}
+
 struct FlowLayout<Content: View>: View {
     let spacing: CGFloat
     let content: Content
@@ -886,5 +1117,12 @@ struct FlowLayout<Content: View>: View {
                 spacing: spacing
             ) { content }
         }
+    }
+}
+
+private extension String {
+    var nilIfBlankForQuickEntrySheet: String? {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

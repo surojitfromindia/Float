@@ -346,6 +346,66 @@ struct SummaryMetricTile: View {
     }
 }
 
+struct InsightSignalRowView: View {
+    let signal: InsightSignal
+    let currencyCode: String
+
+    private var tint: Color {
+        Color(hex: signal.colorHex)
+    }
+
+    private var severityText: LocalizedStringResource {
+        switch signal.severity {
+        case .critical: "Critical"
+        case .warning: "Warning"
+        case .notice: "Notice"
+        case .info: "Info"
+        }
+    }
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            FloatIconBadge(icon: signal.icon, tint: tint, size: 36)
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 8) {
+                    Text(signal.title)
+                        .font(.subheadline.weight(.semibold))
+                        .lineLimit(2)
+                    Spacer(minLength: 0)
+                    Text(severityText)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(tint)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(
+                            tint.opacity(0.1),
+                            in: Capsule()
+                        )
+                }
+
+                Text(signal.message)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if let amountMinor = signal.amountMinor, amountMinor > 0 {
+                    Text(
+                        MoneyFormatter.string(
+                            minorUnits: amountMinor,
+                            currencyCode: currencyCode
+                        )
+                    )
+                    .font(.caption2.weight(.bold))
+                    .monospacedDigit()
+                    .foregroundStyle(tint)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 struct CurrencyAmountPreview: View {
     let minorUnits: Int64
     let currencyCode: String

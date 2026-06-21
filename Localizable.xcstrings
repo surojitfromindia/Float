@@ -1367,6 +1367,9 @@
         }
       }
     },
+    "Apply" : {
+
+    },
     "Appearance" : {
       "localizations" : {
         "bn" : {
@@ -2203,6 +2206,9 @@
       }
     },
     "Create transaction" : {
+
+    },
+    "Critical" : {
 
     },
     "Cumulative" : {
@@ -3308,6 +3314,9 @@
         }
       }
     },
+    "Float did not find unusual spending, duplicate charges, or budget risks in this range." : {
+
+    },
     "Float is locked" : {
       "localizations" : {
         "bn" : {
@@ -3534,6 +3543,9 @@
         }
       }
     },
+    "higher" : {
+
+    },
     "Highest day" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3714,6 +3726,9 @@
         }
       }
     },
+    "Income is running lower" : {
+
+    },
     "Income vs expenses" : {
       "localizations" : {
         "bn" : {
@@ -3734,6 +3749,9 @@
           }
         }
       }
+    },
+    "Info" : {
+
     },
     "Initial amount" : {
 
@@ -3829,6 +3847,9 @@
           }
         }
       }
+    },
+    "Large transaction found" : {
+
     },
     "Largest expenses in this range" : {
       "localizations" : {
@@ -4030,6 +4051,9 @@
         }
       }
     },
+    "Local signals from this report range" : {
+
+    },
     "Low" : {
       "localizations" : {
         "en" : {
@@ -4039,6 +4063,9 @@
           }
         }
       }
+    },
+    "lower" : {
+
     },
     "Manage" : {
       "localizations" : {
@@ -4551,6 +4578,9 @@
     "No settlement cases yet" : {
 
     },
+    "No signals yet" : {
+
+    },
     "No spending yet" : {
       "localizations" : {
         "bn" : {
@@ -4692,6 +4722,9 @@
           }
         }
       }
+    },
+    "Notice" : {
+
     },
     "Of this report" : {
       "localizations" : {
@@ -5171,6 +5204,9 @@
         }
       }
     },
+    "Possible duplicate" : {
+
+    },
     "Predictable bills and subscriptions" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5367,6 +5403,9 @@
         }
       }
     },
+    "Recurring amount changed" : {
+
+    },
     "Recurring bills and goals will appear here." : {
       "localizations" : {
         "en" : {
@@ -5398,6 +5437,9 @@
           }
         }
       }
+    },
+    "Recurring costs are heavy" : {
+
     },
     "Recurring due" : {
       "localizations" : {
@@ -6003,6 +6045,9 @@
       }
     },
     "Skipped" : {
+
+    },
+    "Smart insights" : {
 
     },
     "Sort" : {
@@ -6828,6 +6873,9 @@
         }
       }
     },
+    "Try \"coffee 4.50 cash yesterday\"" : {
+
+    },
     "Try changing the search or filters." : {
 
     },
@@ -6875,6 +6923,9 @@
           }
         }
       }
+    },
+    "uncategorized" : {
+
     },
     "Undo" : {
       "localizations" : {
@@ -7098,6 +7149,9 @@
           }
         }
       }
+    },
+    "Warning" : {
+
     },
     "Week pulse" : {
       "localizations" : {

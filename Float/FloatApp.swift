@@ -24,6 +24,8 @@ struct FloatApp: App {
             GoalItem.self,
             BudgetPeriodItem.self,
             CategoryBudgetItem.self,
+            InsightSignalItem.self,
+            MerchantAliasItem.self,
             SettlementCaseItem.self,
             SettlementEntryItem.self,
             SettlementMilestoneItem.self,

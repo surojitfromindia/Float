@@ -280,6 +280,8 @@ enum BackupService {
             try modelContext.delete(model: RecurringRuleItem.self)
             try modelContext.delete(model: PersonItem.self)
             try modelContext.delete(model: GoalItem.self)
+            try modelContext.delete(model: InsightSignalItem.self)
+            try modelContext.delete(model: MerchantAliasItem.self)
             try modelContext.delete(model: CategoryBudgetItem.self)
             try modelContext.delete(model: BudgetPeriodItem.self)
             try modelContext.delete(model: CategoryItem.self)

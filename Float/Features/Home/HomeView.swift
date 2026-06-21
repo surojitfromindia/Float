@@ -83,6 +83,10 @@ struct HomeView: View {
         dashboardSnapshot.budgetAlerts
     }
 
+    private var insightSignals: [InsightSignal] {
+        dashboardSnapshot.insightSignals
+    }
+
     private var pendingMetrics: PendingTransactionMetrics {
         dashboardSnapshot.pendingMetrics
     }
@@ -142,6 +146,7 @@ struct HomeView: View {
                         settlementsSection
                         queueLinksSection
                         pinnedEventsSection
+                        insightSignalsSection
                         cashFlowForecast
                         budgetAlertsSection
                         recentTransactionsSection
@@ -446,6 +451,27 @@ struct HomeView: View {
         }
     }
 
+    @ViewBuilder private var insightSignalsSection: some View {
+        if !insightSignals.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: LocalizedStringResource("Smart insights"))
+                VStack(spacing: 12) {
+                    ForEach(insightSignals.prefix(3)) { signal in
+                        InsightSignalRowView(
+                            signal: signal,
+                            currencyCode: appState.selectedCurrencyCode
+                        )
+                        if signal.id != insightSignals.prefix(3).last?.id {
+                            Divider()
+                        }
+                    }
+                }
+                .padding(20)
+                .transactionSectionGlassSurface(cornerRadius: 24)
+            }
+        }
+    }
+
     private var queueLinksSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             SectionHeader(title: LocalizedStringResource("Action center"))
@@ -644,6 +670,11 @@ struct HomeView: View {
         let periodTransactions = allTransactions.filter {
             $0.timestamp >= period.start && $0.timestamp <= periodEnd
         }
+        let previousPeriod = previousPeriod(for: period, calendar: calendar)
+        let previousPeriodEnd = endOfDay(for: previousPeriod.end, calendar: calendar)
+        let previousTransactions = allTransactions.filter {
+            $0.timestamp >= previousPeriod.start && $0.timestamp <= previousPeriodEnd
+        }
         let comparisonTransactions = fetchComparisonTransactions(now: now, calendar: calendar)
         let result = SafeToSpendUseCase.calculate(
             period: period,
@@ -670,6 +701,19 @@ struct HomeView: View {
             now: now,
             calendar: calendar
         )
+        let signals = InsightSignalsUseCase.generate(
+            period: period,
+            transactions: periodTransactions,
+            previousTransactions: previousTransactions,
+            allTransactions: allTransactions,
+            categoryBudgets: categoryBudgets,
+            recurringRules: recurringRules,
+            activeBudget: budget,
+            budgetAlerts: alerts,
+            currencyCode: appState.selectedCurrencyCode,
+            now: now,
+            calendar: calendar
+        )
 
         return HomeDashboardSnapshot(
             result: result,
@@ -685,6 +729,7 @@ struct HomeView: View {
             ),
             forecastItems: forecast,
             budgetAlerts: alerts,
+            insightSignals: signals,
             pendingMetrics: pendingMetrics(
                 transactions: allTransactions,
                 period: period,
@@ -867,6 +912,24 @@ struct HomeView: View {
             to: start
         ) ?? date
     }
+
+    private func previousPeriod(
+        for period: BudgetPeriod,
+        calendar: Calendar
+    ) -> BudgetPeriod {
+        let days = max(
+            1,
+            (calendar.dateComponents([.day], from: period.start, to: period.end).day ?? 0) + 1
+        )
+        let end = calendar.date(byAdding: .day, value: -1, to: period.start)
+            ?? period.start
+        let start = calendar.date(byAdding: .day, value: -days + 1, to: end)
+            ?? end
+        return BudgetPeriod(
+            start: calendar.startOfDay(for: start),
+            end: calendar.startOfDay(for: end)
+        )
+    }
 }
 
 private func localizedFormat(_ key: String, _ arguments: CVarArg...) -> String {
@@ -905,6 +968,7 @@ private struct HomeDashboardSnapshot {
     let yesterdayExpensesMinor: Int64
     let forecastItems: [CashFlowForecastItem]
     let budgetAlerts: [BudgetAlertItem]
+    let insightSignals: [InsightSignal]
     let pendingMetrics: PendingTransactionMetrics
     let recentTransactions: [TransactionItem]
 
@@ -921,6 +985,7 @@ private struct HomeDashboardSnapshot {
             yesterdayExpensesMinor: 0,
             forecastItems: [],
             budgetAlerts: [],
+            insightSignals: [],
             pendingMetrics: .empty,
             recentTransactions: []
         )

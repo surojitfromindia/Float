@@ -218,6 +218,26 @@ enum SettlementReconciliationStatus: String, Codable, CaseIterable, Identifiable
     }
 }
 
+enum InsightSignalKind: String, Codable, CaseIterable, Identifiable {
+    case duplicateCharge
+    case unusualSpend
+    case budgetRisk
+    case recurringChange
+    case incomeDrop
+    case largeTransaction
+
+    var id: String { rawValue }
+}
+
+enum InsightSignalSeverity: String, Codable, CaseIterable, Identifiable {
+    case info
+    case notice
+    case warning
+    case critical
+
+    var id: String { rawValue }
+}
+
 @Model
 final class UserProfileItem {
     var id: UUID = UUID()
@@ -905,6 +925,123 @@ final class CategoryBudgetItem {
 extension CategoryBudgetItem: ProfileOwned {}
 
 @Model
+final class InsightSignalItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var kindRaw: String = InsightSignalKind.unusualSpend.rawValue
+    var severityRaw: String = InsightSignalSeverity.notice.rawValue
+    var title: String = ""
+    var message: String = ""
+    var icon: String = "sparkles"
+    var colorHex: String = "#0E7C7B"
+    var amountMinor: Int64?
+    var referenceID: String?
+    var detectedAt: Date = Date()
+    var dismissedAt: Date?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        kind: InsightSignalKind,
+        severity: InsightSignalSeverity,
+        title: String,
+        message: String,
+        icon: String,
+        colorHex: String,
+        amountMinor: Int64? = nil,
+        referenceID: String? = nil,
+        detectedAt: Date = Date(),
+        dismissedAt: Date? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID
+        self.kindRaw = kind.rawValue
+        self.severityRaw = severity.rawValue
+        self.title = title
+        self.message = message
+        self.icon = icon
+        self.colorHex = colorHex
+        self.amountMinor = amountMinor.map(normalizedMinorUnits)
+        self.referenceID = referenceID?.nilIfBlank
+        self.detectedAt = detectedAt
+        self.dismissedAt = dismissedAt
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension InsightSignalItem: ProfileOwned {}
+
+extension InsightSignalItem {
+    var kind: InsightSignalKind {
+        get { InsightSignalKind(rawValue: kindRaw) ?? .unusualSpend }
+        set { kindRaw = newValue.rawValue }
+    }
+
+    var severity: InsightSignalSeverity {
+        get { InsightSignalSeverity(rawValue: severityRaw) ?? .notice }
+        set { severityRaw = newValue.rawValue }
+    }
+
+    var isDismissed: Bool {
+        dismissedAt != nil
+    }
+}
+
+@Model
+final class MerchantAliasItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var alias: String = ""
+    var canonicalName: String = ""
+    var isExpense: Bool = true
+    var category: CategoryItem?
+    var account: AccountItem?
+    var usageCount: Int = 0
+    var lastUsedAt: Date = Date()
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        alias: String,
+        canonicalName: String,
+        isExpense: Bool = true,
+        category: CategoryItem? = nil,
+        account: AccountItem? = nil,
+        usageCount: Int = 0,
+        lastUsedAt: Date = Date(),
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID ?? category?.profileID ?? account?.profileID
+        self.alias = alias.normalizedMerchantAlias
+        self.canonicalName = canonicalName.nilIfBlank ?? alias.nilIfBlank ?? ""
+        self.isExpense = isExpense
+        self.category = category
+        self.account = account
+        self.usageCount = max(0, usageCount)
+        self.lastUsedAt = lastUsedAt
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension MerchantAliasItem: ProfileOwned {}
+
+extension MerchantAliasItem {
+    var displayName: String {
+        canonicalName.nilIfBlank ?? alias
+    }
+}
+
+@Model
 final class SettlementCaseItem {
     var id: UUID = UUID()
     var profileID: UUID?
@@ -1473,6 +1610,15 @@ extension String {
     fileprivate var nilIfBlank: String? {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    var normalizedMerchantAlias: String {
+        let allowed = lowercased().map { character in
+            character.isLetter || character.isNumber ? character : " "
+        }
+        return String(allowed)
+            .split(separator: " ")
+            .joined(separator: " ")
     }
 }
 
