@@ -1,6 +1,251 @@
 import Foundation
 import SwiftData
 
+struct ProfileDataCounts {
+    var accounts = 0
+    var categories = 0
+    var people = 0
+    var events = 0
+    var transactions = 0
+    var transfers = 0
+    var recurringRules = 0
+    var goals = 0
+    var budgets = 0
+    var settlements = 0
+
+    var total: Int {
+        accounts + categories + people + events + transactions + transfers
+            + recurringRules + goals + budgets + settlements
+    }
+}
+
+@MainActor
+enum ProfileDataService {
+    static func ensureActiveProfile(
+        modelContext: ModelContext,
+        appState: AppState
+    ) {
+        let profiles = fetchProfiles(modelContext: modelContext)
+        let selectedID = UUID(uuidString: appState.activeProfileID)
+        let selectedProfile = selectedID.flatMap { id in
+            profiles.first { $0.id == id && !$0.archived }
+        }
+        let profile = selectedProfile
+            ?? profiles.first { $0.isDefault && !$0.archived }
+            ?? profiles.first { !$0.archived }
+            ?? createDefaultProfile(modelContext: modelContext, appState: appState)
+
+        appState.applyProfile(profile)
+        ActiveProfileRegistry.profileID = profile.id
+        assignUnownedRecords(to: profile.id, modelContext: modelContext)
+        SeedDataService.ensureSeedData(
+            modelContext: modelContext,
+            currencyCode: profile.currencyCode
+        )
+        try? modelContext.save()
+    }
+
+    static func createProfile(
+        name: String,
+        currencyCode: String,
+        modelContext: ModelContext
+    ) throws -> UserProfileItem {
+        let profile = UserProfileItem(
+            displayName: name,
+            currencyCode: currencyCode,
+            isDefault: fetchProfiles(modelContext: modelContext).isEmpty
+        )
+        modelContext.insert(profile)
+        ActiveProfileRegistry.profileID = profile.id
+        SeedDataService.ensureSeedData(
+            modelContext: modelContext,
+            currencyCode: currencyCode
+        )
+        try modelContext.save()
+        return profile
+    }
+
+    static func updateProfile(
+        _ profile: UserProfileItem,
+        name: String,
+        currencyCode: String
+    ) throws {
+        profile.displayName = name.trimmedNilIfBlank ?? String(localized: "Personal")
+        profile.currencyCode = currencyCode
+        profile.updatedAt = Date()
+        try profile.modelContext?.save()
+    }
+
+    static func persistPreferences(
+        from appState: AppState,
+        modelContext: ModelContext
+    ) {
+        guard
+            let id = UUID(uuidString: appState.activeProfileID),
+            let profile = fetchProfile(id: id, modelContext: modelContext)
+        else { return }
+        appState.writePreferences(to: profile)
+        try? modelContext.save()
+    }
+
+    static func counts(
+        for profile: UserProfileItem,
+        modelContext: ModelContext
+    ) -> ProfileDataCounts {
+        let id = profile.id
+        return ProfileDataCounts(
+            accounts: count(AccountItem.self, profileID: id, modelContext: modelContext),
+            categories: count(CategoryItem.self, profileID: id, modelContext: modelContext),
+            people: count(PersonItem.self, profileID: id, modelContext: modelContext),
+            events: count(EventItem.self, profileID: id, modelContext: modelContext),
+            transactions: count(TransactionItem.self, profileID: id, modelContext: modelContext),
+            transfers: count(TransferItem.self, profileID: id, modelContext: modelContext),
+            recurringRules: count(RecurringRuleItem.self, profileID: id, modelContext: modelContext),
+            goals: count(GoalItem.self, profileID: id, modelContext: modelContext),
+            budgets: count(BudgetPeriodItem.self, profileID: id, modelContext: modelContext),
+            settlements: count(SettlementCaseItem.self, profileID: id, modelContext: modelContext)
+        )
+    }
+
+    static func deleteProfile(
+        _ profile: UserProfileItem,
+        modelContext: ModelContext
+    ) throws {
+        let activeProfiles = fetchProfiles(modelContext: modelContext)
+            .filter { !$0.archived && $0.id != profile.id }
+        guard !activeProfiles.isEmpty else {
+            throw DataIntegrityError.invalidInput
+        }
+        let profileID = profile.id
+        try deleteData(profileID: profileID, modelContext: modelContext)
+        modelContext.delete(profile)
+        try modelContext.save()
+    }
+
+    static func deleteData(
+        profileID: UUID,
+        modelContext: ModelContext
+    ) throws {
+        deleteMatching(TransactionPersonTagItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(RecurringRulePersonTagItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(SettlementMilestoneItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(SettlementEntryItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(SettlementCaseItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(TransactionItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(EventItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(EventCategoryItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(TransactionTemplateGroupEntryItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(TransactionTemplateGroupItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(TransactionTemplateItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(TransferItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(RecurringRuleItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(PersonItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(GoalItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(CategoryBudgetItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(BudgetPeriodItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(CategoryItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(AccountItem.self, profileID: profileID, modelContext: modelContext)
+    }
+
+    private static func createDefaultProfile(
+        modelContext: ModelContext,
+        appState: AppState
+    ) -> UserProfileItem {
+        let profile = UserProfileItem(
+            displayName: String(localized: "Personal"),
+            currencyCode: appState.selectedCurrencyCode,
+            lastUsedCategoryID: appState.lastUsedCategoryID,
+            lastUsedAccountID: appState.lastUsedAccountID,
+            recurringRemindersEnabled: appState.recurringRemindersEnabled,
+            budgetAlertsEnabled: appState.budgetAlertsEnabled,
+            goalRemindersEnabled: appState.goalRemindersEnabled,
+            settlementRemindersEnabled: appState.settlementRemindersEnabled,
+            recurringReminderMinutes: appState.recurringReminderMinutes,
+            goalReminderMinutes: appState.goalReminderMinutes,
+            settlementReminderMinutes: appState.settlementReminderMinutes,
+            budgetAlertSensitivityRaw: appState.budgetAlertSensitivityRaw,
+            isDefault: true
+        )
+        modelContext.insert(profile)
+        return profile
+    }
+
+    private static func fetchProfiles(modelContext: ModelContext) -> [UserProfileItem] {
+        (try? modelContext.fetch(
+            FetchDescriptor<UserProfileItem>(
+                sortBy: [SortDescriptor(\.createdAt)]
+            )
+        )) ?? []
+    }
+
+    private static func fetchProfile(
+        id: UUID,
+        modelContext: ModelContext
+    ) -> UserProfileItem? {
+        let descriptor = FetchDescriptor<UserProfileItem>(
+            predicate: #Predicate<UserProfileItem> { $0.id == id }
+        )
+        return try? modelContext.fetch(descriptor).first
+    }
+
+    private static func assignUnownedRecords(
+        to profileID: UUID,
+        modelContext: ModelContext
+    ) {
+        assign(AccountItem.self, profileID: profileID, modelContext: modelContext)
+        assign(CategoryItem.self, profileID: profileID, modelContext: modelContext)
+        assign(PersonItem.self, profileID: profileID, modelContext: modelContext)
+        assign(EventCategoryItem.self, profileID: profileID, modelContext: modelContext)
+        assign(EventItem.self, profileID: profileID, modelContext: modelContext)
+        assign(TransactionItem.self, profileID: profileID, modelContext: modelContext)
+        assign(TransactionPersonTagItem.self, profileID: profileID, modelContext: modelContext)
+        assign(TransactionTemplateItem.self, profileID: profileID, modelContext: modelContext)
+        assign(TransactionTemplateGroupItem.self, profileID: profileID, modelContext: modelContext)
+        assign(TransactionTemplateGroupEntryItem.self, profileID: profileID, modelContext: modelContext)
+        assign(TransferItem.self, profileID: profileID, modelContext: modelContext)
+        assign(RecurringRuleItem.self, profileID: profileID, modelContext: modelContext)
+        assign(RecurringRulePersonTagItem.self, profileID: profileID, modelContext: modelContext)
+        assign(GoalItem.self, profileID: profileID, modelContext: modelContext)
+        assign(BudgetPeriodItem.self, profileID: profileID, modelContext: modelContext)
+        assign(CategoryBudgetItem.self, profileID: profileID, modelContext: modelContext)
+        assign(SettlementCaseItem.self, profileID: profileID, modelContext: modelContext)
+        assign(SettlementEntryItem.self, profileID: profileID, modelContext: modelContext)
+        assign(SettlementMilestoneItem.self, profileID: profileID, modelContext: modelContext)
+    }
+
+    private static func assign<T: PersistentModel & ProfileOwned>(
+        _ type: T.Type,
+        profileID: UUID,
+        modelContext: ModelContext
+    ) {
+        let items = (try? modelContext.fetch(FetchDescriptor<T>())) ?? []
+        for item in items where item.profileID == nil {
+            item.profileID = profileID
+        }
+    }
+
+    private static func count<T: PersistentModel & ProfileOwned>(
+        _ type: T.Type,
+        profileID: UUID,
+        modelContext: ModelContext
+    ) -> Int {
+        ((try? modelContext.fetch(FetchDescriptor<T>())) ?? [])
+            .filter { $0.profileID == profileID }
+            .count
+    }
+
+    private static func deleteMatching<T: PersistentModel & ProfileOwned>(
+        _ type: T.Type,
+        profileID: UUID,
+        modelContext: ModelContext
+    ) {
+        for item in ((try? modelContext.fetch(FetchDescriptor<T>())) ?? [])
+            where item.profileID == profileID {
+            modelContext.delete(item)
+        }
+    }
+}
+
 struct TransactionDraft {
     let amountMinor: Int64
     let isExpense: Bool
@@ -264,7 +509,7 @@ struct TransactionRepository {
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
         descriptor.includePendingChanges = true
-        return try modelContext.fetch(descriptor)
+        return filterActiveProfile(try modelContext.fetch(descriptor))
     }
 
     private func save() throws {
@@ -639,17 +884,23 @@ struct CategoryRepository {
     }
 
     private func isCategoryInUse(_ category: CategoryItem) -> Bool {
-        let transactions = (try? modelContext.fetch(FetchDescriptor<TransactionItem>())) ?? []
+        let transactions = filterActiveProfile(
+            (try? modelContext.fetch(FetchDescriptor<TransactionItem>())) ?? []
+        )
         if transactions.contains(where: { $0.category?.id == category.id }) {
             return true
         }
 
-        let rules = (try? modelContext.fetch(FetchDescriptor<RecurringRuleItem>())) ?? []
+        let rules = filterActiveProfile(
+            (try? modelContext.fetch(FetchDescriptor<RecurringRuleItem>())) ?? []
+        )
         if rules.contains(where: { $0.category?.id == category.id }) {
             return true
         }
 
-        let budgets = (try? modelContext.fetch(FetchDescriptor<CategoryBudgetItem>())) ?? []
+        let budgets = filterActiveProfile(
+            (try? modelContext.fetch(FetchDescriptor<CategoryBudgetItem>())) ?? []
+        )
         return budgets.contains { $0.category?.id == category.id }
     }
 }
@@ -689,19 +940,25 @@ struct AccountRepository {
     }
 
     private func isAccountInUse(_ account: AccountItem) -> Bool {
-        let transactions = (try? modelContext.fetch(FetchDescriptor<TransactionItem>())) ?? []
+        let transactions = filterActiveProfile(
+            (try? modelContext.fetch(FetchDescriptor<TransactionItem>())) ?? []
+        )
         if transactions.contains(where: { $0.account?.id == account.id }) {
             return true
         }
 
-        let transfers = (try? modelContext.fetch(FetchDescriptor<TransferItem>())) ?? []
+        let transfers = filterActiveProfile(
+            (try? modelContext.fetch(FetchDescriptor<TransferItem>())) ?? []
+        )
         if transfers.contains(where: {
             $0.fromAccount?.id == account.id || $0.toAccount?.id == account.id
         }) {
             return true
         }
 
-        let rules = (try? modelContext.fetch(FetchDescriptor<RecurringRuleItem>())) ?? []
+        let rules = filterActiveProfile(
+            (try? modelContext.fetch(FetchDescriptor<RecurringRuleItem>())) ?? []
+        )
         return rules.contains { $0.account?.id == account.id }
     }
 }

@@ -6,13 +6,13 @@ struct HomeView: View {
     // model context is database context, like database connection.
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query private var goals: [GoalItem]
-    @Query private var recurringRules: [RecurringRuleItem]
-    @Query private var budgets: [BudgetPeriodItem]
-    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
-    @Query(sort: \EventItem.startDate, order: .reverse) private var events: [EventItem]
-    @Query private var categoryBudgets: [CategoryBudgetItem]
-    @Query(sort: \SettlementCaseItem.updatedAt, order: .reverse) private var settlementCases:
+    @Query private var allGoals: [GoalItem]
+    @Query private var allRecurringRules: [RecurringRuleItem]
+    @Query private var allBudgets: [BudgetPeriodItem]
+    @Query(sort: \AccountItem.createdAt) private var allAccounts: [AccountItem]
+    @Query(sort: \EventItem.startDate, order: .reverse) private var allEvents: [EventItem]
+    @Query private var allCategoryBudgets: [CategoryBudgetItem]
+    @Query(sort: \SettlementCaseItem.updatedAt, order: .reverse) private var allSettlementCases:
         [SettlementCaseItem]
     @State private var recurringRuleToEdit: RecurringRuleItem?
     @State private var recurringRulePendingPayment: RecurringRuleItem?
@@ -21,6 +21,17 @@ struct HomeView: View {
     @State private var isEntrySheetPresented = false
     @State private var isBulkEntrySheetPresented = false
     @State private var newTransactionIsExpense: Bool?
+    @State private var isHeroCompact = false
+
+    private let heroCompactThreshold: CGFloat = 28
+
+    private var goals: [GoalItem] { filterActiveProfile(allGoals) }
+    private var recurringRules: [RecurringRuleItem] { filterActiveProfile(allRecurringRules) }
+    private var budgets: [BudgetPeriodItem] { filterActiveProfile(allBudgets) }
+    private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
+    private var events: [EventItem] { filterActiveProfile(allEvents) }
+    private var categoryBudgets: [CategoryBudgetItem] { filterActiveProfile(allCategoryBudgets) }
+    private var settlementCases: [SettlementCaseItem] { filterActiveProfile(allSettlementCases) }
 
     // Prefer the active budget period for all home-screen math; fall back to the first
     // saved period so the dashboard can still render while setup data is incomplete.
@@ -112,36 +123,49 @@ struct HomeView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
+        GeometryReader { proxy in
+            let topInset = proxy.safeAreaInsets.top
+
+            VStack(spacing: 0) {
                 SafeToSpendHeroCard(
                     result: result,
                     currencyCode: appState.selectedCurrencyCode,
-                    palette: appState.themePalette.hero
+                    palette: appState.themePalette.hero,
+                    topInset: topInset,
+                    isCompact: isHeroCompact
                 )
-                .padding(.horizontal, -20)
-                .padding(.top, -20)
+                .zIndex(1)
 
-                quickActions
-                settlementsSection
-                queueLinksSection
-                pinnedEventsSection
-                cashFlowForecast
-                budgetAlertsSection
-                recentTransactionsSection
-                budgetOverview
+                ScrollView {
+                    VStack(spacing: 16) {
+                        quickActions
+                        settlementsSection
+                        queueLinksSection
+                        pinnedEventsSection
+                        cashFlowForecast
+                        budgetAlertsSection
+                        recentTransactionsSection
+                        budgetOverview
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    .padding(.bottom, 150)
+                }
+                .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                    geometry.contentOffset.y
+                } action: { _, offset in
+                    isHeroCompact = offset > heroCompactThreshold
+                }
             }
-            .padding(20)
-            .padding(.bottom, 150)
-        }
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .navigationBar)
-        .toolbarBackground(.hidden, for: .navigationBar)
-        .ignoresSafeArea(edges: .top)
-        .background {
-            HomeCalmBackground(palette: appState.themePalette.hero)
-                .ignoresSafeArea()
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
+            .toolbarBackground(.hidden, for: .navigationBar)
+            .ignoresSafeArea(edges: .top)
+            .background {
+                HomeCalmBackground()
+                    .ignoresSafeArea()
+            }
         }
         .sheet(item: $recurringRuleToEdit) { rule in
             RecurringEditorView(rule: rule)
@@ -218,47 +242,51 @@ struct HomeView: View {
     }
 
     private var quickActions: some View {
-        HStack(spacing: 10) {
-            HomeActionButton(
-                title: LocalizedStringResource("Expense"),
-                icon: "minus.circle.fill",
-                tint: HomeActionPalette.moneyOut
-            ) {
-                presentNewTransaction(isExpense: true)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+                HomeActionButton(
+                    title: LocalizedStringResource("Expense"),
+                    icon: "minus.circle.fill",
+                    tint: HomeActionPalette.moneyOut
+                ) {
+                    presentNewTransaction(isExpense: true)
+                }
+                HomeActionButton(
+                    title: LocalizedStringResource("Income"),
+                    icon: "plus.circle.fill",
+                    tint: HomeActionPalette.moneyIn
+                ) {
+                    presentNewTransaction(isExpense: false)
+                }
+                HomeActionButton(
+                    title: LocalizedStringResource("Transfer"),
+                    icon: "arrow.left.arrow.right.circle.fill",
+                    tint: HomeActionPalette.transfer,
+                    isEnabled: accounts.filter { !$0.archived }.count >= 2
+                ) {
+                    appState.presentNewTransfer()
+                }
+                HomeActionButton(
+                    title: LocalizedStringResource("Add to goal"),
+                    icon: "target",
+                    tint: HomeActionPalette.goal,
+                    isEnabled: nearestOpenGoal != nil
+                ) {
+                    contributionGoal = nearestOpenGoal
+                }
+                HomeActionButton(
+                    title: LocalizedStringResource("Pay recurring"),
+                    icon: "checkmark.circle.fill",
+                    tint: HomeActionPalette.moneyOut,
+                    isEnabled: upcomingRecurringExpense != nil
+                ) {
+                    recurringRulePendingPayment = upcomingRecurringExpense
+                }
             }
-            HomeActionButton(
-                title: LocalizedStringResource("Income"),
-                icon: "plus.circle.fill",
-                tint: HomeActionPalette.moneyIn
-            ) {
-                presentNewTransaction(isExpense: false)
-            }
-            HomeActionButton(
-                title: LocalizedStringResource("Transfer"),
-                icon: "arrow.left.arrow.right.circle.fill",
-                tint: HomeActionPalette.transfer,
-                isEnabled: accounts.filter { !$0.archived }.count >= 2
-            ) {
-                appState.presentNewTransfer()
-            }
-            HomeActionButton(
-                title: LocalizedStringResource("Add to goal"),
-                icon: "target",
-                tint: HomeActionPalette.goal,
-                isEnabled: nearestOpenGoal != nil
-            ) {
-                contributionGoal = nearestOpenGoal
-            }
-            HomeActionButton(
-                title: LocalizedStringResource("Pay recurring"),
-                icon: "checkmark.circle.fill",
-                tint: HomeActionPalette.moneyOut,
-                isEnabled: upcomingRecurringExpense != nil
-            ) {
-                recurringRulePendingPayment = upcomingRecurringExpense
-            }
+            .padding(.horizontal, 2)
+            .padding(.vertical, 2)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder private var settlementsSection: some View {
@@ -709,7 +737,7 @@ struct HomeView: View {
                 },
                 sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
             )
-            return try modelContext.fetch(descriptor)
+            return filterActiveProfile(try modelContext.fetch(descriptor))
         } catch {
             return []
         }
@@ -736,7 +764,7 @@ struct HomeView: View {
                         && transaction.timestamp <= end
                 }
             )
-            return try modelContext.fetch(descriptor)
+            return filterActiveProfile(try modelContext.fetch(descriptor))
         } catch {
             return []
         }
@@ -747,8 +775,8 @@ struct HomeView: View {
             var descriptor = FetchDescriptor<TransactionItem>(
                 sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
             )
-            descriptor.fetchLimit = 4
-            return try modelContext.fetch(descriptor)
+            descriptor.fetchLimit = 40
+            return Array(filterActiveProfile(try modelContext.fetch(descriptor)).prefix(4))
         } catch {
             return []
         }
@@ -797,7 +825,7 @@ struct HomeView: View {
 
     private func fetchAllTransactionsForBalance() -> [TransactionItem] {
         do {
-            return try modelContext.fetch(FetchDescriptor<TransactionItem>())
+            return filterActiveProfile(try modelContext.fetch(FetchDescriptor<TransactionItem>()))
         } catch {
             return []
         }
@@ -805,7 +833,7 @@ struct HomeView: View {
 
     private func fetchAllTransfersForBalance() -> [TransferItem] {
         do {
-            return try modelContext.fetch(FetchDescriptor<TransferItem>())
+            return filterActiveProfile(try modelContext.fetch(FetchDescriptor<TransferItem>()))
         } catch {
             return []
         }
@@ -945,29 +973,14 @@ private struct HomeSummaryTile: View {
 
 private struct HomeCalmBackground: View {
     @Environment(\.colorScheme) private var colorScheme
-    let palette: FloatHeroPalette
 
     var body: some View {
         if colorScheme == .dark {
-            HomeVisualStyle.darkNavyBase
-                .overlay {
-                    LinearGradient(
-                        colors: [
-                            palette.backgroundBottom.opacity(0.18),
-                            HomeVisualStyle.darkNavyBase.opacity(0.96),
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                }
+            Color(.systemBackground)
         } else {
             Color(.systemGroupedBackground)
         }
     }
-}
-
-private enum HomeVisualStyle {
-    static let darkNavyBase = Color(hex: "#07111F")
 }
 
 private enum HomeActionPalette {
@@ -1026,37 +1039,99 @@ private struct HomeActionButton: View {
     var isEnabled = true
     let action: () -> Void
 
+    private var labelTint: Color {
+        colorScheme == .dark ? .white : Color.black.opacity(0.92)
+    }
+
+    private var iconBackgroundOpacity: Double {
+        colorScheme == .dark ? 0.34 : 0.24
+    }
+
     private var fillOpacity: Double {
-        colorScheme == .dark ? 0.14 : 0.08
+        colorScheme == .dark ? 0.24 : 0.16
     }
 
     private var strokeOpacity: Double {
-        colorScheme == .dark ? 0.14 : 0.08
+        colorScheme == .dark ? 0.42 : 0.30
+    }
+
+    private var shadowOpacity: Double {
+        colorScheme == .dark ? 0.16 : 0.10
+    }
+
+    private var surfaceFill: Color {
+        colorScheme == .dark
+            ? Color(.secondarySystemBackground).opacity(0.92)
+            : Color(.systemBackground).opacity(0.96)
+    }
+
+    private var innerHighlight: Color {
+        colorScheme == .dark
+            ? Color.white.opacity(0.10)
+            : Color.white.opacity(0.72)
     }
 
     var body: some View {
         let shape = RoundedRectangle(
-            cornerRadius: FloatTheme.controlRadius,
+            cornerRadius: 999,
             style: .continuous
         )
 
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .semibold))
-            .foregroundStyle(tint)
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .background(
-                tint.opacity(fillOpacity),
-                in: shape
+            HStack(spacing: 7) {
+                Image(systemName: icon)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .frame(width: 22, height: 22)
+                    .background(tint.opacity(iconBackgroundOpacity), in: Circle())
+
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(labelTint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.78)
+            }
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .frame(minHeight: 34)
+            .background {
+                ZStack {
+                    shape.fill(surfaceFill)
+                    LinearGradient(
+                        colors: [
+                            tint.opacity(fillOpacity),
+                            tint.opacity(fillOpacity * 0.78)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .clipShape(shape)
+                }
+            }
+            .overlay(
+                shape.strokeBorder(
+                    tint.opacity(strokeOpacity),
+                    lineWidth: 1
+                )
             )
             .overlay(
-                shape.strokeBorder(tint.opacity(strokeOpacity), lineWidth: 1)
+                shape.strokeBorder(
+                    innerHighlight,
+                    lineWidth: 0.5
+                )
+            )
+            .shadow(
+                color: tint.opacity(shadowOpacity),
+                radius: colorScheme == .dark ? 7 : 6,
+                x: 0,
+                y: colorScheme == .dark ? 4 : 3
             )
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
-        .opacity(isEnabled ? 1 : 0.48)
+        .opacity(isEnabled ? 1 : 0.42)
+        .scaleEffect(isEnabled ? 1 : 0.98)
         .accessibilityLabel(title)
     }
 }
@@ -1281,77 +1356,103 @@ struct SafeToSpendHeroCard: View {
     let result: SafeToSpendResult
     let currencyCode: String
     let palette: FloatHeroPalette
+    let topInset: CGFloat
+    let isCompact: Bool
 
     var body: some View {
         heroSurface(
             heroGlassGroup {
-                VStack(alignment: .leading, spacing: 20) {
-                    VStack(alignment: .leading, spacing: 7) {
-                        HStack(alignment: .top) {
-                            Text(LocalizedStringResource("Spendable"))
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(heroSecondaryText)
-                            Spacer(minLength: 12)
-                            HStack(spacing: 6) {
-                                statusPill
-                                budgetSpentPill
-                            }
-                            .fixedSize(horizontal: true, vertical: false)
-                        }
-
-                        Text(
-                            MoneyFormatter.string(
-                                minorUnits: result.safeToSpendMinor,
-                                currencyCode: currencyCode
-                            )
-                        )
-                        .moneyStyle(size: 56, weight: .bold)
-                        .foregroundStyle(heroPrimaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.52)
+                Group {
+                    if isCompact {
+                        compactContent
+                    } else {
+                        expandedContent
                     }
-
-                    Text(statusCaption)
-                        .font(.subheadline)
-                        .foregroundStyle(heroSecondaryText)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    HStack(spacing: 0) {
-                        MetricPill(
-                            title: LocalizedStringResource("Daily"),
-                            value: MoneyFormatter.string(
-                                minorUnits: result.dailyAllowanceMinor,
-                                currencyCode: currencyCode
-                            )
-                        )
-                        Divider()
-                            .overlay(metricDividerTint)
-                            .padding(.vertical, 4)
-                        MetricPill(
-                            title: LocalizedStringResource("Left"),
-                            value: localizedFormat("%lldd", Int64(result.daysRemaining))
-                        )
-                        Divider()
-                            .overlay(metricDividerTint)
-                            .padding(.vertical, 4)
-                        MetricPill(
-                            title: LocalizedStringResource("Spent"),
-                            value: MoneyFormatter.string(
-                                minorUnits: result.variableSpentMinor,
-                                currencyCode: currencyCode
-                            )
-                        )
-                    }
-                    .frame(height: 60)
-                    .padding(.horizontal, 10)
-                    .heroMetricsGlass()
                 }
-                .padding(.top, 76)
-                .padding(.horizontal, 26)
-                .padding(.bottom, 34)
+                .padding(.top, topInset + compactTopPadding)
+                .padding(.horizontal, horizontalPadding)
+                .padding(.bottom, bottomPadding)
             }
         )
+        .animation(.spring(response: 0.32, dampingFraction: 0.86), value: isCompact)
+    }
+
+    private var heroSpacing: CGFloat {
+        isCompact ? 14 : 20
+    }
+
+    private var compactTopPadding: CGFloat {
+        isCompact ? 10 : 18
+    }
+
+    private var horizontalPadding: CGFloat {
+        isCompact ? 20 : 26
+    }
+
+    private var bottomPadding: CGFloat {
+        isCompact ? 18 : 34
+    }
+
+    private var spendableAmountText: String {
+        MoneyFormatter.string(
+            minorUnits: result.safeToSpendMinor,
+            currencyCode: currencyCode
+        )
+    }
+
+    private var compactContent: some View {
+        VStack(alignment: .leading, spacing: heroSpacing) {
+            HStack(alignment: .center, spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(LocalizedStringResource("Spendable"))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(heroSecondaryText)
+
+                    Text(spendableAmountText)
+                        .moneyStyle(size: 31, weight: .bold)
+                        .foregroundStyle(heroPrimaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.74)
+                }
+
+                Spacer(minLength: 12)
+                compactMetricsColumn
+            }
+
+            compactStatusRow
+        }
+    }
+
+    private var expandedContent: some View {
+        VStack(alignment: .leading, spacing: heroSpacing) {
+            VStack(alignment: .leading, spacing: 7) {
+                HStack(alignment: .top) {
+                    Text(LocalizedStringResource("Spendable"))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(heroSecondaryText)
+                    Spacer(minLength: 12)
+                    HStack(spacing: 6) {
+                        statusPill
+                        budgetSpentPill
+                    }
+                    .fixedSize(horizontal: true, vertical: false)
+                }
+
+                Text(spendableAmountText)
+                    .moneyStyle(size: 56, weight: .bold)
+                    .foregroundStyle(heroPrimaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.52)
+            }
+
+            Text(statusCaption)
+                .font(.subheadline)
+                .foregroundStyle(heroSecondaryText)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+
+            expandedMetricsRow
+        }
     }
 
     private var positiveTint: Color {
@@ -1390,6 +1491,89 @@ struct SafeToSpendHeroCard: View {
         formatter.locale = AppLocalization.locale
         return formatter.string(from: NSNumber(value: clampedSpendingProgress))
             ?? "\(Int((clampedSpendingProgress * 100).rounded()))%"
+    }
+
+    private var compactMetricsColumn: some View {
+        VStack(alignment: .trailing, spacing: 10) {
+            statusPill
+            VStack(alignment: .trailing, spacing: 3) {
+                compactMetricLine(
+                    title: LocalizedStringResource("Daily"),
+                    value: MoneyFormatter.string(
+                        minorUnits: result.dailyAllowanceMinor,
+                        currencyCode: currencyCode
+                    )
+                )
+                compactMetricLine(
+                    title: LocalizedStringResource("Left"),
+                    value: localizedFormat("%lldd", Int64(result.daysRemaining))
+                )
+            }
+        }
+        .transition(.opacity.combined(with: .move(edge: .trailing)))
+    }
+
+    private var compactStatusRow: some View {
+        HStack(spacing: 8) {
+            Text(statusCaption)
+                .font(.caption)
+                .foregroundStyle(heroSecondaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+            Spacer(minLength: 8)
+            budgetSpentPill
+        }
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
+    }
+
+    private var expandedMetricsRow: some View {
+        HStack(spacing: 0) {
+            MetricPill(
+                title: LocalizedStringResource("Daily"),
+                value: MoneyFormatter.string(
+                    minorUnits: result.dailyAllowanceMinor,
+                    currencyCode: currencyCode
+                )
+            )
+            Divider()
+                .overlay(metricDividerTint)
+                .padding(.vertical, 4)
+            MetricPill(
+                title: LocalizedStringResource("Left"),
+                value: localizedFormat("%lldd", Int64(result.daysRemaining))
+            )
+            Divider()
+                .overlay(metricDividerTint)
+                .padding(.vertical, 4)
+            MetricPill(
+                title: LocalizedStringResource("Spent"),
+                value: MoneyFormatter.string(
+                    minorUnits: result.variableSpentMinor,
+                    currencyCode: currencyCode
+                )
+            )
+        }
+        .frame(height: 60)
+        .padding(.horizontal, 10)
+        .heroMetricsGlass()
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
+    }
+
+    private func compactMetricLine(
+        title: LocalizedStringResource,
+        value: String
+    ) -> some View {
+        HStack(spacing: 6) {
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(heroSecondaryText)
+            Text(value)
+                .font(.caption.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(heroPrimaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
     }
 
     private var statusPill: some View {
@@ -1478,7 +1662,7 @@ struct SafeToSpendHeroCard: View {
         )
         let isDark = colorScheme == .dark
         let bottomFade = isDark
-            ? HomeVisualStyle.darkNavyBase
+            ? palette.backgroundBottom
             : Color(.systemGroupedBackground)
 
         return content

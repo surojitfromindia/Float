@@ -4,9 +4,11 @@ import SwiftUI
 struct AccountManagerView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query(sort: \AccountItem.createdAt) private var allAccounts: [AccountItem]
     @State private var editorPresentation: AccountEditorPresentation?
     @State private var balanceStates: [UUID: AccountBalanceLoadState] = [:]
+
+    private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
 
     var body: some View {
         List {
@@ -195,7 +197,7 @@ struct AccountManagerView: View {
                 account.id == id
             }
         )
-        return try? modelContext.fetch(descriptor).first
+        return filterActiveProfile((try? modelContext.fetch(descriptor)) ?? []).first
     }
 
     private func loadBalance(for account: AccountItem) {
@@ -222,7 +224,7 @@ struct AccountManagerView: View {
                 transaction.account?.id == accountID
             }
         )
-        return try modelContext.fetch(descriptor)
+        return filterActiveProfile(try modelContext.fetch(descriptor))
     }
 
     private func fetchTransfers(for account: AccountItem) throws -> [TransferItem] {
@@ -233,7 +235,7 @@ struct AccountManagerView: View {
                     || transfer.toAccount?.id == accountID
             }
         )
-        return try modelContext.fetch(descriptor)
+        return filterActiveProfile(try modelContext.fetch(descriptor))
     }
 }
 

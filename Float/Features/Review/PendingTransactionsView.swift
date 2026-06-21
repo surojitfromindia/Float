@@ -4,11 +4,13 @@ import SwiftUI
 struct PendingTransactionsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \TransactionItem.timestamp, order: .reverse) private var transactions:
+    @Query(sort: \TransactionItem.timestamp, order: .reverse) private var allTransactions:
         [TransactionItem]
     @State private var editingTransaction: TransactionItem?
     @State private var conversionInitialIsExpense: Bool?
     @State private var message: String?
+
+    private var transactions: [TransactionItem] { filterActiveProfile(allTransactions) }
 
     private var pendingTransactions: [TransactionItem] {
         transactions

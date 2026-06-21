@@ -5,8 +5,10 @@ struct TransactionTemplateManagerView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
     @Query(sort: \TransactionTemplateItem.createdAt, order: .reverse) private
-        var templates: [TransactionTemplateItem]
+        var allTemplates: [TransactionTemplateItem]
     @State private var editorPresentation: TransactionTemplateEditorPresentation?
+
+    private var templates: [TransactionTemplateItem] { filterActiveProfile(allTemplates) }
 
     var body: some View {
         ScrollView {
@@ -151,8 +153,8 @@ private struct TransactionTemplateEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
-    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query(sort: \CategoryItem.sortOrder) private var allCategories: [CategoryItem]
+    @Query(sort: \AccountItem.createdAt) private var allAccounts: [AccountItem]
 
     let template: TransactionTemplateItem?
     @State private var title = ""
@@ -162,6 +164,9 @@ private struct TransactionTemplateEditorView: View {
     @State private var selectedAccount: AccountItem?
     @State private var note = ""
     @State private var validationMessage: String?
+
+    private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
+    private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
 
     private var amountMinor: Int64 {
         BudgetAmountField.minorUnits(

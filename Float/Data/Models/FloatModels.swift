@@ -219,8 +219,81 @@ enum SettlementReconciliationStatus: String, Codable, CaseIterable, Identifiable
 }
 
 @Model
+final class UserProfileItem {
+    var id: UUID = UUID()
+    var displayName: String = ""
+    var currencyCode: String = "USD"
+    var lastUsedCategoryID: String = ""
+    var lastUsedAccountID: String = ""
+    var recurringRemindersEnabled: Bool = true
+    var budgetAlertsEnabled: Bool = true
+    var goalRemindersEnabled: Bool = true
+    var settlementRemindersEnabled: Bool = true
+    var recurringReminderMinutes: Int = 9 * 60
+    var goalReminderMinutes: Int = 9 * 60 + 30
+    var settlementReminderMinutes: Int = 9 * 60
+    var budgetAlertSensitivityRaw: String = BudgetAlertSensitivity.closeAndOver.rawValue
+    var isDefault: Bool = false
+    var archived: Bool = false
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        displayName: String,
+        currencyCode: String,
+        lastUsedCategoryID: String = "",
+        lastUsedAccountID: String = "",
+        recurringRemindersEnabled: Bool = true,
+        budgetAlertsEnabled: Bool = true,
+        goalRemindersEnabled: Bool = true,
+        settlementRemindersEnabled: Bool = true,
+        recurringReminderMinutes: Int = 9 * 60,
+        goalReminderMinutes: Int = 9 * 60 + 30,
+        settlementReminderMinutes: Int = 9 * 60,
+        budgetAlertSensitivityRaw: String = BudgetAlertSensitivity.closeAndOver.rawValue,
+        isDefault: Bool = false,
+        archived: Bool = false,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.displayName = displayName.nilIfBlank ?? String(localized: "Personal")
+        self.currencyCode = currencyCode
+        self.lastUsedCategoryID = lastUsedCategoryID
+        self.lastUsedAccountID = lastUsedAccountID
+        self.recurringRemindersEnabled = recurringRemindersEnabled
+        self.budgetAlertsEnabled = budgetAlertsEnabled
+        self.goalRemindersEnabled = goalRemindersEnabled
+        self.settlementRemindersEnabled = settlementRemindersEnabled
+        self.recurringReminderMinutes = recurringReminderMinutes
+        self.goalReminderMinutes = goalReminderMinutes
+        self.settlementReminderMinutes = settlementReminderMinutes
+        self.budgetAlertSensitivityRaw = budgetAlertSensitivityRaw
+        self.isDefault = isDefault
+        self.archived = archived
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+enum ActiveProfileRegistry {
+    nonisolated(unsafe) static var profileID: UUID?
+}
+
+protocol ProfileOwned: AnyObject {
+    var profileID: UUID? { get set }
+}
+
+func filterActiveProfile<T: ProfileOwned>(_ items: [T]) -> [T] {
+    guard let profileID = ActiveProfileRegistry.profileID else { return items }
+    return items.filter { $0.profileID == profileID }
+}
+
+@Model
 final class AccountItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var name: String = "" /// name of the account
     var type: AccountType = AccountType.cash /// default type is cash
     var openingBalanceMinor: Int64 = 0 /// opening balance is zero.
@@ -231,6 +304,7 @@ final class AccountItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         name: String,
         type: AccountType = .cash,
         openingBalanceMinor: Int64 = 0,
@@ -240,6 +314,7 @@ final class AccountItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID
         self.name = name
         self.type = type
         self.openingBalanceMinor = openingBalanceMinor
@@ -250,9 +325,12 @@ final class AccountItem {
     }
 }
 
+extension AccountItem: ProfileOwned {}
+
 @Model
 final class CategoryItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var name: String = ""
     var iconKey: String = "square.grid.2x2.fill"
     var colorHex: String = "#0E7C7B"
@@ -265,6 +343,7 @@ final class CategoryItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         name: String,
         iconKey: String,
         colorHex: String,
@@ -276,6 +355,7 @@ final class CategoryItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID
         self.name = name
         self.iconKey = iconKey
         self.colorHex = colorHex
@@ -288,9 +368,12 @@ final class CategoryItem {
     }
 }
 
+extension CategoryItem: ProfileOwned {}
+
 @Model
 final class PersonItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var name: String = ""
     var alias: String?
     var note: String?
@@ -307,6 +390,7 @@ final class PersonItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         name: String,
         alias: String? = nil,
         note: String? = nil,
@@ -320,6 +404,7 @@ final class PersonItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID
         self.name = name
         self.alias = alias?.nilIfBlank
         self.note = note?.nilIfBlank
@@ -334,9 +419,12 @@ final class PersonItem {
     }
 }
 
+extension PersonItem: ProfileOwned {}
+
 @Model
 final class TransactionItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var amountMinor: Int64 = 0
     var isExpense: Bool = true
     var statusRaw: String = TransactionStatus.posted.rawValue
@@ -354,6 +442,7 @@ final class TransactionItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         amountMinor: Int64,
         isExpense: Bool = true,
         status: TransactionStatus = .posted,
@@ -369,6 +458,11 @@ final class TransactionItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID
+            ?? category?.profileID
+            ?? account?.profileID
+            ?? event?.profileID
+            ?? recurringRule?.profileID
         self.amountMinor = normalizedMinorUnits(amountMinor)
         self.isExpense = isExpense
         self.statusRaw = status.rawValue
@@ -385,9 +479,12 @@ final class TransactionItem {
     }
 }
 
+extension TransactionItem: ProfileOwned {}
+
 @Model
 final class TransactionTemplateItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var title: String = ""
     var amountMinor: Int64 = 0
     var isExpense: Bool = true
@@ -399,6 +496,7 @@ final class TransactionTemplateItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         title: String,
         amountMinor: Int64,
         isExpense: Bool = true,
@@ -409,6 +507,7 @@ final class TransactionTemplateItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID ?? category?.profileID ?? account?.profileID
         self.title = title
         self.amountMinor = normalizedMinorUnits(amountMinor)
         self.isExpense = isExpense
@@ -420,9 +519,12 @@ final class TransactionTemplateItem {
     }
 }
 
+extension TransactionTemplateItem: ProfileOwned {}
+
 @Model
 final class TransactionTemplateGroupItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var name: String = ""
     @Relationship(
         deleteRule: .cascade,
@@ -434,12 +536,14 @@ final class TransactionTemplateGroupItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         name: String,
         entries: [TransactionTemplateGroupEntryItem] = [],
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID
         self.name = name
         self.entries = entries
         self.createdAt = createdAt
@@ -447,9 +551,12 @@ final class TransactionTemplateGroupItem {
     }
 }
 
+extension TransactionTemplateGroupItem: ProfileOwned {}
+
 @Model
 final class TransactionTemplateGroupEntryItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var sortOrder: Int = 0
     var group: TransactionTemplateGroupItem?
     var template: TransactionTemplateItem?
@@ -458,6 +565,7 @@ final class TransactionTemplateGroupEntryItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         sortOrder: Int,
         group: TransactionTemplateGroupItem? = nil,
         template: TransactionTemplateItem? = nil,
@@ -465,6 +573,7 @@ final class TransactionTemplateGroupEntryItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID ?? group?.profileID ?? template?.profileID
         self.sortOrder = sortOrder
         self.group = group
         self.template = template
@@ -473,9 +582,12 @@ final class TransactionTemplateGroupEntryItem {
     }
 }
 
+extension TransactionTemplateGroupEntryItem: ProfileOwned {}
+
 @Model
 final class TransferItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var amountMinor: Int64 = 0
     var fromAccount: AccountItem?
     var toAccount: AccountItem?
@@ -486,6 +598,7 @@ final class TransferItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         amountMinor: Int64,
         fromAccount: AccountItem? = nil,
         toAccount: AccountItem? = nil,
@@ -495,6 +608,7 @@ final class TransferItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID ?? fromAccount?.profileID ?? toAccount?.profileID
         self.amountMinor = normalizedMinorUnits(amountMinor)
         self.fromAccount = fromAccount
         self.toAccount = toAccount
@@ -505,9 +619,12 @@ final class TransferItem {
     }
 }
 
+extension TransferItem: ProfileOwned {}
+
 @Model
 final class EventCategoryItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var name: String = ""
     var iconKey: String = "calendar"
     var colorHex: String = "#0E7C7B"
@@ -519,6 +636,7 @@ final class EventCategoryItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         name: String,
         iconKey: String,
         colorHex: String,
@@ -528,6 +646,7 @@ final class EventCategoryItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID
         self.name = name
         self.iconKey = iconKey
         self.colorHex = colorHex
@@ -538,9 +657,12 @@ final class EventCategoryItem {
     }
 }
 
+extension EventCategoryItem: ProfileOwned {}
+
 @Model
 final class EventItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var name: String = ""
     var startDate: Date = Date()
     var endDate: Date = Date()
@@ -555,6 +677,7 @@ final class EventItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         name: String,
         startDate: Date,
         endDate: Date,
@@ -567,6 +690,7 @@ final class EventItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID ?? category?.profileID
         self.name = name
         self.startDate = startDate
         self.endDate = endDate
@@ -579,6 +703,8 @@ final class EventItem {
         self.updatedAt = updatedAt
     }
 }
+
+extension EventItem: ProfileOwned {}
 
 extension TransactionTemplateItem {
     var displayTitle: String {
@@ -611,6 +737,7 @@ extension TransactionTemplateGroupItem {
 @Model
 final class RecurringRuleItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var amountMinor: Int64 = 0
     var isExpense: Bool = true
     var category: CategoryItem?
@@ -628,6 +755,7 @@ final class RecurringRuleItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         amountMinor: Int64,
         isExpense: Bool = true,
         category: CategoryItem? = nil,
@@ -643,6 +771,7 @@ final class RecurringRuleItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID ?? category?.profileID ?? account?.profileID
         self.amountMinor = normalizedMinorUnits(amountMinor)
         self.isExpense = isExpense
         self.category = category
@@ -659,9 +788,12 @@ final class RecurringRuleItem {
     }
 }
 
+extension RecurringRuleItem: ProfileOwned {}
+
 @Model
 final class GoalItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var name: String = ""
     var targetMinor: Int64 = 0
     var savedMinor: Int64 = 0
@@ -673,6 +805,7 @@ final class GoalItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         name: String,
         targetMinor: Int64,
         savedMinor: Int64 = 0,
@@ -683,6 +816,7 @@ final class GoalItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID
         self.name = name
         self.targetMinor = normalizedMinorUnits(targetMinor)
         self.savedMinor = normalizedMinorUnits(savedMinor)
@@ -697,6 +831,7 @@ final class GoalItem {
 @Model
 final class BudgetPeriodItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var cadence: BudgetCadence = BudgetCadence.monthly
     var startDayOfMonth: Int?
     var startDayOfWeek: Int?
@@ -708,6 +843,7 @@ final class BudgetPeriodItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         cadence: BudgetCadence = .monthly,
         startDayOfMonth: Int? = 1,
         startDayOfWeek: Int? = nil,
@@ -718,6 +854,7 @@ final class BudgetPeriodItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID
         self.cadence = cadence
         self.startDayOfMonth = startDayOfMonth
         self.startDayOfWeek = startDayOfWeek
@@ -729,9 +866,14 @@ final class BudgetPeriodItem {
     }
 }
 
+extension GoalItem: ProfileOwned {}
+
+extension BudgetPeriodItem: ProfileOwned {}
+
 @Model
 final class CategoryBudgetItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var category: CategoryItem?
     var amountMinor: Int64 = 0
     var currencyCode: String = "USD"
@@ -741,6 +883,7 @@ final class CategoryBudgetItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         category: CategoryItem? = nil,
         amountMinor: Int64,
         currencyCode: String,
@@ -749,6 +892,7 @@ final class CategoryBudgetItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID ?? category?.profileID
         self.category = category
         self.amountMinor = normalizedMinorUnits(amountMinor)
         self.currencyCode = currencyCode
@@ -758,9 +902,12 @@ final class CategoryBudgetItem {
     }
 }
 
+extension CategoryBudgetItem: ProfileOwned {}
+
 @Model
 final class SettlementCaseItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var title: String = ""
     var counterpartyName: String = ""
     var directionRaw: String = SettlementDirection.theyOweYou.rawValue
@@ -779,6 +926,7 @@ final class SettlementCaseItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         title: String,
         counterpartyName: String,
         direction: SettlementDirection,
@@ -794,6 +942,7 @@ final class SettlementCaseItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID ?? person?.profileID
         self.title = title
         self.counterpartyName = counterpartyName
         self.directionRaw = direction.rawValue
@@ -810,9 +959,12 @@ final class SettlementCaseItem {
     }
 }
 
+extension SettlementCaseItem: ProfileOwned {}
+
 @Model
 final class SettlementEntryItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var kindRaw: String = SettlementEntryKind.addition.rawValue
     var amountMinor: Int64 = 0
     var entryDate: Date = Date()
@@ -825,6 +977,7 @@ final class SettlementEntryItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         kind: SettlementEntryKind,
         amountMinor: Int64,
         entryDate: Date = Date(),
@@ -836,6 +989,7 @@ final class SettlementEntryItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID ?? caseItem?.profileID ?? linkedTransaction?.profileID
         self.kindRaw = kind.rawValue
         self.amountMinor = normalizedMinorUnits(amountMinor)
         self.entryDate = entryDate
@@ -848,9 +1002,12 @@ final class SettlementEntryItem {
     }
 }
 
+extension SettlementEntryItem: ProfileOwned {}
+
 @Model
 final class SettlementMilestoneItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var title: String = ""
     var amountMinor: Int64 = 0
     var dueDate: Date = Date()
@@ -863,6 +1020,7 @@ final class SettlementMilestoneItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         title: String,
         amountMinor: Int64,
         dueDate: Date,
@@ -874,6 +1032,7 @@ final class SettlementMilestoneItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID ?? caseItem?.profileID ?? linkedEntry?.profileID
         self.title = title.nilIfBlank ?? String(localized: "Payment")
         self.amountMinor = normalizedMinorUnits(amountMinor)
         self.dueDate = dueDate
@@ -886,9 +1045,12 @@ final class SettlementMilestoneItem {
     }
 }
 
+extension SettlementMilestoneItem: ProfileOwned {}
+
 @Model
 final class TransactionPersonTagItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var sortOrder: Int = 0
     var allocatedMinor: Int64?
     var settledMinor: Int64 = 0
@@ -899,6 +1061,7 @@ final class TransactionPersonTagItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         sortOrder: Int = 0,
         allocatedMinor: Int64? = nil,
         settledMinor: Int64 = 0,
@@ -908,6 +1071,7 @@ final class TransactionPersonTagItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID ?? person?.profileID ?? transaction?.profileID
         self.sortOrder = sortOrder
         self.allocatedMinor = allocatedMinor
         self.settledMinor = max(0, settledMinor)
@@ -921,6 +1085,7 @@ final class TransactionPersonTagItem {
 @Model
 final class RecurringRulePersonTagItem {
     var id: UUID = UUID()
+    var profileID: UUID?
     var sortOrder: Int = 0
     var person: PersonItem?
     var recurringRule: RecurringRuleItem?
@@ -929,6 +1094,7 @@ final class RecurringRulePersonTagItem {
 
     init(
         id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         sortOrder: Int = 0,
         person: PersonItem? = nil,
         recurringRule: RecurringRuleItem? = nil,
@@ -936,6 +1102,7 @@ final class RecurringRulePersonTagItem {
         updatedAt: Date = Date()
     ) {
         self.id = id
+        self.profileID = profileID ?? person?.profileID ?? recurringRule?.profileID
         self.sortOrder = sortOrder
         self.person = person
         self.recurringRule = recurringRule
@@ -943,6 +1110,10 @@ final class RecurringRulePersonTagItem {
         self.updatedAt = updatedAt
     }
 }
+
+extension TransactionPersonTagItem: ProfileOwned {}
+
+extension RecurringRulePersonTagItem: ProfileOwned {}
 
 extension TransactionItem {
     var status: TransactionStatus {

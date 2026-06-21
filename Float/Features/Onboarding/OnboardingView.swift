@@ -119,7 +119,7 @@ struct OnboardingView: View {
         )
         let descriptor = FetchDescriptor<BudgetPeriodItem>()
         let budget =
-            (try? modelContext.fetch(descriptor))?.first
+            filterActiveProfile((try? modelContext.fetch(descriptor)) ?? []).first
             ?? BudgetPeriodItem(currencyCode: appState.selectedCurrencyCode)
         if budget.modelContext == nil { modelContext.insert(budget) }
         budget.cadence = cadence

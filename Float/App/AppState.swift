@@ -94,6 +94,7 @@ enum FloatSettingsDestination: String, Hashable, Identifiable {
     case categories
     case accounts
     case people
+    case profiles
     case settlements
     case reviewQueue
 
@@ -142,6 +143,7 @@ final class AppState: ObservableObject {
     @AppStorage("selectedLanguageCode") var selectedLanguageCode = "system"
     @AppStorage("lastUsedCategoryID") var lastUsedCategoryID = ""
     @AppStorage("lastUsedAccountID") var lastUsedAccountID = ""
+    @AppStorage("activeProfileID") var activeProfileID = ""
     @AppStorage("showPinnedEventsInHomeView") var showPinnedEventsInHomeView = false
     @AppStorage("isAppLockEnabled") var isAppLockEnabled = false
     @AppStorage("recurringRemindersEnabled") var recurringRemindersEnabled = true
@@ -165,6 +167,7 @@ final class AppState: ObservableObject {
     @Published var editingTransfer: TransferItem?
     @Published var newTransferTimestamp: Date?
     @Published var pendingSpotlightRequest: FloatSpotlightNavigationRequest?
+    @Published var activeProfileName = String(localized: "Personal")
 
     // Converts the stored appearance preference into the optional SwiftUI color scheme override.
     var colorScheme: ColorScheme? {
@@ -223,6 +226,53 @@ final class AppState: ObservableObject {
         editingTransfer = transfer
         newTransferTimestamp = nil
         isTransferSheetPresented = true
+    }
+
+    func applyProfile(_ profile: UserProfileItem) {
+        activeProfileID = profile.id.uuidString
+        activeProfileName = profile.displayName
+        selectedCurrencyCode = profile.currencyCode
+        lastUsedCategoryID = profile.lastUsedCategoryID
+        lastUsedAccountID = profile.lastUsedAccountID
+        recurringRemindersEnabled = profile.recurringRemindersEnabled
+        budgetAlertsEnabled = profile.budgetAlertsEnabled
+        goalRemindersEnabled = profile.goalRemindersEnabled
+        settlementRemindersEnabled = profile.settlementRemindersEnabled
+        recurringReminderMinutes = profile.recurringReminderMinutes
+        goalReminderMinutes = profile.goalReminderMinutes
+        settlementReminderMinutes = profile.settlementReminderMinutes
+        budgetAlertSensitivityRaw = profile.budgetAlertSensitivityRaw
+        ActiveProfileRegistry.profileID = profile.id
+        clearTransientProfileState()
+    }
+
+    func writePreferences(to profile: UserProfileItem) {
+        let name = activeProfileName.trimmingCharacters(in: .whitespacesAndNewlines)
+        profile.displayName = name.isEmpty ? profile.displayName : name
+        profile.currencyCode = selectedCurrencyCode
+        profile.lastUsedCategoryID = lastUsedCategoryID
+        profile.lastUsedAccountID = lastUsedAccountID
+        profile.recurringRemindersEnabled = recurringRemindersEnabled
+        profile.budgetAlertsEnabled = budgetAlertsEnabled
+        profile.goalRemindersEnabled = goalRemindersEnabled
+        profile.settlementRemindersEnabled = settlementRemindersEnabled
+        profile.recurringReminderMinutes = recurringReminderMinutes
+        profile.goalReminderMinutes = goalReminderMinutes
+        profile.settlementReminderMinutes = settlementReminderMinutes
+        profile.budgetAlertSensitivityRaw = budgetAlertSensitivityRaw
+        profile.updatedAt = Date()
+    }
+
+    func clearTransientProfileState() {
+        isEntrySheetPresented = false
+        editingTransaction = nil
+        newTransactionTimestamp = nil
+        newTransactionIsExpense = nil
+        isTransferSheetPresented = false
+        editingTransfer = nil
+        newTransferTimestamp = nil
+        pendingSettingsDestination = nil
+        pendingSpotlightRequest = nil
     }
 
     func route(to destination: FloatDestination) {

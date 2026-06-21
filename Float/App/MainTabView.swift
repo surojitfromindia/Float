@@ -43,5 +43,6 @@ struct MainTabView: View {
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
         }
+        .id(appState.activeProfileID)
     }
 }

@@ -26,9 +26,9 @@ struct QuickAddKeypadSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
-    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
-    @Query(sort: \PersonItem.createdAt) private var people: [PersonItem]
+    @Query(sort: \CategoryItem.sortOrder) private var allCategories: [CategoryItem]
+    @Query(sort: \AccountItem.createdAt) private var allAccounts: [AccountItem]
+    @Query(sort: \PersonItem.createdAt) private var allPeople: [PersonItem]
 
     let transactionToEdit: TransactionItem?
     let event: EventItem?
@@ -53,6 +53,10 @@ struct QuickAddKeypadSheet: View {
     private var palette: FloatThemePalette {
         appState.themePalette
     }
+
+    private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
+    private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
+    private var people: [PersonItem] { filterActiveProfile(allPeople) }
 
     init(
         transactionToEdit: TransactionItem?,
@@ -589,8 +593,8 @@ struct QuickAddKeypadSheet: View {
                 },
                 sortBy: [SortDescriptor(\TransactionTemplateItem.createdAt, order: .reverse)]
             )
-            descriptor.fetchLimit = 8
-            templates = try modelContext.fetch(descriptor)
+            descriptor.fetchLimit = 40
+            templates = Array(filterActiveProfile(try modelContext.fetch(descriptor)).prefix(8))
         } catch {
             templates = []
         }
@@ -615,7 +619,7 @@ struct QuickAddKeypadSheet: View {
                 sortBy: [SortDescriptor(\TransactionItem.timestamp, order: .reverse)]
             )
             descriptor.fetchLimit = 80
-            recentTransactions = try modelContext.fetch(descriptor)
+            recentTransactions = filterActiveProfile(try modelContext.fetch(descriptor))
         } catch {
             recentTransactions = []
         }

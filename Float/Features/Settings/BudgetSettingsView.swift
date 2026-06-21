@@ -4,11 +4,11 @@ import SwiftUI
 struct BudgetSettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query private var goals: [GoalItem]
-    @Query private var recurringRules: [RecurringRuleItem]
-    @Query private var budgets: [BudgetPeriodItem]
-    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
-    @Query private var categoryBudgets: [CategoryBudgetItem]
+    @Query private var allGoals: [GoalItem]
+    @Query private var allRecurringRules: [RecurringRuleItem]
+    @Query private var allBudgets: [BudgetPeriodItem]
+    @Query(sort: \CategoryItem.sortOrder) private var allCategories: [CategoryItem]
+    @Query private var allCategoryBudgets: [CategoryBudgetItem]
 
     @State private var cadence: BudgetCadence = .monthly
     @State private var startDayOfMonth = 1
@@ -19,6 +19,12 @@ struct BudgetSettingsView: View {
     @State private var message = ""
     @State private var periodTransactions: [TransactionItem] = []
     @State private var periodTransactionLoadFailed = false
+
+    private var goals: [GoalItem] { filterActiveProfile(allGoals) }
+    private var recurringRules: [RecurringRuleItem] { filterActiveProfile(allRecurringRules) }
+    private var budgets: [BudgetPeriodItem] { filterActiveProfile(allBudgets) }
+    private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
+    private var categoryBudgets: [CategoryBudgetItem] { filterActiveProfile(allCategoryBudgets) }
 
     private var activeBudget: BudgetPeriodItem? {
         budgets.first { $0.isActive } ?? budgets.first
@@ -372,7 +378,7 @@ struct BudgetSettingsView: View {
                 },
                 sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
             )
-            periodTransactions = try modelContext.fetch(descriptor)
+            periodTransactions = filterActiveProfile(try modelContext.fetch(descriptor))
             periodTransactionLoadFailed = false
         } catch {
             periodTransactions = []

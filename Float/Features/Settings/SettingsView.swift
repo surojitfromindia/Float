@@ -12,6 +12,7 @@ private struct CurrencyOption: Identifiable {
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
+    @Query(sort: \UserProfileItem.createdAt) private var profiles: [UserProfileItem]
     @State private var exportingBackup = false
     @State private var importingBackup = false
     @State private var backupDocument = BackupDocument()
@@ -65,6 +66,21 @@ struct SettingsView: View {
     @ViewBuilder
     private var settingsSections: some View {
         Section {
+            NavigationLink {
+                ProfileManagerView()
+            } label: {
+                LabeledContent("Active profile") {
+                    Text(appState.activeProfileName)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        } header: {
+            Text("Profiles")
+                .textCase(nil)
+                .padding(.top, -14)
+        }
+
+        Section {
             SettingsPickerRow("Currency", selection: $appState.selectedCurrencyCode) {
                 ForEach(Self.currencyOptions) { currency in
                     Text("\(currency.symbol) \(currency.code)")
@@ -92,7 +108,6 @@ struct SettingsView: View {
         } header: {
             Text("Preferences")
                 .textCase(nil)
-                .padding(.top, -14)
         }
 
         Section("Reminders") {
@@ -153,6 +168,7 @@ struct SettingsView: View {
             settingsNavigationLink("Categories", destination: CategoryManagerView())
             settingsNavigationLink("Accounts", destination: AccountManagerView())
             settingsNavigationLink("People", destination: PeopleManagerView())
+            settingsNavigationLink("Profiles", destination: ProfileManagerView())
             settingsNavigationLink("Settlements", destination: SettlementsView())
             settingsNavigationLink("Review Queue", destination: ReviewQueueView())
         }
@@ -275,6 +291,8 @@ struct SettingsView: View {
             AccountManagerView()
         case .people:
             PeopleManagerView()
+        case .profiles:
+            ProfileManagerView()
         case .settlements:
             SettlementsView()
         case .reviewQueue:
@@ -349,8 +367,10 @@ struct SettingsView: View {
             let document = BackupDocument(data: try Data(contentsOf: url))
             appState.selectedCurrencyCode = try BackupService.restore(
                 document: document,
-                modelContext: modelContext
+                modelContext: modelContext,
+                profileID: ActiveProfileRegistry.profileID
             )
+            ProfileDataService.persistPreferences(from: appState, modelContext: modelContext)
             FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
             message = "Backup restored."
         } catch { message = error.localizedDescription }
@@ -404,7 +424,11 @@ struct SettingsView: View {
     }
 
     private func fetchAll<T: PersistentModel>(_ type: T.Type) -> [T] {
-        (try? modelContext.fetch(FetchDescriptor<T>())) ?? []
+        let items = (try? modelContext.fetch(FetchDescriptor<T>())) ?? []
+        guard let profileID = ActiveProfileRegistry.profileID else { return items }
+        return items.filter { item in
+            (item as? ProfileOwned)?.profileID == profileID
+        }
     }
 
     private func resultMessage(_ result: Result<URL, Error>, success: String)
@@ -442,6 +466,231 @@ private struct SettingsPickerRow<SelectionValue: Hashable, Content: View>: View 
             .fixedSize()
         } label: {
             Text(title)
+        }
+    }
+}
+
+private struct ProfileManagerView: View {
+    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var appState: AppState
+    @Query(sort: \UserProfileItem.createdAt) private var profiles: [UserProfileItem]
+    @State private var editingProfile: UserProfileItem?
+    @State private var isCreatingProfile = false
+    @State private var profileToDelete: UserProfileItem?
+    @State private var message = ""
+
+    private var activeProfiles: [UserProfileItem] {
+        profiles.filter { !$0.archived }
+    }
+
+    var body: some View {
+        List {
+            Section {
+                ForEach(activeProfiles) { profile in
+                    Button {
+                        switchTo(profile)
+                    } label: {
+                        HStack(spacing: 12) {
+                            FloatIconBadge(
+                                icon: profile.id.uuidString == appState.activeProfileID
+                                    ? "checkmark.circle.fill"
+                                    : "person.crop.circle",
+                                tint: appState.themePalette.accent,
+                                size: 38
+                            )
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(profile.displayName)
+                                    .font(.body.weight(.semibold))
+                                    .foregroundStyle(.primary)
+                                Text(profile.currencyCode)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Spacer()
+                            Text(countSummary(for: profile))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .swipeActions {
+                        Button("Rename") {
+                            editingProfile = profile
+                        }
+                        Button("Delete", role: .destructive) {
+                            profileToDelete = profile
+                        }
+                        .disabled(activeProfiles.count <= 1)
+                    }
+                }
+            } header: {
+                Text("Profiles")
+            } footer: {
+                Text("Each profile keeps separate accounts, categories, budgets, goals, transactions, settlements, backups, and reminders.")
+            }
+
+            Section {
+                Button {
+                    isCreatingProfile = true
+                } label: {
+                    Label("New Profile", systemImage: "plus.circle.fill")
+                }
+            }
+
+            if !message.isEmpty {
+                Section {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
+        .navigationTitle("Profiles")
+        .sheet(item: $editingProfile) { profile in
+            ProfileEditorView(profile: profile)
+        }
+        .sheet(isPresented: $isCreatingProfile) {
+            ProfileEditorView(profile: nil)
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isCreatingProfile = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
+        }
+        .alert("Delete profile?", isPresented: Binding(
+            get: { profileToDelete != nil },
+            set: { if !$0 { profileToDelete = nil } }
+        )) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete", role: .destructive) {
+                deleteSelectedProfile()
+            }
+        } message: {
+            if let profileToDelete {
+                let counts = ProfileDataService.counts(
+                    for: profileToDelete,
+                    modelContext: modelContext
+                )
+                Text("This deletes \(counts.total) records for \(profileToDelete.displayName). This action cannot be undone.")
+            }
+        }
+    }
+
+    private func switchTo(_ profile: UserProfileItem) {
+        guard profile.id.uuidString != appState.activeProfileID else { return }
+        ProfileDataService.persistPreferences(from: appState, modelContext: modelContext)
+        appState.applyProfile(profile)
+        SeedDataService.ensureSeedData(
+            modelContext: modelContext,
+            currencyCode: profile.currencyCode
+        )
+        WidgetSnapshotPublisher.publish(
+            modelContext: modelContext,
+            currencyCode: profile.currencyCode,
+            profileID: profile.id
+        )
+        FloatSpotlightIndexer.scheduleReindex(
+            modelContext: modelContext,
+            profileID: profile.id
+        )
+    }
+
+    private func deleteSelectedProfile() {
+        guard let profile = profileToDelete else { return }
+        do {
+            let deletingActive = profile.id.uuidString == appState.activeProfileID
+            try ProfileDataService.deleteProfile(profile, modelContext: modelContext)
+            if deletingActive, let replacement = activeProfiles.first(where: { $0.id != profile.id }) {
+                switchTo(replacement)
+            }
+            message = String(localized: "Profile deleted.")
+        } catch {
+            message = error.localizedDescription
+        }
+        profileToDelete = nil
+    }
+
+    private func countSummary(for profile: UserProfileItem) -> String {
+        let counts = ProfileDataService.counts(for: profile, modelContext: modelContext)
+        return String(localized: "\(counts.transactions) transactions")
+    }
+}
+
+private struct ProfileEditorView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var appState: AppState
+    let profile: UserProfileItem?
+    @State private var name: String
+    @State private var currencyCode: String
+    @State private var message = ""
+
+    init(profile: UserProfileItem?) {
+        self.profile = profile
+        _name = State(initialValue: profile?.displayName ?? "")
+        _currencyCode = State(initialValue: profile?.currencyCode ?? "")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("Name", text: $name)
+                    TextField("Currency code", text: $currencyCode)
+                        .textInputAutocapitalization(.characters)
+                }
+                if !message.isEmpty {
+                    Section {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .navigationTitle(profile == nil ? "New Profile" : "Edit Profile")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                }
+            }
+        }
+    }
+
+    private func save() {
+        do {
+            let normalizedCurrency = currencyCode
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .uppercased()
+            if profile == nil {
+                let created = try ProfileDataService.createProfile(
+                    name: name,
+                    currencyCode: normalizedCurrency.isEmpty
+                        ? appState.selectedCurrencyCode
+                        : normalizedCurrency,
+                    modelContext: modelContext
+                )
+                appState.applyProfile(created)
+            } else if let profile {
+                try ProfileDataService.updateProfile(
+                    profile,
+                    name: name,
+                    currencyCode: normalizedCurrency.isEmpty
+                        ? profile.currencyCode
+                        : normalizedCurrency
+                )
+                if profile.id.uuidString == appState.activeProfileID {
+                    appState.applyProfile(profile)
+                }
+            }
+            dismiss()
+        } catch {
+            message = error.localizedDescription
         }
     }
 }

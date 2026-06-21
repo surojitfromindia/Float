@@ -45,28 +45,42 @@ enum FloatSpotlightIndexer {
     private static let domainIdentifier = "com.reducer.Float.spotlight"
     private static var reindexTask: Task<Void, Never>?
 
-    static func scheduleReindex(modelContext: ModelContext) {
+    static func scheduleReindex(
+        modelContext: ModelContext,
+        profileID: UUID? = ActiveProfileRegistry.profileID
+    ) {
         reindexTask?.cancel()
         reindexTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(150))
             guard !Task.isCancelled else { return }
-            await reindexAll(modelContext: modelContext)
+            await reindexAll(modelContext: modelContext, profileID: profileID)
         }
     }
 
-    static func reindexAll(modelContext: ModelContext) async {
-        let items = makeSearchableItems(modelContext: modelContext)
+    static func reindexAll(
+        modelContext: ModelContext,
+        profileID: UUID? = ActiveProfileRegistry.profileID
+    ) async {
+        let items = makeSearchableItems(modelContext: modelContext, profileID: profileID)
         await deleteDomain()
         guard !items.isEmpty else { return }
         await index(items)
     }
 
-    private static func makeSearchableItems(modelContext: ModelContext) -> [CSSearchableItem] {
-        let transactions = (try? modelContext.fetch(FetchDescriptor<TransactionItem>())) ?? []
-        let transfers = (try? modelContext.fetch(FetchDescriptor<TransferItem>())) ?? []
-        let accounts = (try? modelContext.fetch(FetchDescriptor<AccountItem>())) ?? []
-        let categories = (try? modelContext.fetch(FetchDescriptor<CategoryItem>())) ?? []
-        let people = (try? modelContext.fetch(FetchDescriptor<PersonItem>())) ?? []
+    private static func makeSearchableItems(
+        modelContext: ModelContext,
+        profileID: UUID?
+    ) -> [CSSearchableItem] {
+        let transactions = ((try? modelContext.fetch(FetchDescriptor<TransactionItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
+        let transfers = ((try? modelContext.fetch(FetchDescriptor<TransferItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
+        let accounts = ((try? modelContext.fetch(FetchDescriptor<AccountItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
+        let categories = ((try? modelContext.fetch(FetchDescriptor<CategoryItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
+        let people = ((try? modelContext.fetch(FetchDescriptor<PersonItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
 
         let indexedTransactions = spotlightTransactions(from: transactions)
         let indexedTransfers = spotlightTransfers(from: transfers)

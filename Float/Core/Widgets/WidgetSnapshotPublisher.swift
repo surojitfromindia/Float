@@ -24,20 +24,26 @@ enum WidgetSnapshotPublisher {
     @MainActor
     static func publish(
         modelContext: ModelContext,
-        currencyCode: String
+        currencyCode: String,
+        profileID: UUID? = ActiveProfileRegistry.profileID
     ) {
         guard let userDefaults = UserDefaults(suiteName: appGroupIdentifier) else {
             return
         }
 
-        let budgets = (try? modelContext.fetch(FetchDescriptor<BudgetPeriodItem>())) ?? []
+        let budgets = ((try? modelContext.fetch(FetchDescriptor<BudgetPeriodItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
         let transactions =
-            (try? modelContext.fetch(FetchDescriptor<TransactionItem>())) ?? []
-        let goals = (try? modelContext.fetch(FetchDescriptor<GoalItem>())) ?? []
+            ((try? modelContext.fetch(FetchDescriptor<TransactionItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
+        let goals = ((try? modelContext.fetch(FetchDescriptor<GoalItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
         let recurringRules =
-            (try? modelContext.fetch(FetchDescriptor<RecurringRuleItem>())) ?? []
+            ((try? modelContext.fetch(FetchDescriptor<RecurringRuleItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
         let categoryBudgets =
-            (try? modelContext.fetch(FetchDescriptor<CategoryBudgetItem>())) ?? []
+            ((try? modelContext.fetch(FetchDescriptor<CategoryBudgetItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
         let activeBudget = budgets.first { $0.isActive }
         let period = BudgetPeriodCalculator.currentPeriod(for: activeBudget)
         let result = SafeToSpendUseCase.calculate(

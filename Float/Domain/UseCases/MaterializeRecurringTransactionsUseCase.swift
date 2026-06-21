@@ -5,12 +5,13 @@ enum MaterializeRecurringTransactionsUseCase {
     @MainActor
     static func run(
         modelContext: ModelContext,
+        profileID: UUID? = ActiveProfileRegistry.profileID,
         today: Date = Date(),
         calendar: Calendar = .current
     ) {
         let descriptor = FetchDescriptor<RecurringRuleItem>()
         guard let rules = try? modelContext.fetch(descriptor) else { return }
-        for rule in rules where rule.active {
+        for rule in rules where rule.active && (profileID == nil || rule.profileID == profileID) {
             materialize(
                 rule: rule,
                 modelContext: modelContext,
@@ -41,6 +42,7 @@ enum MaterializeRecurringTransactionsUseCase {
                 calendar: calendar
             ) {
                 let transaction = TransactionItem(
+                    profileID: rule.profileID,
                     amountMinor: rule.amountMinor,
                     isExpense: rule.isExpense,
                     timestamp: rule.nextRunDate,
@@ -78,7 +80,8 @@ enum MaterializeRecurringTransactionsUseCase {
         let descriptor = FetchDescriptor<TransactionItem>()
         let all = (try? modelContext.fetch(descriptor)) ?? []
         return all.contains { item in
-            item.recurringRule?.id == rule.id
+            item.profileID == rule.profileID
+                && item.recurringRule?.id == rule.id
                 && calendar.isDate(item.timestamp, inSameDayAs: date)
                 && item.amountMinor == rule.amountMinor
         }

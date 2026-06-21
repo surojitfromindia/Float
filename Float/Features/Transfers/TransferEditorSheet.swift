@@ -5,7 +5,7 @@ struct TransferEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query(sort: \AccountItem.createdAt) private var allAccounts: [AccountItem]
 
     let transferToEdit: TransferItem?
     var initialTimestamp: Date?
@@ -16,6 +16,8 @@ struct TransferEditorSheet: View {
     @State private var timestamp = Date()
     @State private var note = ""
     @State private var validationMessage: String?
+
+    private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
 
     private var activeAccounts: [AccountItem] {
         accounts.filter { !$0.archived }

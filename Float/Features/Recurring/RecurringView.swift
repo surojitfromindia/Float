@@ -4,11 +4,13 @@ import SwiftUI
 struct RecurringView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \RecurringRuleItem.nextRunDate) private var rules:
+    @Query(sort: \RecurringRuleItem.nextRunDate) private var allRules:
         [RecurringRuleItem]
     @State private var editingRule: RecurringRuleItem?
     @State private var showingNewRuleEditor = false
     @State private var rulePendingDeletion: RecurringRuleItem?
+
+    private var rules: [RecurringRuleItem] { filterActiveProfile(allRules) }
 
     var body: some View {
         ScrollView {
@@ -266,9 +268,9 @@ struct RecurringEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
-    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
-    @Query(sort: \PersonItem.createdAt) private var people: [PersonItem]
+    @Query(sort: \CategoryItem.sortOrder) private var allCategories: [CategoryItem]
+    @Query(sort: \AccountItem.createdAt) private var allAccounts: [AccountItem]
+    @Query(sort: \PersonItem.createdAt) private var allPeople: [PersonItem]
     let rule: RecurringRuleItem?
     @State private var amountText = ""
     @State private var isExpense = true
@@ -283,6 +285,10 @@ struct RecurringEditorView: View {
     @State private var endDate = Date()
     @State private var active = true
     @State private var validationMessage: String?
+
+    private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
+    private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
+    private var people: [PersonItem] { filterActiveProfile(allPeople) }
 
     var body: some View {
         NavigationStack {

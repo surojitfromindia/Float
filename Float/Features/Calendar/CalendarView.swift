@@ -6,9 +6,9 @@ import SwiftUI
 struct CalendarView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query private var goals: [GoalItem]
-    @Query private var recurringRules: [RecurringRuleItem]
-    @Query private var budgetPeriods: [BudgetPeriodItem]
+    @Query private var allGoals: [GoalItem]
+    @Query private var allRecurringRules: [RecurringRuleItem]
+    @Query private var allBudgetPeriods: [BudgetPeriodItem]
 
     @State private var displayedMonth = Calendar.current.startOfMonth(for: Date())
     @State private var monthSnapshot = CalendarMonthSnapshot.empty
@@ -19,6 +19,10 @@ struct CalendarView: View {
 
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
+
+    private var goals: [GoalItem] { filterActiveProfile(allGoals) }
+    private var recurringRules: [RecurringRuleItem] { filterActiveProfile(allRecurringRules) }
+    private var budgetPeriods: [BudgetPeriodItem] { filterActiveProfile(allBudgetPeriods) }
 
     private var activeBudget: BudgetPeriodItem? {
         budgetPeriods.first { $0.isActive }
@@ -435,7 +439,7 @@ struct CalendarView: View {
             },
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
-        return try modelContext.fetch(descriptor)
+        return filterActiveProfile(try modelContext.fetch(descriptor))
     }
 
     private func fetchTransfers(from start: Date, through end: Date) throws
@@ -447,7 +451,7 @@ struct CalendarView: View {
             },
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
-        return try modelContext.fetch(descriptor)
+        return filterActiveProfile(try modelContext.fetch(descriptor))
     }
 
     private func fetchSafeToSpendTransactions(through end: Date) throws -> [TransactionItem] {
@@ -463,7 +467,7 @@ struct CalendarView: View {
                 transaction.timestamp >= start && transaction.timestamp <= effectiveEnd
             }
         )
-        return try modelContext.fetch(descriptor)
+        return filterActiveProfile(try modelContext.fetch(descriptor))
     }
 }
 
@@ -519,11 +523,11 @@ private struct DailyDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
-    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
-    @Query private var goals: [GoalItem]
-    @Query private var recurringRules: [RecurringRuleItem]
-    @Query private var budgetPeriods: [BudgetPeriodItem]
+    @Query(sort: \CategoryItem.sortOrder) private var allCategories: [CategoryItem]
+    @Query(sort: \AccountItem.createdAt) private var allAccounts: [AccountItem]
+    @Query private var allGoals: [GoalItem]
+    @Query private var allRecurringRules: [RecurringRuleItem]
+    @Query private var allBudgetPeriods: [BudgetPeriodItem]
 
     let initialDate: Date
 
@@ -540,6 +544,12 @@ private struct DailyDetailView: View {
     @State private var daySnapshot = CalendarDaySnapshot.empty
 
     private let calendar = Calendar.current
+
+    private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
+    private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
+    private var goals: [GoalItem] { filterActiveProfile(allGoals) }
+    private var recurringRules: [RecurringRuleItem] { filterActiveProfile(allRecurringRules) }
+    private var budgetPeriods: [BudgetPeriodItem] { filterActiveProfile(allBudgetPeriods) }
 
     init(initialDate: Date) {
         self.initialDate = initialDate
@@ -1317,7 +1327,7 @@ private struct DailyDetailView: View {
             },
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
-        return try modelContext.fetch(descriptor)
+        return filterActiveProfile(try modelContext.fetch(descriptor))
     }
 
     private func fetchTransfers(from start: Date, through end: Date) throws
@@ -1329,7 +1339,7 @@ private struct DailyDetailView: View {
             },
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
-        return try modelContext.fetch(descriptor)
+        return filterActiveProfile(try modelContext.fetch(descriptor))
     }
 
     private func fetchSafeToSpendTransactions(through end: Date) throws -> [TransactionItem] {
@@ -1345,7 +1355,7 @@ private struct DailyDetailView: View {
                 transaction.timestamp >= start && transaction.timestamp <= effectiveEnd
             }
         )
-        return try modelContext.fetch(descriptor)
+        return filterActiveProfile(try modelContext.fetch(descriptor))
     }
 }
 

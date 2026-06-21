@@ -8,10 +8,10 @@ import UIKit
 struct InsightsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query private var budgets: [BudgetPeriodItem]
-    @Query private var categoryBudgets: [CategoryBudgetItem]
-    @Query private var goals: [GoalItem]
-    @Query private var recurringRules: [RecurringRuleItem]
+    @Query private var allBudgets: [BudgetPeriodItem]
+    @Query private var allCategoryBudgets: [CategoryBudgetItem]
+    @Query private var allGoals: [GoalItem]
+    @Query private var allRecurringRules: [RecurringRuleItem]
 
     @State private var selectedRange = InsightRange.currentPeriod
     @State private var customStart = Calendar.current.date(
@@ -32,6 +32,11 @@ struct InsightsView: View {
     private var palette: [Color] {
         appState.themePalette.chartColors
     }
+
+    private var budgets: [BudgetPeriodItem] { filterActiveProfile(allBudgets) }
+    private var categoryBudgets: [CategoryBudgetItem] { filterActiveProfile(allCategoryBudgets) }
+    private var goals: [GoalItem] { filterActiveProfile(allGoals) }
+    private var recurringRules: [RecurringRuleItem] { filterActiveProfile(allRecurringRules) }
 
     private var activeBudget: BudgetPeriodItem? {
         budgets.first { $0.isActive } ?? budgets.first
@@ -887,7 +892,7 @@ struct InsightsView: View {
             },
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
-        return try modelContext.fetch(descriptor)
+        return filterActiveProfile(try modelContext.fetch(descriptor))
     }
 
     private func activityYearRange(for range: BudgetPeriod) -> BudgetPeriod {

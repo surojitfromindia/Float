@@ -5,10 +5,10 @@ import SwiftUI
 struct TransactionsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
-    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
-    @Query(sort: \PersonItem.createdAt) private var people: [PersonItem]
-    @Query(sort: \EventItem.startDate, order: .reverse) private var events: [EventItem]
+    @Query(sort: \CategoryItem.sortOrder) private var allCategories: [CategoryItem]
+    @Query(sort: \AccountItem.createdAt) private var allAccounts: [AccountItem]
+    @Query(sort: \PersonItem.createdAt) private var allPeople: [PersonItem]
+    @Query(sort: \EventItem.startDate, order: .reverse) private var allEvents: [EventItem]
     @State private var ledgerItems: [LedgerListItem] = []
     @State private var nextPageEndDate: Date?
     @State private var isLoadingPage = false
@@ -39,6 +39,11 @@ struct TransactionsView: View {
     @State private var isEntrySheetPresented = false
     @State private var isTransferSheetPresented = false
     @State private var isBulkEntrySheetPresented = false
+
+    private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
+    private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
+    private var people: [PersonItem] { filterActiveProfile(allPeople) }
+    private var events: [EventItem] { filterActiveProfile(allEvents) }
 
     private var filtered: [LedgerListItem] {
         switch selectedSort {
@@ -714,7 +719,7 @@ struct TransactionsView: View {
         let descriptor = FetchDescriptor<TransactionItem>(
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
-        return try modelContext.fetch(descriptor).filter { transaction in
+        return filterActiveProfile(try modelContext.fetch(descriptor)).filter { transaction in
             let displayDate = transaction.displayDate
             let matchesDate = displayDate >= start && displayDate <= end
             let matchesAmount = (minAmount == nil || transaction.amountMinor >= minAmount!)
@@ -737,7 +742,7 @@ struct TransactionsView: View {
             sortBy: [SortDescriptor(\.timestamp, order: .forward)]
         )
         descriptor.fetchLimit = 500
-        return try modelContext.fetch(descriptor)
+        return filterActiveProfile(try modelContext.fetch(descriptor))
             .filter {
                 (includeExpenses && $0.isPostedExpense)
                     || (includeIncome && $0.isPostedIncome)
@@ -763,7 +768,7 @@ struct TransactionsView: View {
             },
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
-        return try modelContext.fetch(descriptor)
+        return filterActiveProfile(try modelContext.fetch(descriptor))
     }
 
     private func oldestTransferDate() throws -> Date? {
@@ -772,8 +777,8 @@ struct TransactionsView: View {
         var descriptor = FetchDescriptor<TransferItem>(
             sortBy: [SortDescriptor(\.timestamp, order: .forward)]
         )
-        descriptor.fetchLimit = 1
-        return try modelContext.fetch(descriptor).first?.timestamp
+        descriptor.fetchLimit = 500
+        return filterActiveProfile(try modelContext.fetch(descriptor)).first?.timestamp
     }
 
     private func matchesTransaction(_ transaction: TransactionItem) -> Bool {
@@ -882,7 +887,7 @@ struct TransactionsView: View {
                 transaction.id == id
             }
         )
-        return try? modelContext.fetch(descriptor).first
+        return filterActiveProfile((try? modelContext.fetch(descriptor)) ?? []).first
     }
 
     private func fetchTransfer(id: UUID) -> TransferItem? {
@@ -891,7 +896,7 @@ struct TransactionsView: View {
                 transfer.id == id
             }
         )
-        return try? modelContext.fetch(descriptor).first
+        return filterActiveProfile((try? modelContext.fetch(descriptor)) ?? []).first
     }
 
     private func loadInitialState() {

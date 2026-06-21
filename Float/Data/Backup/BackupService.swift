@@ -53,10 +53,11 @@ enum BackupService {
 
     static func restore(
         document: BackupDocument,
-        modelContext: ModelContext
+        modelContext: ModelContext,
+        profileID: UUID? = ActiveProfileRegistry.profileID
     ) throws -> String {
         let dto = try BackupArchiveService.dto(from: document)
-        try deleteExistingData(in: modelContext)
+        try deleteExistingData(in: modelContext, profileID: profileID)
 
         var categoryMap: [UUID: CategoryItem] = [:]
         var personMap: [UUID: PersonItem] = [:]
@@ -259,26 +260,33 @@ enum BackupService {
         }
     }
 
-    private static func deleteExistingData(in modelContext: ModelContext) throws {
-        try modelContext.delete(model: TransactionPersonTagItem.self)
-        try modelContext.delete(model: RecurringRulePersonTagItem.self)
-        try modelContext.delete(model: SettlementMilestoneItem.self)
-        try modelContext.delete(model: SettlementEntryItem.self)
-        try modelContext.delete(model: SettlementCaseItem.self)
-        try modelContext.delete(model: TransactionItem.self)
-        try modelContext.delete(model: EventItem.self)
-        try modelContext.delete(model: EventCategoryItem.self)
-        try modelContext.delete(model: TransactionTemplateGroupEntryItem.self)
-        try modelContext.delete(model: TransactionTemplateGroupItem.self)
-        try modelContext.delete(model: TransactionTemplateItem.self)
-        try modelContext.delete(model: TransferItem.self)
-        try modelContext.delete(model: RecurringRuleItem.self)
-        try modelContext.delete(model: PersonItem.self)
-        try modelContext.delete(model: GoalItem.self)
-        try modelContext.delete(model: CategoryBudgetItem.self)
-        try modelContext.delete(model: BudgetPeriodItem.self)
-        try modelContext.delete(model: CategoryItem.self)
-        try modelContext.delete(model: AccountItem.self)
+    private static func deleteExistingData(
+        in modelContext: ModelContext,
+        profileID: UUID?
+    ) throws {
+        guard let profileID else {
+            try modelContext.delete(model: TransactionPersonTagItem.self)
+            try modelContext.delete(model: RecurringRulePersonTagItem.self)
+            try modelContext.delete(model: SettlementMilestoneItem.self)
+            try modelContext.delete(model: SettlementEntryItem.self)
+            try modelContext.delete(model: SettlementCaseItem.self)
+            try modelContext.delete(model: TransactionItem.self)
+            try modelContext.delete(model: EventItem.self)
+            try modelContext.delete(model: EventCategoryItem.self)
+            try modelContext.delete(model: TransactionTemplateGroupEntryItem.self)
+            try modelContext.delete(model: TransactionTemplateGroupItem.self)
+            try modelContext.delete(model: TransactionTemplateItem.self)
+            try modelContext.delete(model: TransferItem.self)
+            try modelContext.delete(model: RecurringRuleItem.self)
+            try modelContext.delete(model: PersonItem.self)
+            try modelContext.delete(model: GoalItem.self)
+            try modelContext.delete(model: CategoryBudgetItem.self)
+            try modelContext.delete(model: BudgetPeriodItem.self)
+            try modelContext.delete(model: CategoryItem.self)
+            try modelContext.delete(model: AccountItem.self)
+            return
+        }
+        try ProfileDataService.deleteData(profileID: profileID, modelContext: modelContext)
     }
 }
 

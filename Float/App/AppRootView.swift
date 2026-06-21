@@ -45,6 +45,10 @@ struct AppRootView: View {
             handleSpotlightActivity(activity)
         }
         .task {
+            ProfileDataService.ensureActiveProfile(
+                modelContext: modelContext,
+                appState: appState
+            )
             refreshAppData()
             try? await Task.sleep(for: .milliseconds(950))
             withAnimation(.easeInOut(duration: 0.28)) {
@@ -59,10 +63,14 @@ struct AppRootView: View {
         .onChange(of: scenePhase) { _, newPhase in
             if newPhase == .active {
                 MaterializeRecurringTransactionsUseCase.run(
-                    modelContext: modelContext
+                    modelContext: modelContext,
+                    profileID: ActiveProfileRegistry.profileID
                 )
                 publishWidgetSnapshot()
-                FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
+                FloatSpotlightIndexer.scheduleReindex(
+                    modelContext: modelContext,
+                    profileID: ActiveProfileRegistry.profileID
+                )
                 consumePendingSystemAction()
                 if appState.isAppLockEnabled && !isShowingSplash {
                     authenticate()
@@ -72,7 +80,38 @@ struct AppRootView: View {
             }
         }
         .onChange(of: appState.selectedCurrencyCode) { _, _ in
+            ProfileDataService.persistPreferences(from: appState, modelContext: modelContext)
             publishWidgetSnapshot()
+        }
+        .onChange(of: appState.lastUsedCategoryID) { _, _ in
+            ProfileDataService.persistPreferences(from: appState, modelContext: modelContext)
+        }
+        .onChange(of: appState.lastUsedAccountID) { _, _ in
+            ProfileDataService.persistPreferences(from: appState, modelContext: modelContext)
+        }
+        .onChange(of: appState.recurringRemindersEnabled) { _, _ in
+            ProfileDataService.persistPreferences(from: appState, modelContext: modelContext)
+        }
+        .onChange(of: appState.budgetAlertsEnabled) { _, _ in
+            ProfileDataService.persistPreferences(from: appState, modelContext: modelContext)
+        }
+        .onChange(of: appState.goalRemindersEnabled) { _, _ in
+            ProfileDataService.persistPreferences(from: appState, modelContext: modelContext)
+        }
+        .onChange(of: appState.settlementRemindersEnabled) { _, _ in
+            ProfileDataService.persistPreferences(from: appState, modelContext: modelContext)
+        }
+        .onChange(of: appState.recurringReminderMinutes) { _, _ in
+            ProfileDataService.persistPreferences(from: appState, modelContext: modelContext)
+        }
+        .onChange(of: appState.goalReminderMinutes) { _, _ in
+            ProfileDataService.persistPreferences(from: appState, modelContext: modelContext)
+        }
+        .onChange(of: appState.settlementReminderMinutes) { _, _ in
+            ProfileDataService.persistPreferences(from: appState, modelContext: modelContext)
+        }
+        .onChange(of: appState.budgetAlertSensitivityRaw) { _, _ in
+            ProfileDataService.persistPreferences(from: appState, modelContext: modelContext)
         }
         .onChange(of: appState.isAppLockEnabled) { _, isEnabled in
             if isEnabled {
@@ -94,15 +133,22 @@ struct AppRootView: View {
             modelContext: modelContext,
             currencyCode: appState.selectedCurrencyCode
         )
-        MaterializeRecurringTransactionsUseCase.run(modelContext: modelContext)
+        MaterializeRecurringTransactionsUseCase.run(
+            modelContext: modelContext,
+            profileID: ActiveProfileRegistry.profileID
+        )
         publishWidgetSnapshot()
-        FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
+        FloatSpotlightIndexer.scheduleReindex(
+            modelContext: modelContext,
+            profileID: ActiveProfileRegistry.profileID
+        )
     }
 
     private func publishWidgetSnapshot() {
         WidgetSnapshotPublisher.publish(
             modelContext: modelContext,
-            currencyCode: appState.selectedCurrencyCode
+            currencyCode: appState.selectedCurrencyCode,
+            profileID: ActiveProfileRegistry.profileID
         )
     }
 

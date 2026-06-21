@@ -4,8 +4,10 @@ import SwiftUI
 struct CategoryManagerView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
+    @Query(sort: \CategoryItem.sortOrder) private var allCategories: [CategoryItem]
     @State private var editorPresentation: CategoryEditorPresentation?
+
+    private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
 
     var body: some View {
         List {
@@ -128,7 +130,7 @@ struct CategoryManagerView: View {
                 category.id == id
             }
         )
-        return try? modelContext.fetch(descriptor).first
+        return filterActiveProfile((try? modelContext.fetch(descriptor)) ?? []).first
     }
 }
 

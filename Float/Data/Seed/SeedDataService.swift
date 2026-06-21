@@ -532,13 +532,16 @@ enum DataIntegrityService {
     @MainActor
     static func repair(modelContext: ModelContext, currencyCode: String) {
         let now = Date()
-        let categories = (try? modelContext.fetch(FetchDescriptor<CategoryItem>())) ?? []
+        let profileID = ActiveProfileRegistry.profileID
+        let categories = ((try? modelContext.fetch(FetchDescriptor<CategoryItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
         ensureDefaultCategories(
             existingCategories: categories,
             modelContext: modelContext
         )
 
-        let accounts = (try? modelContext.fetch(FetchDescriptor<AccountItem>())) ?? []
+        let accounts = ((try? modelContext.fetch(FetchDescriptor<AccountItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
         _ = DefaultAccountResolver.resolve(
             preferredID: nil,
             accounts: accounts,
@@ -546,7 +549,8 @@ enum DataIntegrityService {
             currencyCode: currencyCode
         )
 
-        let budgets = (try? modelContext.fetch(FetchDescriptor<BudgetPeriodItem>())) ?? []
+        let budgets = ((try? modelContext.fetch(FetchDescriptor<BudgetPeriodItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
         if budgets.isEmpty {
             modelContext.insert(BudgetPeriodItem(currencyCode: currencyCode))
         } else if budgets.allSatisfy({ !$0.isActive }), let first = budgets.first {

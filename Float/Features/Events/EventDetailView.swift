@@ -6,9 +6,9 @@ import SwiftUI
 struct EventDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
-    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
-    @Query(sort: \EventCategoryItem.sortOrder) private var eventCategories: [EventCategoryItem]
+    @Query(sort: \CategoryItem.sortOrder) private var allCategories: [CategoryItem]
+    @Query(sort: \AccountItem.createdAt) private var allAccounts: [AccountItem]
+    @Query(sort: \EventCategoryItem.sortOrder) private var allEventCategories: [EventCategoryItem]
 
     let event: EventItem
 
@@ -40,6 +40,10 @@ struct EventDetailView: View {
     @State private var editorPresentation: EventEditorPresentation?
     @State private var pendingDeleteTransaction: TransactionItem?
     @State private var showingDeleteAlert = false
+
+    private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
+    private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
+    private var eventCategories: [EventCategoryItem] { filterActiveProfile(allEventCategories) }
 
     private var filteredTransactions: [TransactionItem] {
         loadedTransactions.filter(matchesTransaction).sorted { lhs, rhs in
@@ -781,7 +785,7 @@ struct EventDetailView: View {
     private func loadAnalytics() {
         do {
             let descriptor = allTransactionsDescriptor
-            allTransactions = try modelContext.fetch(descriptor)
+            allTransactions = filterActiveProfile(try modelContext.fetch(descriptor))
         } catch {
             allTransactions = []
         }
@@ -794,7 +798,7 @@ struct EventDetailView: View {
 
         do {
             let descriptor = pageDescriptor(offset: nextPageOffset)
-            let fetched = try modelContext.fetch(descriptor)
+            let fetched = filterActiveProfile(try modelContext.fetch(descriptor))
             mergeLoadedTransactions(fetched)
             nextPageOffset += fetched.count
             hasMorePages = fetched.count == 100

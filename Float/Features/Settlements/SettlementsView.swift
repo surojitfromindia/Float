@@ -4,7 +4,7 @@ import SwiftUI
 struct SettlementsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \SettlementCaseItem.updatedAt, order: .reverse) private var cases:
+    @Query(sort: \SettlementCaseItem.updatedAt, order: .reverse) private var allCases:
         [SettlementCaseItem]
     @State private var selectedStatus: SettlementCaseStatus?
     @State private var selectedDirection: SettlementDirection?
@@ -12,6 +12,8 @@ struct SettlementsView: View {
     @State private var editorPresentation: SettlementCaseEditorPresentation?
     @State private var entryPresentation: SettlementEntryEditorPresentation?
     @State private var casePendingDeletion: SettlementCaseItem?
+
+    private var cases: [SettlementCaseItem] { filterActiveProfile(allCases) }
 
     private var filteredCases: [SettlementCaseItem] {
         cases.filter { caseItem in
@@ -1148,9 +1150,9 @@ private struct SettlementRowDeltaChip: View {
 struct SettlementCaseDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
-    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
-    @Query(sort: \TransactionItem.timestamp, order: .reverse) private var transactions:
+    @Query(sort: \CategoryItem.sortOrder) private var allCategories: [CategoryItem]
+    @Query(sort: \AccountItem.createdAt) private var allAccounts: [AccountItem]
+    @Query(sort: \TransactionItem.timestamp, order: .reverse) private var allTransactions:
         [TransactionItem]
     let caseItem: SettlementCaseItem
     @State private var editorPresentation: SettlementEntryEditorPresentation?
@@ -1158,6 +1160,10 @@ struct SettlementCaseDetailView: View {
     @State private var editingCase = false
     @State private var entryPendingDeletion: SettlementEntryItem?
     @State private var transactionLinkEntry: SettlementEntryItem?
+
+    private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
+    private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
+    private var transactions: [TransactionItem] { filterActiveProfile(allTransactions) }
 
     private var snapshot: SettlementBalanceSnapshot {
         caseItem.balanceSnapshot
@@ -1986,13 +1992,15 @@ private struct SettlementCaseEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \PersonItem.name) private var people: [PersonItem]
+    @Query(sort: \PersonItem.name) private var allPeople: [PersonItem]
     let caseItem: SettlementCaseItem?
     @State private var title = ""
     @State private var personName = ""
     @State private var selectedPersonID: UUID?
     @State private var direction = SettlementDirection.theyOweYou
     @State private var amountText = ""
+
+    private var people: [PersonItem] { filterActiveProfile(allPeople) }
     @State private var date = Date()
     @State private var hasDueDate = false
     @State private var dueDate = Date()
@@ -2167,8 +2175,8 @@ private struct SettlementEntryEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
-    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query(sort: \CategoryItem.sortOrder) private var allCategories: [CategoryItem]
+    @Query(sort: \AccountItem.createdAt) private var allAccounts: [AccountItem]
     let caseItem: SettlementCaseItem
     let entry: SettlementEntryItem?
     let initialKind: SettlementEntryKind
@@ -2176,6 +2184,9 @@ private struct SettlementEntryEditorView: View {
     @State private var kind = SettlementEntryKind.addition
     @State private var amountText = ""
     @State private var entryDate = Date()
+
+    private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
+    private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
     @State private var note = ""
     @State private var reference = ""
     @State private var createLinkedTransaction = false

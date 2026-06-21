@@ -841,6 +841,9 @@
     "Active only" : {
 
     },
+    "Active profile" : {
+
+    },
     "Add" : {
       "localizations" : {
         "bn" : {
@@ -2467,6 +2470,9 @@
         }
       }
     },
+    "Delete profile?" : {
+
+    },
     "Delete recurring rule?" : {
       "localizations" : {
         "bn" : {
@@ -2627,6 +2633,9 @@
     "Due today" : {
 
     },
+    "Each profile keeps separate accounts, categories, budgets, goals, transactions, settlements, backups, and reminders." : {
+
+    },
     "Edit" : {
       "localizations" : {
         "bn" : {
@@ -2727,6 +2736,9 @@
       }
     },
     "Edit Person" : {
+
+    },
+    "Edit Profile" : {
 
     },
     "Edit Rule" : {
@@ -3958,26 +3970,7 @@
       }
     },
     "Name" : {
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "নাম"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nombre"
-          }
-        },
-        "hi" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "नाम"
-          }
-        }
-      }
+
     },
     "Nearest goal" : {
       "localizations" : {
@@ -4071,6 +4064,9 @@
 
     },
     "New Person" : {
+
+    },
+    "New Profile" : {
 
     },
     "New Rule" : {
@@ -4844,6 +4840,9 @@
     "Person name" : {
 
     },
+    "Personal" : {
+
+    },
     "Pin event" : {
       "localizations" : {
         "bn" : {
@@ -4992,6 +4991,12 @@
           }
         }
       }
+    },
+    "Profile deleted." : {
+
+    },
+    "Profiles" : {
+
     },
     "Projected recurring" : {
       "localizations" : {
@@ -5216,6 +5221,9 @@
           }
         }
       }
+    },
+    "Rename" : {
+
     },
     "Report could not load" : {
       "localizations" : {
@@ -6135,6 +6143,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "এই দিনটি বর্তমান দৈনিক সীমার মধ্যে।"
+          }
+        }
+      }
+    },
+    "This deletes %lld records for %@. This action cannot be undone." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "This deletes %1$lld records for %2$@. This action cannot be undone."
           }
         }
       }

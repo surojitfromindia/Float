@@ -4,12 +4,15 @@ import SwiftUI
 struct ReviewQueueView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \TransactionItem.timestamp, order: .reverse) private var transactions:
+    @Query(sort: \TransactionItem.timestamp, order: .reverse) private var allTransactions:
         [TransactionItem]
-    @Query(sort: \TransactionTemplateItem.createdAt, order: .reverse) private var templates:
+    @Query(sort: \TransactionTemplateItem.createdAt, order: .reverse) private var allTemplates:
         [TransactionTemplateItem]
     @State private var editingTransaction: TransactionItem?
     @State private var message: String?
+
+    private var transactions: [TransactionItem] { filterActiveProfile(allTransactions) }
+    private var templates: [TransactionTemplateItem] { filterActiveProfile(allTemplates) }
 
     private var issues: [ReviewIssue] {
         ReviewIssueBuilder.issues(for: transactions.filter(\.isPosted))

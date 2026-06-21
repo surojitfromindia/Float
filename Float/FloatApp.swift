@@ -7,6 +7,7 @@ struct FloatApp: App {
 
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
+            UserProfileItem.self,
             AccountItem.self,
             CategoryItem.self,
             PersonItem.self,

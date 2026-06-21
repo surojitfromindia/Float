@@ -4,12 +4,14 @@ import SwiftUI
 struct GoalsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \GoalItem.createdAt, order: .reverse) private var goals:
+    @Query(sort: \GoalItem.createdAt, order: .reverse) private var allGoals:
         [GoalItem]
     @State private var showingEditor = false
     @State private var editingGoal: GoalItem?
     @State private var contributionGoal: GoalItem?
     @State private var showCompleted = true
+
+    private var goals: [GoalItem] { filterActiveProfile(allGoals) }
 
     private var visibleGoals: [GoalItem] {
         goals.filter { showCompleted || !$0.achieved }

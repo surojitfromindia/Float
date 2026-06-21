@@ -5,7 +5,7 @@ import SwiftUI
 struct EventsView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \EventCategoryItem.sortOrder) private var categories: [EventCategoryItem]
+    @Query(sort: \EventCategoryItem.sortOrder) private var allCategories: [EventCategoryItem]
     @State private var events: [EventItem] = []
     @State private var nextPageOffset = 0
     @State private var isLoadingPage = false
@@ -24,6 +24,8 @@ struct EventsView: View {
     @State private var editorPresentation: EventEditorPresentation?
     @State private var pendingDeleteEvent: EventItem?
     @State private var showingDeleteAlert = false
+
+    private var categories: [EventCategoryItem] { filterActiveProfile(allCategories) }
 
     private var filteredEvents: [EventItem] {
         events.filter(matchesEvent).sorted {
@@ -366,7 +368,7 @@ struct EventsView: View {
 
         do {
             let descriptor = eventPageDescriptor(offset: nextPageOffset)
-            let fetched = try modelContext.fetch(descriptor)
+            let fetched = filterActiveProfile(try modelContext.fetch(descriptor))
             mergeLoadedEvents(fetched)
             nextPageOffset += fetched.count
             hasMorePages = fetched.count == 100
@@ -544,9 +546,12 @@ struct EventSettingsView: View {
 
 struct EventCategoryManagerView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \EventCategoryItem.sortOrder) private var categories: [EventCategoryItem]
-    @Query(sort: \EventItem.startDate, order: .reverse) private var events: [EventItem]
+    @Query(sort: \EventCategoryItem.sortOrder) private var allCategories: [EventCategoryItem]
+    @Query(sort: \EventItem.startDate, order: .reverse) private var allEvents: [EventItem]
     @State private var editorPresentation: EventCategoryEditorPresentation?
+
+    private var categories: [EventCategoryItem] { filterActiveProfile(allCategories) }
+    private var events: [EventItem] { filterActiveProfile(allEvents) }
 
     private var usedCategoryIDs: Set<UUID> {
         Set(events.compactMap { $0.category?.id })
@@ -1139,4 +1144,3 @@ private struct FilterControlLabel: View {
             .padding(.vertical, 8)
     }
 }
-

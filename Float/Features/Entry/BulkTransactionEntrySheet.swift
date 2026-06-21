@@ -5,12 +5,12 @@ struct BulkTransactionEntrySheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \CategoryItem.sortOrder) private var categories: [CategoryItem]
-    @Query(sort: \AccountItem.createdAt) private var accounts: [AccountItem]
+    @Query(sort: \CategoryItem.sortOrder) private var allCategories: [CategoryItem]
+    @Query(sort: \AccountItem.createdAt) private var allAccounts: [AccountItem]
     @Query(sort: \TransactionTemplateGroupItem.createdAt, order: .reverse)
-    private var groups: [TransactionTemplateGroupItem]
+    private var allGroups: [TransactionTemplateGroupItem]
     @Query(sort: \TransactionTemplateItem.createdAt, order: .reverse)
-    private var templates: [TransactionTemplateItem]
+    private var allTemplates: [TransactionTemplateItem]
 
     private let initialSplitAmountMinor: Int64?
     private let initialSplitTimestamp: Date?
@@ -31,6 +31,11 @@ struct BulkTransactionEntrySheet: View {
     @State private var showingSaveSplitTemplate = false
     @State private var newSplitTemplateName = ""
     @State private var message: String?
+
+    private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
+    private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
+    private var groups: [TransactionTemplateGroupItem] { filterActiveProfile(allGroups) }
+    private var templates: [TransactionTemplateItem] { filterActiveProfile(allTemplates) }
 
     init(
         initialSplitAmountMinor: Int64? = nil,
@@ -1559,8 +1564,10 @@ struct TransactionTemplateGroupManagerView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
     @Query(sort: \TransactionTemplateGroupItem.createdAt, order: .reverse)
-    private var groups: [TransactionTemplateGroupItem]
+    private var allGroups: [TransactionTemplateGroupItem]
     @State private var editorPresentation: TransactionTemplateGroupEditorPresentation?
+
+    private var groups: [TransactionTemplateGroupItem] { filterActiveProfile(allGroups) }
 
     var body: some View {
         ScrollView {
@@ -1643,12 +1650,14 @@ private struct TransactionTemplateGroupEditorView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
     @Query(sort: \TransactionTemplateItem.createdAt, order: .reverse)
-    private var templates: [TransactionTemplateItem]
+    private var allTemplates: [TransactionTemplateItem]
 
     let group: TransactionTemplateGroupItem?
     @State private var name = ""
     @State private var orderedEntries: [TemplateGroupEditorEntry] = []
     @State private var validationMessage: String?
+
+    private var templates: [TransactionTemplateItem] { filterActiveProfile(allTemplates) }
 
     private var selectedTemplates: [TransactionTemplateItem] {
         orderedEntries.compactMap { template(for: $0.templateID) }

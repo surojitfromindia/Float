@@ -10,8 +10,10 @@ private func trimmed(_ value: String?) -> String? {
 struct PeopleManagerView: View {
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
-    @Query(sort: \PersonItem.createdAt) private var people: [PersonItem]
+    @Query(sort: \PersonItem.createdAt) private var allPeople: [PersonItem]
     @State private var editorPresentation: PersonEditorPresentation?
+
+    private var people: [PersonItem] { filterActiveProfile(allPeople) }
 
     var body: some View {
         ScrollView {
@@ -183,12 +185,15 @@ struct PeopleManagerView: View {
         )
 
         if let transactionTags = try? modelContext.fetch(transactionTagDescriptor) {
+            let transactionTags = filterActiveProfile(transactionTags)
             transactionTags.forEach { modelContext.delete($0) }
         }
         if let recurringTags = try? modelContext.fetch(recurringTagDescriptor) {
+            let recurringTags = filterActiveProfile(recurringTags)
             recurringTags.forEach { modelContext.delete($0) }
         }
         if let settlementCases = try? modelContext.fetch(settlementDescriptor) {
+            let settlementCases = filterActiveProfile(settlementCases)
             settlementCases.forEach { caseItem in
                 if caseItem.counterpartyName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     caseItem.counterpartyName = person.name
@@ -346,7 +351,7 @@ private struct PersonDetailView: View {
                 tag.person?.id == personID
             }
         )
-        return (try? modelContext.fetch(descriptor).count) ?? 0
+        return filterActiveProfile((try? modelContext.fetch(descriptor)) ?? []).count
     }
 
     private func fetchRecurringRuleCount() -> Int {
@@ -356,7 +361,7 @@ private struct PersonDetailView: View {
                 tag.person?.id == personID
             }
         )
-        return (try? modelContext.fetch(descriptor).count) ?? 0
+        return filterActiveProfile((try? modelContext.fetch(descriptor)) ?? []).count
     }
 
     private func signedAmountText(for transaction: TransactionItem, currencyCode: String) -> String {
