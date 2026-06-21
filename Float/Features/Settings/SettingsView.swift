@@ -160,6 +160,7 @@ struct SettingsView: View {
 
         Section("Manage") {
             settingsNavigationLink("Calendar", destination: CalendarView())
+            settingsNavigationLink("Planner", destination: ScenarioPlannerView())
             settingsNavigationLink("Budget", destination: BudgetSettingsView())
             settingsNavigationLink("Goals", destination: GoalsView())
             settingsNavigationLink("Recurring", destination: RecurringView())
@@ -275,6 +276,8 @@ struct SettingsView: View {
         switch destination {
         case .calendar:
             CalendarView()
+        case .planner:
+            ScenarioPlannerView()
         case .budget:
             BudgetSettingsView()
         case .goals:
@@ -347,6 +350,7 @@ struct SettingsView: View {
                 recurringRulePersonTags: fetchAll(RecurringRulePersonTagItem.self),
                 budgets: fetchAll(BudgetPeriodItem.self),
                 categoryBudgets: fetchAll(CategoryBudgetItem.self),
+                scenarioPlans: fetchAll(ScenarioPlanItem.self),
                 settlementCases: fetchAll(SettlementCaseItem.self),
                 settlementEntries: fetchAll(SettlementEntryItem.self),
                 settlementMilestones: fetchAll(SettlementMilestoneItem.self),
@@ -408,6 +412,9 @@ struct SettingsView: View {
         for item in fetchAll(EventCategoryItem.self) { modelContext.delete(item) }
         for item in fetchAll(RecurringRuleItem.self) { modelContext.delete(item) }
         for item in fetchAll(GoalItem.self) { modelContext.delete(item) }
+        for item in fetchAll(InsightSignalItem.self) { modelContext.delete(item) }
+        for item in fetchAll(MerchantAliasItem.self) { modelContext.delete(item) }
+        for item in fetchAll(ScenarioPlanItem.self) { modelContext.delete(item) }
         for item in fetchAll(CategoryBudgetItem.self) { modelContext.delete(item) }
         for item in fetchAll(BudgetPeriodItem.self) { modelContext.delete(item) }
         for item in fetchAll(AccountItem.self) { modelContext.delete(item) }

@@ -19,6 +19,7 @@ enum BackupService {
         recurringRulePersonTags: [RecurringRulePersonTagItem],
         budgets: [BudgetPeriodItem],
         categoryBudgets: [CategoryBudgetItem],
+        scenarioPlans: [ScenarioPlanItem],
         settlementCases: [SettlementCaseItem],
         settlementEntries: [SettlementEntryItem],
         settlementMilestones: [SettlementMilestoneItem],
@@ -40,6 +41,7 @@ enum BackupService {
             recurringRulePersonTags: recurringRulePersonTags.map(RecurringRulePersonTagDTO.init),
             budgets: budgets.map(BudgetDTO.init),
             categoryBudgets: categoryBudgets.map(CategoryBudgetDTO.init),
+            scenarioPlans: scenarioPlans.map(ScenarioPlanDTO.init),
             settlementCases: settlementCases.map(SettlementCaseDTO.init),
             settlementEntries: settlementEntries.map(SettlementEntryDTO.init),
             settlementMilestones: settlementMilestones.map(SettlementMilestoneDTO.init),
@@ -102,6 +104,16 @@ enum BackupService {
                 CategoryBudgetItem(
                     dto: item,
                     category: item.categoryID.flatMap { categoryMap[$0] }
+                )
+            )
+        }
+
+        for item in dto.scenarioPlans {
+            modelContext.insert(
+                ScenarioPlanItem(
+                    dto: item,
+                    category: item.categoryID.flatMap { categoryMap[$0] },
+                    account: item.accountID.flatMap { accountMap[$0] }
                 )
             )
         }
@@ -282,6 +294,7 @@ enum BackupService {
             try modelContext.delete(model: GoalItem.self)
             try modelContext.delete(model: InsightSignalItem.self)
             try modelContext.delete(model: MerchantAliasItem.self)
+            try modelContext.delete(model: ScenarioPlanItem.self)
             try modelContext.delete(model: CategoryBudgetItem.self)
             try modelContext.delete(model: BudgetPeriodItem.self)
             try modelContext.delete(model: CategoryItem.self)
@@ -720,6 +733,26 @@ private extension CategoryBudgetDTO {
     }
 }
 
+private extension ScenarioPlanDTO {
+    init(_ item: ScenarioPlanItem) {
+        self.init(
+            id: item.id,
+            title: item.title,
+            amountMinor: item.amountMinor,
+            isExpense: item.isExpense,
+            plannedDate: item.plannedDate,
+            recurrenceRaw: item.recurrenceRaw,
+            occurrenceCount: item.occurrenceCount,
+            categoryID: item.category?.id,
+            accountID: item.account?.id,
+            note: item.note,
+            archived: item.archived,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
 private extension AccountItem {
     convenience init(dto: AccountDTO) {
         self.init(
@@ -809,6 +842,30 @@ private extension CategoryBudgetItem {
             amountMinor: dto.amountMinor,
             currencyCode: dto.currencyCode,
             isActive: dto.isActive,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension ScenarioPlanItem {
+    convenience init(
+        dto: ScenarioPlanDTO,
+        category: CategoryItem?,
+        account: AccountItem?
+    ) {
+        self.init(
+            id: dto.id,
+            title: dto.title,
+            amountMinor: dto.amountMinor,
+            isExpense: dto.isExpense,
+            plannedDate: dto.plannedDate,
+            recurrence: ScenarioRecurrence(rawValue: dto.recurrenceRaw) ?? .none,
+            occurrenceCount: dto.occurrenceCount,
+            category: category,
+            account: account,
+            note: dto.note,
+            archived: dto.archived,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )

@@ -86,6 +86,7 @@ enum FloatTab: Hashable {
 
 enum FloatSettingsDestination: String, Hashable, Identifiable {
     case calendar
+    case planner
     case budget
     case goals
     case recurring

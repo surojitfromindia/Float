@@ -238,6 +238,22 @@ enum InsightSignalSeverity: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+enum ScenarioRecurrence: String, Codable, CaseIterable, Identifiable {
+    case none
+    case weekly
+    case monthly
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .none: String(localized: "One time")
+        case .weekly: String(localized: "Weekly")
+        case .monthly: String(localized: "Monthly")
+        }
+    }
+}
+
 @Model
 final class UserProfileItem {
     var id: UUID = UUID()
@@ -1038,6 +1054,77 @@ extension MerchantAliasItem: ProfileOwned {}
 extension MerchantAliasItem {
     var displayName: String {
         canonicalName.nilIfBlank ?? alias
+    }
+}
+
+@Model
+final class ScenarioPlanItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var title: String = ""
+    var amountMinor: Int64 = 0
+    var isExpense: Bool = true
+    var plannedDate: Date = Date()
+    var recurrenceRaw: String = ScenarioRecurrence.none.rawValue
+    var occurrenceCount: Int = 1
+    var category: CategoryItem?
+    var account: AccountItem?
+    var note: String?
+    var archived: Bool = false
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        title: String,
+        amountMinor: Int64,
+        isExpense: Bool = true,
+        plannedDate: Date = Date(),
+        recurrence: ScenarioRecurrence = .none,
+        occurrenceCount: Int = 1,
+        category: CategoryItem? = nil,
+        account: AccountItem? = nil,
+        note: String? = nil,
+        archived: Bool = false,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID ?? category?.profileID ?? account?.profileID
+        self.title = title.nilIfBlank ?? String(localized: "Scenario")
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.isExpense = isExpense
+        self.plannedDate = plannedDate
+        self.recurrenceRaw = recurrence.rawValue
+        self.occurrenceCount = recurrence == .none ? 1 : max(1, min(60, occurrenceCount))
+        self.category = category
+        self.account = account
+        self.note = note?.nilIfBlank
+        self.archived = archived
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension ScenarioPlanItem: ProfileOwned {}
+
+extension ScenarioPlanItem {
+    var recurrence: ScenarioRecurrence {
+        get { ScenarioRecurrence(rawValue: recurrenceRaw) ?? .none }
+        set {
+            recurrenceRaw = newValue.rawValue
+            if newValue == .none {
+                occurrenceCount = 1
+            }
+        }
+    }
+
+    var displayTitle: String {
+        title.nilIfBlank
+            ?? note?.nilIfBlank
+            ?? category?.name
+            ?? String(localized: "Scenario")
     }
 }
 

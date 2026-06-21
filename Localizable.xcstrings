@@ -877,6 +877,9 @@
         }
       }
     },
+    "Add a budget and scenario to preview future cash flow." : {
+
+    },
     "Add a budget to see the next cash-flow windows." : {
       "localizations" : {
         "bn" : {
@@ -886,6 +889,9 @@
           }
         }
       }
+    },
+    "Add a planned purchase, bill, trip, or income change to see its effect." : {
+
     },
     "Add account" : {
       "localizations" : {
@@ -1043,6 +1049,9 @@
         }
       }
     },
+    "Add scenario" : {
+
+    },
     "Add settlement case" : {
 
     },
@@ -1197,6 +1206,9 @@
           }
         }
       }
+    },
+    "After scenarios" : {
+
     },
     "Alias" : {
 
@@ -1367,9 +1379,6 @@
         }
       }
     },
-    "Apply" : {
-
-    },
     "Appearance" : {
       "localizations" : {
         "bn" : {
@@ -1391,6 +1400,9 @@
           }
         }
       }
+    },
+    "Apply" : {
+
     },
     "Archive" : {
       "localizations" : {
@@ -2288,6 +2300,9 @@
         }
       }
     },
+    "Current safe" : {
+
+    },
     "Custom person" : {
 
     },
@@ -2825,6 +2840,9 @@
           }
         }
       }
+    },
+    "Edit scenario" : {
+
     },
     "Edit settlement" : {
 
@@ -4442,6 +4460,9 @@
         }
       }
     },
+    "No current-period impact" : {
+
+    },
     "No events yet" : {
       "localizations" : {
         "bn" : {
@@ -4574,6 +4595,9 @@
           }
         }
       }
+    },
+    "No scenarios" : {
+
     },
     "No settlement cases yet" : {
 
@@ -4756,6 +4780,9 @@
           }
         }
       }
+    },
+    "One time" : {
+
     },
     "open" : {
 
@@ -5162,6 +5189,9 @@
     "Plan" : {
 
     },
+    "Planner" : {
+
+    },
     "Portable data" : {
       "localizations" : {
         "bn" : {
@@ -5563,6 +5593,12 @@
     "Rename" : {
 
     },
+    "Repeat" : {
+
+    },
+    "Repeats" : {
+
+    },
     "Report could not load" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5856,6 +5892,18 @@
           }
         }
       }
+    },
+    "Saved scenarios" : {
+
+    },
+    "Scenario" : {
+
+    },
+    "Scenario forecast" : {
+
+    },
+    "Scenario Planner" : {
+
     },
     "Search categories" : {
       "localizations" : {
@@ -6492,6 +6540,9 @@
         }
       }
     },
+    "Test future spending or income without saving real transactions." : {
+
+    },
     "Theme" : {
       "localizations" : {
         "bn" : {
@@ -6853,6 +6904,9 @@
         }
       }
     },
+    "Try \"coffee 4.50 cash yesterday\"" : {
+
+    },
     "Try a different search or filter." : {
       "localizations" : {
         "bn" : {
@@ -6872,9 +6926,6 @@
           }
         }
       }
-    },
-    "Try \"coffee 4.50 cash yesterday\"" : {
-
     },
     "Try changing the search or filters." : {
 
