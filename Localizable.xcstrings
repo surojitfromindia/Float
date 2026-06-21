@@ -1210,6 +1210,9 @@
     "After scenarios" : {
 
     },
+    "Apply smart entry" : {
+
+    },
     "Alias" : {
 
     },
@@ -6904,7 +6907,7 @@
         }
       }
     },
-    "Try \"coffee 4.50 cash yesterday\"" : {
+    "Try \"coffee 870 last sunday\"" : {
 
     },
     "Try a different search or filter." : {
@@ -7311,9 +7314,33 @@
             "state" : "translated",
             "value" : "আপনি যোগ করলে আপনার লেনদেন এখানে দেখাবে।"
           }
+          }
         }
       }
-    }
-  },
+    },
+    "Clear smart entry" : {
+
+    },
+    "Learned" : {
+
+    },
+    "On-device" : {
+
+    },
+    "Parsed" : {
+
+    },
+    "Reading" : {
+
+    },
+    "Recent" : {
+
+    },
+    "Smart entry" : {
+
+    },
+    "Use natural language for amount, category, account, people, and date." : {
+
+    },
   "version" : "1.0"
 }

@@ -46,6 +46,7 @@ struct QuickAddKeypadSheet: View {
     @State private var expectedDueDate = Date()
     @State private var validationMessage: String?
     @State private var smartEntryText = ""
+    @State private var isInterpretingSmartEntry = false
     @State private var showingCategoryPicker = false
     @State private var showingSplitEntry = false
     @State private var recentTransactions: [TransactionItem] = []
@@ -318,22 +319,87 @@ struct QuickAddKeypadSheet: View {
     @ViewBuilder
     private var smartEntrySection: some View {
         GlassCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 10) {
-                    Image(systemName: "sparkles")
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 10) {
+                    FloatIconBadge(
+                        icon: "sparkles",
+                        tint: palette.accent,
+                        size: 34
+                    )
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Smart entry")
+                            .font(.subheadline.weight(.semibold))
+                        Text("Use natural language for amount, category, account, people, and date.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                    Text(isInterpretingSmartEntry ? "Reading" : "On-device")
+                        .font(.caption2.weight(.bold))
                         .foregroundStyle(palette.accent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .background(palette.accent.opacity(0.1), in: Capsule())
+                }
+
+                HStack(spacing: 10) {
                     TextField(
-                        "Try \"coffee 4.50 cash yesterday\"",
+                        "Try \"coffee 870 last sunday\"",
                         text: $smartEntryText,
                         axis: .vertical
                     )
                     .textFieldStyle(.plain)
-                    .lineLimit(1...2)
+                    .lineLimit(1...3)
                     .submitLabel(.done)
-                    Button("Apply", action: applySmartEntryText)
-                        .font(.caption.weight(.bold))
-                        .disabled(smartEntryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                    if !smartEntryText.isEmpty && !isInterpretingSmartEntry {
+                        Button {
+                            smartEntryText = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(String(localized: "Clear smart entry"))
+                    }
+
+                    Button(action: applySmartEntryText) {
+                        Group {
+                            if isInterpretingSmartEntry {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Image(systemName: "arrow.up.circle.fill")
+                                    .font(.title3.weight(.semibold))
+                            }
+                        }
+                        .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(palette.accent)
+                    .disabled(
+                        smartEntryText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            || isInterpretingSmartEntry
+                    )
+                    .accessibilityLabel(String(localized: "Apply smart entry"))
                 }
+                .padding(12)
+                .background(
+                    Color.primary.opacity(0.045),
+                    in: RoundedRectangle(
+                        cornerRadius: FloatTheme.controlRadius,
+                        style: .continuous
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(
+                        cornerRadius: FloatTheme.controlRadius,
+                        style: .continuous
+                    )
+                    .strokeBorder(palette.accent.opacity(0.16), lineWidth: 1)
+                )
 
                 if !quickEntrySuggestions.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
@@ -831,15 +897,29 @@ struct QuickAddKeypadSheet: View {
     }
 
     private func applySmartEntryText() {
+        Task {
+            await applySmartEntryTextUsingIntelligence()
+        }
+    }
+
+    @MainActor
+    private func applySmartEntryTextUsingIntelligence() async {
         let text = smartEntryText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        let parsed = QuickEntryIntelligenceUseCase.parse(
-            text,
+        isInterpretingSmartEntry = true
+        defer { isInterpretingSmartEntry = false }
+        let context = QuickEntryIntelligenceContext(
             currencyCode: appState.selectedCurrencyCode,
             categories: categories.filter { !$0.archived },
             accounts: accounts,
-            people: people
+            people: people,
+            recentTransactions: recentTransactions,
+            merchantAliases: merchantAliases
         )
+        guard let parsed = await QuickEntrySemanticInterpreter.interpret(
+            text,
+            context: context
+        ) else { return }
         guard parsed.hasContent else { return }
         applyParsedEntry(parsed)
         validationMessage = nil
@@ -1063,26 +1143,43 @@ private struct QuickEntrySuggestionChip: View {
         )
     }
 
+    private var sourceText: LocalizedStringResource {
+        switch suggestion.source {
+        case .alias: "Learned"
+        case .history: "Recent"
+        case .parser: "Parsed"
+        }
+    }
+
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 9) {
             Image(systemName: suggestion.icon)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(tint)
-                .frame(width: 24, height: 24)
+                .frame(width: 28, height: 28)
                 .background(tint.opacity(0.12), in: Circle())
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(suggestion.title)
-                    .font(.caption.weight(.semibold))
-                    .lineLimit(1)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(suggestion.title)
+                        .font(.caption.weight(.semibold))
+                        .lineLimit(1)
+                    Text(sourceText)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(tint)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(tint.opacity(0.1), in: Capsule())
+                }
                 Text(amountText ?? suggestion.subtitle)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .frame(maxWidth: 210, alignment: .leading)
         .background(
             tint.opacity(0.08),
             in: RoundedRectangle(

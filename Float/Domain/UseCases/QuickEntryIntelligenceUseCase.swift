@@ -91,6 +91,12 @@ enum QuickEntryIntelligenceUseCase {
         ) {
             result.categoryID = category.id
             consumed.formUnion(category.indexes)
+        } else if let category = keywordCategoryMatch(
+            in: tokens,
+            categories: categories
+        ) {
+            result.categoryID = category.id
+            consumed.formUnion(category.indexes)
         }
 
         for person in people where !person.archived {
@@ -291,6 +297,55 @@ enum QuickEntryIntelligenceUseCase {
                 continue
             }
         }
+        if let weekday = weekdayMatch(in: tokens, now: now, calendar: calendar) {
+            return weekday
+        }
+        return nil
+    }
+
+    private static func weekdayMatch(
+        in tokens: [QuickEntryToken],
+        now: Date,
+        calendar: Calendar
+    ) -> (date: Date, indexes: Set<Int>)? {
+        let weekdays = [
+            "sunday": 1,
+            "sun": 1,
+            "monday": 2,
+            "mon": 2,
+            "tuesday": 3,
+            "tue": 3,
+            "wednesday": 4,
+            "wed": 4,
+            "thursday": 5,
+            "thu": 5,
+            "friday": 6,
+            "fri": 6,
+            "saturday": 7,
+            "sat": 7,
+        ]
+        let values = tokens.map(\.normalized)
+        for (index, value) in values.enumerated() {
+            guard let targetWeekday = weekdays[value] else { continue }
+            let modifierIndex = index > 0 ? index - 1 : nil
+            let modifier = modifierIndex.map { values[$0] }
+            let currentWeekday = calendar.component(.weekday, from: now)
+            let rawDelta = targetWeekday - currentWeekday
+            let delta: Int
+            if modifier == "last" {
+                delta = rawDelta < 0 ? rawDelta : rawDelta - 7
+            } else if modifier == "next" {
+                delta = rawDelta > 0 ? rawDelta : rawDelta + 7
+            } else {
+                delta = rawDelta <= 0 ? rawDelta : rawDelta - 7
+            }
+            let date = calendar.date(byAdding: .day, value: delta, to: now) ?? now
+            var indexes: Set<Int> = [index]
+            if let modifierIndex, modifier == "last" || modifier == "next" {
+                indexes.insert(modifierIndex)
+            }
+            return (date, indexes)
+        }
         return nil
     }
 
@@ -344,6 +399,46 @@ enum QuickEntryIntelligenceUseCase {
 
         guard let best else { return nil }
         return (best.id, best.indexes)
+    }
+
+    private static func keywordCategoryMatch(
+        in tokens: [QuickEntryToken],
+        categories: [CategoryItem]
+    ) -> (id: UUID, indexes: Set<Int>)? {
+        let keywordGroups: [(keywords: Set<String>, preferredNames: [String])] = [
+            (
+                ["coffee", "cafe", "tea", "snack", "snacks", "breakfast", "lunch", "dinner", "restaurant", "takeout"],
+                ["Food", "Dining", "Groceries"]
+            ),
+            (
+                ["cab", "taxi", "uber", "ola", "bus", "metro", "train", "fuel", "parking", "ride"],
+                ["Transport", "Travel"]
+            ),
+            (
+                ["movie", "music", "game", "games", "subscription", "netflix", "spotify"],
+                ["Entertainment", "Subscriptions"]
+            ),
+            (
+                ["doctor", "medicine", "pharmacy", "hospital"],
+                ["Health", "Medical"]
+            ),
+        ]
+        let tokenValues = tokens.map(\.normalized)
+        for (index, token) in tokenValues.enumerated() {
+            guard let group = keywordGroups.first(where: { $0.keywords.contains(token) }) else {
+                continue
+            }
+            for name in group.preferredNames {
+                if let match = categories.first(where: {
+                    !$0.archived
+                        && !$0.isIncome
+                        && $0.name.localizedCaseInsensitiveCompare(name) == .orderedSame
+                }) {
+                    return (match.id, [index])
+                }
+            }
+        }
+        return nil
     }
 }
 
