@@ -96,6 +96,7 @@ enum FloatSettingsDestination: String, Hashable, Identifiable {
     case accounts
     case people
     case profiles
+    case household
     case settlements
     case reviewQueue
 
@@ -157,7 +158,8 @@ final class AppState: ObservableObject {
     @AppStorage("budgetAlertSensitivity") var budgetAlertSensitivityRaw =
         BudgetAlertSensitivity.closeAndOver.rawValue
 
-    @Published var selectedTab: FloatTab = .home
+    private(set) var selectedTab: FloatTab = .home
+    @Published private(set) var selectedTabRouteID = UUID()
     @Published var pendingSettingsDestination: FloatSettingsDestination?
     // Controls the shared transaction entry sheet and whether it opens in create or edit mode.
     @Published var isEntrySheetPresented = false
@@ -202,6 +204,15 @@ final class AppState: ObservableObject {
             budgetAlertSensitivity: BudgetAlertSensitivity(rawValue: budgetAlertSensitivityRaw)
                 ?? .closeAndOver
         )
+    }
+
+    func selectTabFromTabBar(_ tab: FloatTab) {
+        selectedTab = tab
+    }
+
+    private func routeToTab(_ tab: FloatTab) {
+        selectedTab = tab
+        selectedTabRouteID = UUID()
     }
 
     // Opens the entry sheet with empty state for a new transaction.
@@ -294,44 +305,47 @@ final class AppState: ObservableObject {
     func route(to destination: FloatDestination) {
         switch destination {
         case .home:
-            selectedTab = .home
+            routeToTab(.home)
         case .transactions:
-            selectedTab = .transactions
+            routeToTab(.transactions)
+        case .household:
+            routeToTab(.settings)
+            pendingSettingsDestination = .household
         case .calendar:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .calendar
         case .reports:
-            selectedTab = .insights
+            routeToTab(.insights)
         case .settings:
-            selectedTab = .settings
+            routeToTab(.settings)
         case .budget:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .budget
         case .goals:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .goals
         case .recurring:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .recurring
         case .templates:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .templates
         case .templateGroups:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .templateGroups
         case .categories:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .categories
         case .accounts:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .accounts
         case .people:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .people
         case .settlements:
-            selectedTab = .settlements
+            routeToTab(.settlements)
         case .reviewQueue:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .reviewQueue
         }
     }
@@ -339,24 +353,24 @@ final class AppState: ObservableObject {
     func handlePendingAction(_ action: PendingFloatAction) {
         switch action.kind {
         case .addExpense:
-            selectedTab = .home
+            routeToTab(.home)
             presentNewTransaction(
                 isExpense: true,
                 amountMinor: action.amountMinor,
                 note: action.note
             )
         case .addIncome:
-            selectedTab = .home
+            routeToTab(.home)
             presentNewTransaction(
                 isExpense: false,
                 amountMinor: action.amountMinor,
                 note: action.note
             )
         case .addTransfer:
-            selectedTab = .home
+            routeToTab(.home)
             presentNewTransfer()
         case .scanReceipt:
-            selectedTab = .home
+            routeToTab(.home)
             isReceiptCapturePresented = true
         case .openDestination:
             route(to: action.destination ?? .home)
@@ -379,26 +393,26 @@ final class AppState: ObservableObject {
         pendingSpotlightRequest = FloatSpotlightNavigationRequest(target: target)
         switch target.kind {
         case .transaction, .transfer:
-            selectedTab = .transactions
+            routeToTab(.transactions)
         case .account:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .accounts
         case .category:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .categories
         case .people:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .people
         case .goal:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .goals
         case .settlement:
-            selectedTab = .settlements
+            routeToTab(.settlements)
         case .template:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .templates
         case .recurring:
-            selectedTab = .settings
+            routeToTab(.settings)
             pendingSettingsDestination = .recurring
         }
     }

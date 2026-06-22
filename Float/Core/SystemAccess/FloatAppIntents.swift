@@ -4,6 +4,7 @@ import Foundation
 enum FloatShortcutDestination: String, AppEnum {
     case home
     case transactions
+    case household
     case calendar
     case reports
     case settings
@@ -25,6 +26,7 @@ enum FloatShortcutDestination: String, AppEnum {
     static var caseDisplayRepresentations: [FloatShortcutDestination: DisplayRepresentation] = [
         .home: "Home",
         .transactions: "Transactions",
+        .household: "Household",
         .calendar: "Calendar",
         .reports: "Reports",
         .settings: "Settings",

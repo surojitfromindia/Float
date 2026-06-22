@@ -26,6 +26,12 @@ enum BackupService {
         receiptCaptures: [ReceiptCaptureItem],
         receiptLineItems: [ReceiptLineItem],
         attachments: [AttachmentItem],
+        householdMembers: [HouseholdMemberItem],
+        householdExpenses: [HouseholdExpenseItem],
+        householdExpenseSplits: [HouseholdExpenseSplitItem],
+        householdBills: [HouseholdBillItem],
+        householdAllowances: [HouseholdAllowanceItem],
+        householdActivities: [HouseholdActivityItem],
         currencyCode: String
     ) throws -> BackupDocument {
         let dto = FloatBackupDTO(
@@ -51,6 +57,12 @@ enum BackupService {
             receiptCaptures: receiptCaptures.map(ReceiptCaptureDTO.init),
             receiptLineItems: receiptLineItems.map(ReceiptLineDTO.init),
             attachments: attachments.map(AttachmentDTO.init),
+            householdMembers: householdMembers.map(HouseholdMemberDTO.init),
+            householdExpenses: householdExpenses.map(HouseholdExpenseDTO.init),
+            householdExpenseSplits: householdExpenseSplits.map(HouseholdExpenseSplitDTO.init),
+            householdBills: householdBills.map(HouseholdBillDTO.init),
+            householdAllowances: householdAllowances.map(HouseholdAllowanceDTO.init),
+            householdActivities: householdActivities.map(HouseholdActivityDTO.init),
             settings: SettingsDTO(
                 currencyCode: currencyCode,
                 exportedAt: Date()
@@ -186,6 +198,16 @@ enum BackupService {
             modelContext.insert(model)
         }
 
+        var householdMemberMap: [UUID: HouseholdMemberItem] = [:]
+        for item in dto.householdMembers {
+            let model = HouseholdMemberItem(
+                dto: item,
+                person: item.personID.flatMap { personMap[$0] }
+            )
+            householdMemberMap[item.id] = model
+            modelContext.insert(model)
+        }
+
         var transactionMap: [UUID: TransactionItem] = [:]
         for item in dto.transactions {
             let model = TransactionItem(
@@ -200,6 +222,57 @@ enum BackupService {
             )
             transactionMap[item.id] = model
             modelContext.insert(model)
+        }
+
+        var householdExpenseMap: [UUID: HouseholdExpenseItem] = [:]
+        for item in dto.householdExpenses {
+            let expense = HouseholdExpenseItem(
+                dto: item,
+                payer: item.payerID.flatMap { householdMemberMap[$0] },
+                category: item.categoryID.flatMap { categoryMap[$0] },
+                account: item.accountID.flatMap { accountMap[$0] },
+                transaction: item.transactionID.flatMap { transactionMap[$0] },
+                receiptCapture: item.receiptCaptureID.flatMap { receiptMap[$0] }
+            )
+            householdExpenseMap[item.id] = expense
+            modelContext.insert(expense)
+        }
+
+        for item in dto.householdExpenseSplits {
+            guard let expense = item.expenseID.flatMap({ householdExpenseMap[$0] }) else {
+                continue
+            }
+            let split = HouseholdExpenseSplitItem(
+                dto: item,
+                member: item.memberID.flatMap { householdMemberMap[$0] },
+                expense: expense
+            )
+            modelContext.insert(split)
+            expense.splits.append(split)
+        }
+
+        for item in dto.householdBills {
+            modelContext.insert(
+                HouseholdBillItem(
+                    dto: item,
+                    payer: item.payerID.flatMap { householdMemberMap[$0] },
+                    category: item.categoryID.flatMap { categoryMap[$0] },
+                    account: item.accountID.flatMap { accountMap[$0] }
+                )
+            )
+        }
+
+        for item in dto.householdAllowances {
+            modelContext.insert(
+                HouseholdAllowanceItem(
+                    dto: item,
+                    member: item.memberID.flatMap { householdMemberMap[$0] }
+                )
+            )
+        }
+
+        for item in dto.householdActivities {
+            modelContext.insert(HouseholdActivityItem(dto: item))
         }
 
         for item in dto.receiptLineItems {
@@ -320,6 +393,12 @@ enum BackupService {
             try modelContext.delete(model: SettlementMilestoneItem.self)
             try modelContext.delete(model: SettlementEntryItem.self)
             try modelContext.delete(model: SettlementCaseItem.self)
+            try modelContext.delete(model: HouseholdActivityItem.self)
+            try modelContext.delete(model: HouseholdAllowanceItem.self)
+            try modelContext.delete(model: HouseholdExpenseSplitItem.self)
+            try modelContext.delete(model: HouseholdExpenseItem.self)
+            try modelContext.delete(model: HouseholdBillItem.self)
+            try modelContext.delete(model: HouseholdMemberItem.self)
             try modelContext.delete(model: AttachmentItem.self)
             try modelContext.delete(model: ReceiptLineItem.self)
             try modelContext.delete(model: ReceiptCaptureItem.self)
@@ -744,6 +823,240 @@ private extension AttachmentItem {
             receipt: receipt,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension HouseholdMemberDTO {
+    init(_ item: HouseholdMemberItem) {
+        self.init(
+            id: item.id,
+            displayName: item.displayName,
+            roleRaw: item.roleRaw,
+            colorHex: item.colorHex,
+            monthlyAllowanceMinor: item.monthlyAllowanceMinor,
+            personID: item.person?.id,
+            archived: item.archived,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension HouseholdMemberItem {
+    convenience init(dto: HouseholdMemberDTO, person: PersonItem? = nil) {
+        self.init(
+            id: dto.id,
+            displayName: dto.displayName,
+            role: HouseholdMemberRole(rawValue: dto.roleRaw) ?? .adult,
+            colorHex: dto.colorHex,
+            monthlyAllowanceMinor: dto.monthlyAllowanceMinor,
+            person: person,
+            archived: dto.archived,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension HouseholdExpenseDTO {
+    init(_ item: HouseholdExpenseItem) {
+        self.init(
+            id: item.id,
+            title: item.title,
+            amountMinor: item.amountMinor,
+            currencyCode: item.currencyCode,
+            expenseDate: item.expenseDate,
+            splitMethodRaw: item.splitMethodRaw,
+            approvalStatusRaw: item.approvalStatusRaw,
+            reimbursementRequired: item.reimbursementRequired,
+            note: item.note,
+            payerID: item.payer?.id,
+            categoryID: item.category?.id,
+            accountID: item.account?.id,
+            transactionID: item.transaction?.id,
+            receiptCaptureID: item.receiptCapture?.id,
+            approvedAt: item.approvedAt,
+            rejectedAt: item.rejectedAt,
+            settledAt: item.settledAt,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension HouseholdExpenseItem {
+    convenience init(
+        dto: HouseholdExpenseDTO,
+        payer: HouseholdMemberItem? = nil,
+        category: CategoryItem? = nil,
+        account: AccountItem? = nil,
+        transaction: TransactionItem? = nil,
+        receiptCapture: ReceiptCaptureItem? = nil
+    ) {
+        self.init(
+            id: dto.id,
+            title: dto.title,
+            amountMinor: dto.amountMinor,
+            currencyCode: dto.currencyCode,
+            expenseDate: dto.expenseDate,
+            splitMethod: HouseholdSplitMethod(rawValue: dto.splitMethodRaw) ?? .equal,
+            approvalStatus: HouseholdApprovalStatus(rawValue: dto.approvalStatusRaw) ?? .pending,
+            reimbursementRequired: dto.reimbursementRequired,
+            note: dto.note,
+            payer: payer,
+            category: category,
+            account: account,
+            transaction: transaction,
+            receiptCapture: receiptCapture,
+            approvedAt: dto.approvedAt,
+            rejectedAt: dto.rejectedAt,
+            settledAt: dto.settledAt,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension HouseholdExpenseSplitDTO {
+    init(_ item: HouseholdExpenseSplitItem) {
+        self.init(
+            id: item.id,
+            sortOrder: item.sortOrder,
+            amountMinor: item.amountMinor,
+            reimbursedMinor: item.reimbursedMinor,
+            memberID: item.member?.id,
+            expenseID: item.expense?.id,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension HouseholdExpenseSplitItem {
+    convenience init(
+        dto: HouseholdExpenseSplitDTO,
+        member: HouseholdMemberItem? = nil,
+        expense: HouseholdExpenseItem? = nil
+    ) {
+        self.init(
+            id: dto.id,
+            sortOrder: dto.sortOrder,
+            amountMinor: dto.amountMinor,
+            reimbursedMinor: dto.reimbursedMinor,
+            member: member,
+            expense: expense,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension HouseholdBillDTO {
+    init(_ item: HouseholdBillItem) {
+        self.init(
+            id: item.id,
+            title: item.title,
+            amountMinor: item.amountMinor,
+            currencyCode: item.currencyCode,
+            dueDate: item.dueDate,
+            cadence: item.cadence,
+            payerID: item.payer?.id,
+            categoryID: item.category?.id,
+            accountID: item.account?.id,
+            active: item.active,
+            autoCreateApproval: item.autoCreateApproval,
+            note: item.note,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension HouseholdBillItem {
+    convenience init(
+        dto: HouseholdBillDTO,
+        payer: HouseholdMemberItem? = nil,
+        category: CategoryItem? = nil,
+        account: AccountItem? = nil
+    ) {
+        self.init(
+            id: dto.id,
+            title: dto.title,
+            amountMinor: dto.amountMinor,
+            currencyCode: dto.currencyCode,
+            dueDate: dto.dueDate,
+            cadence: dto.cadence,
+            payer: payer,
+            category: category,
+            account: account,
+            active: dto.active,
+            autoCreateApproval: dto.autoCreateApproval,
+            note: dto.note,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension HouseholdAllowanceDTO {
+    init(_ item: HouseholdAllowanceItem) {
+        self.init(
+            id: item.id,
+            memberID: item.member?.id,
+            periodStart: item.periodStart,
+            periodEnd: item.periodEnd,
+            allowanceMinor: item.allowanceMinor,
+            spentMinor: item.spentMinor,
+            currencyCode: item.currencyCode,
+            note: item.note,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension HouseholdAllowanceItem {
+    convenience init(dto: HouseholdAllowanceDTO, member: HouseholdMemberItem? = nil) {
+        self.init(
+            id: dto.id,
+            member: member,
+            periodStart: dto.periodStart,
+            periodEnd: dto.periodEnd,
+            allowanceMinor: dto.allowanceMinor,
+            spentMinor: dto.spentMinor,
+            currencyCode: dto.currencyCode,
+            note: dto.note,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension HouseholdActivityDTO {
+    init(_ item: HouseholdActivityItem) {
+        self.init(
+            id: item.id,
+            kindRaw: item.kindRaw,
+            title: item.title,
+            message: item.message,
+            amountMinor: item.amountMinor,
+            referenceID: item.referenceID,
+            createdAt: item.createdAt
+        )
+    }
+}
+
+private extension HouseholdActivityItem {
+    convenience init(dto: HouseholdActivityDTO) {
+        self.init(
+            id: dto.id,
+            kind: HouseholdActivityKind(rawValue: dto.kindRaw) ?? .expenseCreated,
+            title: dto.title,
+            message: dto.message,
+            amountMinor: dto.amountMinor,
+            referenceID: dto.referenceID,
+            createdAt: dto.createdAt
         )
     }
 }

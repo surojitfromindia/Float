@@ -254,6 +254,69 @@ enum ScenarioRecurrence: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum HouseholdMemberRole: String, Codable, CaseIterable, Identifiable {
+    case adult
+    case child
+    case dependent
+    case guest
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .adult: String(localized: "Adult")
+        case .child: String(localized: "Child")
+        case .dependent: String(localized: "Dependent")
+        case .guest: String(localized: "Guest")
+        }
+    }
+}
+
+enum HouseholdApprovalStatus: String, Codable, CaseIterable, Identifiable {
+    case pending
+    case approved
+    case rejected
+    case settled
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .pending: String(localized: "Pending approval")
+        case .approved: String(localized: "Approved")
+        case .rejected: String(localized: "Rejected")
+        case .settled: String(localized: "Settled")
+        }
+    }
+}
+
+enum HouseholdSplitMethod: String, Codable, CaseIterable, Identifiable {
+    case equal
+    case custom
+    case singleMember
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .equal: String(localized: "Equal split")
+        case .custom: String(localized: "Custom split")
+        case .singleMember: String(localized: "One member")
+        }
+    }
+}
+
+enum HouseholdActivityKind: String, Codable, CaseIterable, Identifiable {
+    case expenseCreated
+    case expenseApproved
+    case expenseRejected
+    case billAdded
+    case allowanceChanged
+    case closeoutCreated
+
+    var id: String { rawValue }
+}
+
 @Model
 final class UserProfileItem {
     var id: UUID = UUID()
@@ -1426,6 +1489,296 @@ final class SettlementMilestoneItem {
 extension SettlementMilestoneItem: ProfileOwned {}
 
 @Model
+final class HouseholdMemberItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var displayName: String = ""
+    var roleRaw: String = HouseholdMemberRole.adult.rawValue
+    var colorHex: String = "#0E7C7B"
+    var monthlyAllowanceMinor: Int64 = 0
+    var person: PersonItem?
+    var archived: Bool = false
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        displayName: String,
+        role: HouseholdMemberRole = .adult,
+        colorHex: String = "#0E7C7B",
+        monthlyAllowanceMinor: Int64 = 0,
+        person: PersonItem? = nil,
+        archived: Bool = false,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID ?? person?.profileID
+        self.displayName = displayName.nilIfBlank ?? String(localized: "Household member")
+        self.roleRaw = role.rawValue
+        self.colorHex = colorHex.nilIfBlank ?? "#0E7C7B"
+        self.monthlyAllowanceMinor = normalizedMinorUnits(monthlyAllowanceMinor)
+        self.person = person
+        self.archived = archived
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension HouseholdMemberItem: ProfileOwned {}
+
+@Model
+final class HouseholdExpenseItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var title: String = ""
+    var amountMinor: Int64 = 0
+    var currencyCode: String = "USD"
+    var expenseDate: Date = Date()
+    var splitMethodRaw: String = HouseholdSplitMethod.equal.rawValue
+    var approvalStatusRaw: String = HouseholdApprovalStatus.pending.rawValue
+    var reimbursementRequired: Bool = true
+    var note: String?
+    var payer: HouseholdMemberItem?
+    var category: CategoryItem?
+    var account: AccountItem?
+    var transaction: TransactionItem?
+    var receiptCapture: ReceiptCaptureItem?
+    var approvedAt: Date?
+    var rejectedAt: Date?
+    var settledAt: Date?
+    @Relationship(deleteRule: .cascade, inverse: \HouseholdExpenseSplitItem.expense)
+    var splits: [HouseholdExpenseSplitItem] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        title: String,
+        amountMinor: Int64,
+        currencyCode: String,
+        expenseDate: Date = Date(),
+        splitMethod: HouseholdSplitMethod = .equal,
+        approvalStatus: HouseholdApprovalStatus = .pending,
+        reimbursementRequired: Bool = true,
+        note: String? = nil,
+        payer: HouseholdMemberItem? = nil,
+        category: CategoryItem? = nil,
+        account: AccountItem? = nil,
+        transaction: TransactionItem? = nil,
+        receiptCapture: ReceiptCaptureItem? = nil,
+        approvedAt: Date? = nil,
+        rejectedAt: Date? = nil,
+        settledAt: Date? = nil,
+        splits: [HouseholdExpenseSplitItem] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID
+            ?? payer?.profileID
+            ?? category?.profileID
+            ?? account?.profileID
+            ?? transaction?.profileID
+            ?? receiptCapture?.profileID
+        self.title = title.nilIfBlank
+            ?? category?.name.nilIfBlank
+            ?? String(localized: "Shared expense")
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.currencyCode = currencyCode.nilIfBlank ?? "USD"
+        self.expenseDate = expenseDate
+        self.splitMethodRaw = splitMethod.rawValue
+        self.approvalStatusRaw = approvalStatus.rawValue
+        self.reimbursementRequired = reimbursementRequired
+        self.note = note?.nilIfBlank
+        self.payer = payer
+        self.category = category
+        self.account = account
+        self.transaction = transaction
+        self.receiptCapture = receiptCapture
+        self.approvedAt = approvedAt
+        self.rejectedAt = rejectedAt
+        self.settledAt = settledAt
+        self.splits = splits
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension HouseholdExpenseItem: ProfileOwned {}
+
+@Model
+final class HouseholdExpenseSplitItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var sortOrder: Int = 0
+    var amountMinor: Int64 = 0
+    var reimbursedMinor: Int64 = 0
+    var member: HouseholdMemberItem?
+    var expense: HouseholdExpenseItem?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        sortOrder: Int = 0,
+        amountMinor: Int64,
+        reimbursedMinor: Int64 = 0,
+        member: HouseholdMemberItem? = nil,
+        expense: HouseholdExpenseItem? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID ?? member?.profileID ?? expense?.profileID
+        self.sortOrder = sortOrder
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.reimbursedMinor = normalizedMinorUnits(reimbursedMinor)
+        self.member = member
+        self.expense = expense
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension HouseholdExpenseSplitItem: ProfileOwned {}
+
+@Model
+final class HouseholdBillItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var title: String = ""
+    var amountMinor: Int64 = 0
+    var currencyCode: String = "USD"
+    var dueDate: Date = Date()
+    var cadence: RecurringCadence = RecurringCadence.monthly
+    var payer: HouseholdMemberItem?
+    var category: CategoryItem?
+    var account: AccountItem?
+    var active: Bool = true
+    var autoCreateApproval: Bool = false
+    var note: String?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        title: String,
+        amountMinor: Int64,
+        currencyCode: String,
+        dueDate: Date = Date(),
+        cadence: RecurringCadence = .monthly,
+        payer: HouseholdMemberItem? = nil,
+        category: CategoryItem? = nil,
+        account: AccountItem? = nil,
+        active: Bool = true,
+        autoCreateApproval: Bool = false,
+        note: String? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID ?? payer?.profileID ?? category?.profileID ?? account?.profileID
+        self.title = title.nilIfBlank ?? String(localized: "Household bill")
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.currencyCode = currencyCode.nilIfBlank ?? "USD"
+        self.dueDate = dueDate
+        self.cadence = cadence
+        self.payer = payer
+        self.category = category
+        self.account = account
+        self.active = active
+        self.autoCreateApproval = autoCreateApproval
+        self.note = note?.nilIfBlank
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension HouseholdBillItem: ProfileOwned {}
+
+@Model
+final class HouseholdAllowanceItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var member: HouseholdMemberItem?
+    var periodStart: Date = Date()
+    var periodEnd: Date = Date()
+    var allowanceMinor: Int64 = 0
+    var spentMinor: Int64 = 0
+    var currencyCode: String = "USD"
+    var note: String?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        member: HouseholdMemberItem? = nil,
+        periodStart: Date,
+        periodEnd: Date,
+        allowanceMinor: Int64,
+        spentMinor: Int64 = 0,
+        currencyCode: String,
+        note: String? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID ?? member?.profileID
+        self.member = member
+        self.periodStart = periodStart
+        self.periodEnd = periodEnd
+        self.allowanceMinor = normalizedMinorUnits(allowanceMinor)
+        self.spentMinor = normalizedMinorUnits(spentMinor)
+        self.currencyCode = currencyCode.nilIfBlank ?? "USD"
+        self.note = note?.nilIfBlank
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension HouseholdAllowanceItem: ProfileOwned {}
+
+@Model
+final class HouseholdActivityItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var kindRaw: String = HouseholdActivityKind.expenseCreated.rawValue
+    var title: String = ""
+    var message: String = ""
+    var amountMinor: Int64?
+    var referenceID: UUID?
+    var createdAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        kind: HouseholdActivityKind,
+        title: String,
+        message: String,
+        amountMinor: Int64? = nil,
+        referenceID: UUID? = nil,
+        createdAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID
+        self.kindRaw = kind.rawValue
+        self.title = title.nilIfBlank ?? String(localized: "Household activity")
+        self.message = message.nilIfBlank ?? ""
+        self.amountMinor = amountMinor.map(normalizedMinorUnits)
+        self.referenceID = referenceID
+        self.createdAt = createdAt
+    }
+}
+
+extension HouseholdActivityItem: ProfileOwned {}
+
+@Model
 final class TransactionPersonTagItem {
     var id: UUID = UUID()
     var profileID: UUID?
@@ -1844,6 +2197,108 @@ extension CategoryItem {
     func archive() {
         archived = true
         updatedAt = Date()
+    }
+}
+
+extension HouseholdMemberItem {
+    var role: HouseholdMemberRole {
+        get { HouseholdMemberRole(rawValue: roleRaw) ?? .adult }
+        set { roleRaw = newValue.rawValue }
+    }
+
+    var displayInitials: String {
+        let parts = displayName
+            .split(separator: " ")
+            .prefix(2)
+            .compactMap(\.first)
+        let initials = String(parts).uppercased()
+        return initials.isEmpty ? String(localized: "HM") : initials
+    }
+
+    func apply(
+        displayName: String,
+        role: HouseholdMemberRole,
+        colorHex: String,
+        monthlyAllowanceMinor: Int64
+    ) {
+        self.displayName = displayName.nilIfBlank ?? self.displayName
+        self.roleRaw = role.rawValue
+        self.colorHex = colorHex.nilIfBlank ?? self.colorHex
+        self.monthlyAllowanceMinor = normalizedMinorUnits(monthlyAllowanceMinor)
+        updatedAt = Date()
+    }
+}
+
+extension HouseholdExpenseItem {
+    var splitMethod: HouseholdSplitMethod {
+        get { HouseholdSplitMethod(rawValue: splitMethodRaw) ?? .equal }
+        set { splitMethodRaw = newValue.rawValue }
+    }
+
+    var approvalStatus: HouseholdApprovalStatus {
+        get { HouseholdApprovalStatus(rawValue: approvalStatusRaw) ?? .pending }
+        set { approvalStatusRaw = newValue.rawValue }
+    }
+
+    var isPendingApproval: Bool {
+        approvalStatus == .pending
+    }
+
+    var sortedSplits: [HouseholdExpenseSplitItem] {
+        splits.sorted { lhs, rhs in
+            if lhs.sortOrder == rhs.sortOrder {
+                return lhs.createdAt < rhs.createdAt
+            }
+            return lhs.sortOrder < rhs.sortOrder
+        }
+    }
+
+    var beneficiarySummary: String {
+        let names = sortedSplits.compactMap { $0.member?.displayName.nilIfBlank }
+        guard !names.isEmpty else { return String(localized: "No members") }
+        return names.joined(separator: ", ")
+    }
+
+    var payerName: String {
+        payer?.displayName.nilIfBlank ?? String(localized: "No payer")
+    }
+
+    var outstandingReimbursementMinor: Int64 {
+        guard reimbursementRequired, let payer else { return 0 }
+        return sortedSplits
+            .filter { $0.member?.id != payer.id }
+            .reduce(Int64(0)) { total, split in
+                total + max(0, split.amountMinor - split.reimbursedMinor)
+            }
+    }
+}
+
+extension HouseholdExpenseSplitItem {
+    var outstandingMinor: Int64 {
+        max(0, amountMinor - reimbursedMinor)
+    }
+}
+
+extension HouseholdBillItem {
+    var isDueSoon: Bool {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let due = calendar.startOfDay(for: dueDate)
+        let days = calendar.dateComponents([.day], from: today, to: due).day ?? 0
+        return active && days >= 0 && days <= 7
+    }
+}
+
+extension HouseholdAllowanceItem {
+    var remainingMinor: Int64 {
+        max(0, allowanceMinor - spentMinor)
+    }
+}
+
+extension HouseholdActivityItem {
+    var kind: HouseholdActivityKind {
+        get { HouseholdActivityKind(rawValue: kindRaw) ?? .expenseCreated }
+        set { kindRaw = newValue.rawValue }
     }
 }
 

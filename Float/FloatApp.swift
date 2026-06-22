@@ -33,6 +33,12 @@ struct FloatApp: App {
             SettlementCaseItem.self,
             SettlementEntryItem.self,
             SettlementMilestoneItem.self,
+            HouseholdMemberItem.self,
+            HouseholdExpenseItem.self,
+            HouseholdExpenseSplitItem.self,
+            HouseholdBillItem.self,
+            HouseholdAllowanceItem.self,
+            HouseholdActivityItem.self,
         ])
         let modelConfiguration = ModelConfiguration(
             schema: schema,

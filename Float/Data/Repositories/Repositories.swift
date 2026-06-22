@@ -12,10 +12,11 @@ struct ProfileDataCounts {
     var goals = 0
     var budgets = 0
     var settlements = 0
+    var household = 0
 
     var total: Int {
         accounts + categories + people + events + transactions + transfers
-            + recurringRules + goals + budgets + settlements
+            + recurringRules + goals + budgets + settlements + household
     }
 }
 
@@ -103,7 +104,10 @@ enum ProfileDataService {
             recurringRules: count(RecurringRuleItem.self, profileID: id, modelContext: modelContext),
             goals: count(GoalItem.self, profileID: id, modelContext: modelContext),
             budgets: count(BudgetPeriodItem.self, profileID: id, modelContext: modelContext),
-            settlements: count(SettlementCaseItem.self, profileID: id, modelContext: modelContext)
+            settlements: count(SettlementCaseItem.self, profileID: id, modelContext: modelContext),
+            household: count(HouseholdMemberItem.self, profileID: id, modelContext: modelContext)
+                + count(HouseholdExpenseItem.self, profileID: id, modelContext: modelContext)
+                + count(HouseholdBillItem.self, profileID: id, modelContext: modelContext)
         )
     }
 
@@ -134,6 +138,12 @@ enum ProfileDataService {
         deleteMatching(AttachmentItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(ReceiptLineItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(ReceiptCaptureItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(HouseholdActivityItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(HouseholdAllowanceItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(HouseholdExpenseSplitItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(HouseholdExpenseItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(HouseholdBillItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(HouseholdMemberItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(TransactionItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(EventItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(EventCategoryItem.self, profileID: profileID, modelContext: modelContext)
@@ -223,6 +233,12 @@ enum ProfileDataService {
         assign(ReceiptCaptureItem.self, profileID: profileID, modelContext: modelContext)
         assign(ReceiptLineItem.self, profileID: profileID, modelContext: modelContext)
         assign(AttachmentItem.self, profileID: profileID, modelContext: modelContext)
+        assign(HouseholdMemberItem.self, profileID: profileID, modelContext: modelContext)
+        assign(HouseholdExpenseItem.self, profileID: profileID, modelContext: modelContext)
+        assign(HouseholdExpenseSplitItem.self, profileID: profileID, modelContext: modelContext)
+        assign(HouseholdBillItem.self, profileID: profileID, modelContext: modelContext)
+        assign(HouseholdAllowanceItem.self, profileID: profileID, modelContext: modelContext)
+        assign(HouseholdActivityItem.self, profileID: profileID, modelContext: modelContext)
     }
 
     private static func assign<T: PersistentModel & ProfileOwned>(
@@ -1691,6 +1707,370 @@ struct SettlementCaseRepository {
 }
 
 @MainActor
+struct HouseholdExpenseDraft {
+    var title: String
+    var amountMinor: Int64
+    var currencyCode: String
+    var expenseDate: Date
+    var payer: HouseholdMemberItem?
+    var members: [HouseholdMemberItem]
+    var splitMethod: HouseholdSplitMethod
+    var reimbursementRequired: Bool
+    var category: CategoryItem?
+    var account: AccountItem?
+    var receiptCapture: ReceiptCaptureItem?
+    var note: String?
+    var customAmounts: [UUID: Int64]
+}
+
+@MainActor
+struct HouseholdRepository {
+    let modelContext: ModelContext
+
+    func saveMember(
+        _ member: HouseholdMemberItem?,
+        displayName: String,
+        role: HouseholdMemberRole,
+        colorHex: String,
+        monthlyAllowanceMinor: Int64
+    ) throws -> HouseholdMemberItem {
+        if let member {
+            member.apply(
+                displayName: displayName,
+                role: role,
+                colorHex: colorHex,
+                monthlyAllowanceMinor: monthlyAllowanceMinor
+            )
+            try save()
+            return member
+        }
+
+        let model = HouseholdMemberItem(
+            displayName: displayName,
+            role: role,
+            colorHex: colorHex,
+            monthlyAllowanceMinor: monthlyAllowanceMinor
+        )
+        modelContext.insert(model)
+        record(
+            .allowanceChanged,
+            title: String(localized: "Household member added"),
+            message: model.displayName,
+            amountMinor: model.monthlyAllowanceMinor,
+            referenceID: model.id
+        )
+        try save()
+        return model
+    }
+
+    func archiveMember(_ member: HouseholdMemberItem) throws {
+        member.archived = true
+        member.updatedAt = Date()
+        try save()
+    }
+
+    func createExpense(_ draft: HouseholdExpenseDraft) throws -> HouseholdExpenseItem {
+        guard draft.amountMinor > 0 else { throw DataIntegrityError.invalidInput }
+        let selectedMembers = draft.members.filter { !$0.archived }
+        guard !selectedMembers.isEmpty else { throw DataIntegrityError.invalidInput }
+
+        let expense = HouseholdExpenseItem(
+            title: draft.title,
+            amountMinor: draft.amountMinor,
+            currencyCode: draft.currencyCode,
+            expenseDate: draft.expenseDate,
+            splitMethod: draft.splitMethod,
+            reimbursementRequired: draft.reimbursementRequired,
+            note: draft.note,
+            payer: draft.payer,
+            category: draft.category,
+            account: draft.account,
+            receiptCapture: draft.receiptCapture
+        )
+        modelContext.insert(expense)
+
+        let splitAmounts = splitAmounts(
+            total: draft.amountMinor,
+            members: selectedMembers,
+            method: draft.splitMethod,
+            customAmounts: draft.customAmounts
+        )
+        for (index, member) in selectedMembers.enumerated() {
+            let split = HouseholdExpenseSplitItem(
+                sortOrder: index,
+                amountMinor: splitAmounts[member.id] ?? 0,
+                member: member,
+                expense: expense
+            )
+            modelContext.insert(split)
+            expense.splits.append(split)
+        }
+
+        record(
+            .expenseCreated,
+            title: String(localized: "Approval requested"),
+            message: expense.title,
+            amountMinor: expense.amountMinor,
+            referenceID: expense.id
+        )
+        try save()
+        return expense
+    }
+
+    func approveExpense(_ expense: HouseholdExpenseItem) throws {
+        guard expense.approvalStatus == .pending else { return }
+        expense.approvalStatus = .approved
+        expense.approvedAt = Date()
+        expense.updatedAt = Date()
+
+        if expense.transaction == nil {
+            let transaction = TransactionItem(
+                amountMinor: expense.amountMinor,
+                isExpense: true,
+                status: .posted,
+                timestamp: expense.expenseDate,
+                category: expense.category,
+                account: expense.account,
+                note: expense.note?.trimmedNilIfBlank ?? expense.title,
+                receiptCapture: expense.receiptCapture
+            )
+            modelContext.insert(transaction)
+            transaction.replacePeople(
+                expense.sortedSplits.compactMap { $0.member?.person },
+                in: modelContext
+            )
+            expense.transaction = transaction
+        }
+
+        record(
+            .expenseApproved,
+            title: String(localized: "Expense approved"),
+            message: expense.title,
+            amountMinor: expense.amountMinor,
+            referenceID: expense.id
+        )
+        try save()
+        FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
+    }
+
+    func rejectExpense(_ expense: HouseholdExpenseItem) throws {
+        guard expense.approvalStatus == .pending else { return }
+        expense.approvalStatus = .rejected
+        expense.rejectedAt = Date()
+        expense.updatedAt = Date()
+        record(
+            .expenseRejected,
+            title: String(localized: "Expense rejected"),
+            message: expense.title,
+            amountMinor: expense.amountMinor,
+            referenceID: expense.id
+        )
+        try save()
+    }
+
+    func saveBill(
+        title: String,
+        amountMinor: Int64,
+        currencyCode: String,
+        dueDate: Date,
+        cadence: RecurringCadence,
+        payer: HouseholdMemberItem?,
+        category: CategoryItem?,
+        account: AccountItem?,
+        autoCreateApproval: Bool,
+        note: String?
+    ) throws -> HouseholdBillItem {
+        guard amountMinor > 0 else { throw DataIntegrityError.invalidInput }
+        let bill = HouseholdBillItem(
+            title: title,
+            amountMinor: amountMinor,
+            currencyCode: currencyCode,
+            dueDate: dueDate,
+            cadence: cadence,
+            payer: payer,
+            category: category,
+            account: account,
+            autoCreateApproval: autoCreateApproval,
+            note: note
+        )
+        modelContext.insert(bill)
+        record(
+            .billAdded,
+            title: String(localized: "Household bill added"),
+            message: bill.title,
+            amountMinor: bill.amountMinor,
+            referenceID: bill.id
+        )
+        try save()
+        return bill
+    }
+
+    func createMonthlyCloseout(
+        expenses: [HouseholdExpenseItem],
+        currencyCode: String
+    ) throws -> Int {
+        let approved = expenses.filter {
+            $0.approvalStatus == .approved
+                && $0.reimbursementRequired
+                && $0.settledAt == nil
+        }
+        let balances = reimbursementBalances(from: approved)
+        guard !balances.isEmpty else { return 0 }
+
+        for balance in balances where balance.amountMinor > 0 {
+            let caseItem = SettlementCaseItem(
+                title: AppLocalization.format(
+                    "Household closeout: %@",
+                    balance.member.displayName
+                ),
+                counterpartyName: balance.member.displayName,
+                direction: .theyOweYou,
+                currencyCode: currencyCode,
+                note: AppLocalization.format(
+                    "Household reimbursement owed to %@.",
+                    balance.payer.displayName
+                ),
+                person: balance.member.person,
+                dueDate: Calendar.current.date(byAdding: .day, value: 7, to: Date())
+            )
+            modelContext.insert(caseItem)
+
+            let entry = SettlementEntryItem(
+                kind: .initialAmount,
+                amountMinor: balance.amountMinor,
+                entryDate: Date(),
+                note: AppLocalization.format(
+                    "Household closeout payable to %@.",
+                    balance.payer.displayName
+                ),
+                caseItem: caseItem
+            )
+            modelContext.insert(entry)
+            caseItem.entries.append(entry)
+        }
+
+        for expense in approved {
+            expense.approvalStatus = .settled
+            expense.settledAt = Date()
+            expense.updatedAt = Date()
+        }
+
+        record(
+            .closeoutCreated,
+            title: String(localized: "Household closeout created"),
+            message: AppLocalization.format("%lld settlement cases created.", Int64(balances.count)),
+            amountMinor: balances.reduce(Int64(0)) { $0 + $1.amountMinor }
+        )
+        try save()
+        return balances.count
+    }
+
+    private func splitAmounts(
+        total: Int64,
+        members: [HouseholdMemberItem],
+        method: HouseholdSplitMethod,
+        customAmounts: [UUID: Int64]
+    ) -> [UUID: Int64] {
+        guard !members.isEmpty else { return [:] }
+        switch method {
+        case .equal:
+            let base = total / Int64(members.count)
+            let remainder = total - base * Int64(members.count)
+            return Dictionary(uniqueKeysWithValues: members.enumerated().map { index, member in
+                (member.id, base + (index == 0 ? remainder : 0))
+            })
+        case .custom:
+            return Dictionary(uniqueKeysWithValues: members.map { member in
+                (member.id, max(0, customAmounts[member.id] ?? 0))
+            })
+        case .singleMember:
+            return Dictionary(uniqueKeysWithValues: members.enumerated().map { index, member in
+                (member.id, index == 0 ? total : 0)
+            })
+        }
+    }
+
+    private func reimbursementBalances(
+        from expenses: [HouseholdExpenseItem]
+    ) -> [HouseholdReimbursementBalance] {
+        var keyed: [HouseholdReimbursementBalanceKey: Int64] = [:]
+        for expense in expenses {
+            guard let payer = expense.payer else { continue }
+            for split in expense.sortedSplits {
+                guard let member = split.member, member.id != payer.id else { continue }
+                let outstanding = split.outstandingMinor
+                guard outstanding > 0 else { continue }
+                let key = HouseholdReimbursementBalanceKey(
+                    payerID: payer.id,
+                    memberID: member.id,
+                    payer: payer,
+                    member: member
+                )
+                keyed[key, default: 0] += outstanding
+            }
+        }
+        return keyed.map { key, amount in
+            HouseholdReimbursementBalance(
+                payer: key.payer,
+                member: key.member,
+                amountMinor: amount
+            )
+        }
+    }
+
+    private func record(
+        _ kind: HouseholdActivityKind,
+        title: String,
+        message: String,
+        amountMinor: Int64? = nil,
+        referenceID: UUID? = nil
+    ) {
+        modelContext.insert(
+            HouseholdActivityItem(
+                kind: kind,
+                title: title,
+                message: message,
+                amountMinor: amountMinor,
+                referenceID: referenceID
+            )
+        )
+    }
+
+    private func save() throws {
+        do {
+            try modelContext.save()
+        } catch {
+            throw DataIntegrityError.saveFailed
+        }
+    }
+}
+
+private struct HouseholdReimbursementBalanceKey: Hashable {
+    let payerID: UUID
+    let memberID: UUID
+    let payer: HouseholdMemberItem
+    let member: HouseholdMemberItem
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(payerID)
+        hasher.combine(memberID)
+    }
+
+    static func == (
+        lhs: HouseholdReimbursementBalanceKey,
+        rhs: HouseholdReimbursementBalanceKey
+    ) -> Bool {
+        lhs.payerID == rhs.payerID && lhs.memberID == rhs.memberID
+    }
+}
+
+private struct HouseholdReimbursementBalance {
+    let payer: HouseholdMemberItem
+    let member: HouseholdMemberItem
+    let amountMinor: Int64
+}
+
+@MainActor
 struct SettingsRepository {
     let modelContext: ModelContext
 
@@ -1698,6 +2078,12 @@ struct SettingsRepository {
         try modelContext.delete(model: SettlementMilestoneItem.self)
         try modelContext.delete(model: SettlementEntryItem.self)
         try modelContext.delete(model: SettlementCaseItem.self)
+        try modelContext.delete(model: HouseholdActivityItem.self)
+        try modelContext.delete(model: HouseholdAllowanceItem.self)
+        try modelContext.delete(model: HouseholdExpenseSplitItem.self)
+        try modelContext.delete(model: HouseholdExpenseItem.self)
+        try modelContext.delete(model: HouseholdBillItem.self)
+        try modelContext.delete(model: HouseholdMemberItem.self)
         try modelContext.delete(model: TransactionItem.self)
         try modelContext.delete(model: TransactionTemplateItem.self)
         try modelContext.delete(model: TransferItem.self)

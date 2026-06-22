@@ -28,6 +28,7 @@ struct InsightsView: View {
     @State private var isLoadingReport = false
     @State private var reportError: String?
     @State private var hasLoadedReport = false
+    @State private var lastLoadedReportKey: InsightReportLoadKey?
 
     private var palette: [Color] {
         appState.themePalette.chartColors
@@ -123,7 +124,7 @@ struct InsightsView: View {
                     InsightsErrorCard(
                         message: reportError,
                         tint: appState.themePalette.caution,
-                        retry: loadReportTransactions
+                        retry: { Task { await loadReportTransactions() } }
                     )
                 } else {
                     dashboardContent
@@ -131,6 +132,12 @@ struct InsightsView: View {
             }
             .padding(20)
             .padding(.bottom, 40)
+        }
+        .overlay {
+            if isLoadingReport && !report.transactions.isEmpty {
+                InsightsLoadingOverlay()
+                    .transition(.opacity)
+            }
         }
         .navigationTitle(String(localized: "Insights"))
         .toolbar {
@@ -154,12 +161,10 @@ struct InsightsView: View {
             )
         }
         .task(id: reportLoadKey) {
-            loadReportTransactions()
+            await loadReportTransactionsIfNeeded()
         }
         .onAppear {
-            if hasLoadedReport {
-                loadReportTransactions()
-            }
+            Task { await loadReportTransactionsIfNeeded() }
         }
         .floatBackground()
     }
@@ -184,9 +189,11 @@ struct InsightsView: View {
         exportingReport = true
     }
 
-    private func loadReportTransactions() {
+    private func loadReportTransactions() async {
+        lastLoadedReportKey = reportLoadKey
         isLoadingReport = true
         reportError = nil
+        await Task.yield()
 
         do {
             let active = activeRange
@@ -213,6 +220,11 @@ struct InsightsView: View {
 
         hasLoadedReport = true
         isLoadingReport = false
+    }
+
+    private func loadReportTransactionsIfNeeded() async {
+        guard lastLoadedReportKey != reportLoadKey else { return }
+        await loadReportTransactions()
     }
 
     private func fetchTransactions(in range: BudgetPeriod) throws -> [TransactionItem] {
@@ -383,6 +395,32 @@ private struct InsightsLoadingCard: View {
     }
 }
 
+private struct InsightsLoadingOverlay: View {
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .ignoresSafeArea()
+
+            GlassCard {
+                HStack(spacing: 12) {
+                    ProgressView()
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Loading insights")
+                            .font(.headline)
+                        Text("Rebuilding your report for the selected range.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+            .padding(.horizontal, 24)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
 private struct InsightsErrorCard: View {
     let message: String
     let tint: Color
@@ -406,6 +444,8 @@ private struct InsightsErrorCard: View {
 }
 
 private struct InsightsDashboardContent: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     let report: InsightReport
     @Binding var spendActivityMode: SpendActivityMode
     @Binding var selectedCategory: CategoryDrillDown?
@@ -429,59 +469,67 @@ private struct InsightsDashboardContent: View {
                 currencyCode: currencyCode
             )
 
-            ViewThatFits {
+            if horizontalSizeClass == .regular {
                 HStack(alignment: .top, spacing: 16) {
-                    VStack(spacing: 16) {
-                        InsightsCategoryPanel(
-                            report: report,
-                            currencyCode: currencyCode,
-                            onSelectCategory: { selectedCategory = report.drillDown(for: $0) }
-                        )
-                        InsightsCommitmentsPanel(
-                            report: report,
-                            currencyCode: currencyCode,
-                            palette: palette
-                        )
-                    }
-                    .frame(maxWidth: .infinity, alignment: .top)
-
-                    VStack(spacing: 16) {
-                        InsightsActivityPanel(
-                            report: report,
-                            mode: $spendActivityMode,
-                            currencyCode: currencyCode
-                        )
-                        InsightsTopTransactionsPanel(
-                            transactions: report.topTransactions,
-                            currencyCode: currencyCode
-                        )
-                    }
-                    .frame(maxWidth: .infinity, alignment: .top)
+                    leftColumn
+                    rightColumn
                 }
-
+            } else {
                 VStack(spacing: 16) {
-                    InsightsCategoryPanel(
-                        report: report,
-                        currencyCode: currencyCode,
-                        onSelectCategory: { selectedCategory = report.drillDown(for: $0) }
-                    )
-                    InsightsActivityPanel(
-                        report: report,
-                        mode: $spendActivityMode,
-                        currencyCode: currencyCode
-                    )
-                    InsightsCommitmentsPanel(
-                        report: report,
-                        currencyCode: currencyCode,
-                        palette: palette
-                    )
-                    InsightsTopTransactionsPanel(
-                        transactions: report.topTransactions,
-                        currencyCode: currencyCode
-                    )
+                    categoryPanel
+                    activityPanel
+                    commitmentsPanel
+                    topTransactionsPanel
                 }
             }
         }
+    }
+
+    private var leftColumn: some View {
+        VStack(spacing: 16) {
+            categoryPanel
+            commitmentsPanel
+        }
+        .frame(maxWidth: .infinity, alignment: .top)
+    }
+
+    private var rightColumn: some View {
+        VStack(spacing: 16) {
+            activityPanel
+            topTransactionsPanel
+        }
+        .frame(maxWidth: .infinity, alignment: .top)
+    }
+
+    private var categoryPanel: some View {
+        InsightsCategoryPanel(
+            report: report,
+            currencyCode: currencyCode,
+            onSelectCategory: { selectedCategory = report.drillDown(for: $0) }
+        )
+    }
+
+    private var activityPanel: some View {
+        InsightsActivityPanel(
+            report: report,
+            mode: $spendActivityMode,
+            currencyCode: currencyCode
+        )
+    }
+
+    private var commitmentsPanel: some View {
+        InsightsCommitmentsPanel(
+            report: report,
+            currencyCode: currencyCode,
+            palette: palette
+        )
+    }
+
+    private var topTransactionsPanel: some View {
+        InsightsTopTransactionsPanel(
+            transactions: report.topTransactions,
+            currencyCode: currencyCode
+        )
     }
 }
 
@@ -970,6 +1018,8 @@ private struct InsightsBudgetControlPanel: View {
 }
 
 private struct InsightsCategoryPanel: View {
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
     let report: InsightReport
     let currencyCode: String
     let onSelectCategory: (CategoryInsight) -> Void
@@ -986,13 +1036,13 @@ private struct InsightsCategoryPanel: View {
                     message: "Category reports update after transactions are added."
                 )
             } else {
-                ViewThatFits {
+                if horizontalSizeClass == .regular {
                     HStack(alignment: .top, spacing: 16) {
                         donutSummary
                             .frame(width: 154)
                         categoryList
                     }
-
+                } else {
                     VStack(spacing: 16) {
                         donutSummary
                         categoryList
@@ -1895,6 +1945,44 @@ private struct InsightReport {
     let recurringRules: [RecurringRuleItem]
     let activeBudget: BudgetPeriodItem?
     let palette: [Color]
+    let derived: InsightReportDerivedData
+
+    init(
+        title: String,
+        range: BudgetPeriod,
+        transactions: [TransactionItem],
+        previousTransactions: [TransactionItem],
+        allTransactions: [TransactionItem],
+        budgets: [BudgetPeriodItem],
+        categoryBudgets: [CategoryBudgetItem],
+        goals: [GoalItem],
+        recurringRules: [RecurringRuleItem],
+        activeBudget: BudgetPeriodItem?,
+        palette: [Color]
+    ) {
+        self.title = title
+        self.range = range
+        self.transactions = transactions
+        self.previousTransactions = previousTransactions
+        self.allTransactions = allTransactions
+        self.budgets = budgets
+        self.categoryBudgets = categoryBudgets
+        self.goals = goals
+        self.recurringRules = recurringRules
+        self.activeBudget = activeBudget
+        self.palette = palette
+        self.derived = InsightReportDerivedData.build(
+            range: range,
+            transactions: transactions,
+            previousTransactions: previousTransactions,
+            allTransactions: allTransactions,
+            categoryBudgets: categoryBudgets,
+            goals: goals,
+            recurringRules: recurringRules,
+            activeBudget: activeBudget,
+            palette: palette
+        )
+    }
 
     static var placeholder: InsightReport {
         let today = Calendar.current.startOfDay(for: Date())
@@ -1922,11 +2010,11 @@ private struct InsightReport {
     }
 
     var incomeTotalMinor: Int64 {
-        transactions.filter(\.isPostedIncome).reduce(0) { $0 + $1.amountMinor }
+        derived.incomeTotalMinor
     }
 
     var expenseTotalMinor: Int64 {
-        transactions.filter(\.isPostedExpense).reduce(0) { $0 + $1.amountMinor }
+        derived.expenseTotalMinor
     }
 
     var netCashFlowMinor: Int64 {
@@ -1934,22 +2022,19 @@ private struct InsightReport {
     }
 
     var previousExpenseTotalMinor: Int64 {
-        previousTransactions.filter(\.isPostedExpense).reduce(0) { $0 + $1.amountMinor }
+        derived.previousExpenseTotalMinor
     }
 
     var dailyAverageExpenseMinor: Int64 {
-        expenseTotalMinor / Int64(rangeDayCount)
+        derived.dailyAverageExpenseMinor
     }
 
     var rangeDayCount: Int {
-        max(
-            1,
-            (Calendar.current.dateComponents([.day], from: range.start, to: range.end).day ?? 0) + 1
-        )
+        derived.rangeDayCount
     }
 
     var cashFlowTrendUnit: Calendar.Component {
-        rangeDayCount > 95 ? .month : .day
+        derived.cashFlowTrendUnit
     }
 
     var spendPulseUnit: Calendar.Component {
@@ -1957,12 +2042,7 @@ private struct InsightReport {
     }
 
     var safeToSpend: SafeToSpendResult {
-        SafeToSpendUseCase.calculate(
-            budget: activeBudget,
-            transactions: transactions,
-            goals: goals,
-            recurringRules: recurringRules
-        )
+        derived.safeToSpend
     }
 
     var topCategory: CategoryInsight? {
@@ -2014,183 +2094,51 @@ private struct InsightReport {
     }
 
     var categoryBudgetInsights: [CategoryBudgetInsight] {
-        categoryBudgets
-            .filter {
-                $0.isActive
-                    && $0.amountMinor > 0
-                    && $0.category?.isIncome == false
-                    && $0.category?.archived == false
-            }
-            .map { budget in
-                let category = budget.category
-                let spent = transactions
-                    .filter { transaction in
-                        transaction.isPostedExpense && transaction.category?.id == category?.id
-                    }
-                    .reduce(Int64(0)) { $0 + $1.amountMinor }
-                let remaining = max(0, budget.amountMinor - spent)
-                let over = max(0, spent - budget.amountMinor)
-                return CategoryBudgetInsight(
-                    name: category?.name ?? "Unknown Category",
-                    icon: category?.iconKey ?? "questionmark.circle.fill",
-                    colorHex: category?.colorHex ?? "#5A6B6B",
-                    budgetMinor: budget.amountMinor,
-                    spentMinor: spent,
-                    remainingMinor: remaining,
-                    overMinor: over,
-                    progress: Double(spent) / Double(max(1, budget.amountMinor))
-                )
-            }
-            .sorted {
-                if $0.isOverBudget != $1.isOverBudget {
-                    return $0.isOverBudget && !$1.isOverBudget
-                }
-                return $0.progress > $1.progress
-            }
+        derived.categoryBudgetInsights
     }
 
     var budgetAlerts: [BudgetAlertItem] {
-        BudgetAlertsUseCase.calculate(
-            categoryBudgets: categoryBudgets,
-            transactions: transactions,
-            period: range
-        )
+        derived.budgetAlerts
     }
 
     var insightSignals: [InsightSignal] {
-        InsightSignalsUseCase.generate(
-            period: range,
-            transactions: transactions,
-            previousTransactions: previousTransactions,
-            allTransactions: allTransactions,
-            categoryBudgets: categoryBudgets,
-            recurringRules: recurringRules,
-            activeBudget: activeBudget,
-            budgetAlerts: budgetAlerts,
-            currencyCode: activeBudget?.currencyCode ?? MoneyFormatter.currencyCodeFromLocale()
-        )
+        derived.insightSignals
     }
 
     var totalCategoryBudgetMinor: Int64 {
-        categoryBudgetInsights.reduce(0) { $0 + $1.budgetMinor }
+        derived.totalCategoryBudgetMinor
     }
 
     var totalCategoryBudgetSpentMinor: Int64 {
-        categoryBudgetInsights.reduce(0) { $0 + $1.spentMinor }
+        derived.totalCategoryBudgetSpentMinor
     }
 
     var overCategoryBudgetCount: Int {
-        categoryBudgetInsights.filter(\.isOverBudget).count
+        derived.overCategoryBudgetCount
     }
 
     var categoryInsights: [CategoryInsight] {
-        let grouped = Dictionary(
-            grouping: transactions.filter(\.isPostedExpense),
-            by: { $0.categoryName }
-        )
-        let rows = grouped.map { name, items in
-            (name, items.reduce(Int64(0)) { $0 + $1.amountMinor })
-        }
-        .sorted { $0.1 > $1.1 }
-        .prefix(7)
-
-        return rows.enumerated().map { index, item in
-            CategoryInsight(
-                name: item.0,
-                amountMinor: item.1,
-                share: expenseTotalMinor == 0 ? 0 : Double(item.1) / Double(expenseTotalMinor),
-                color: palette[index % palette.count]
-            )
-        }
+        derived.categoryInsights
     }
 
     var cashFlowTrend: [CashFlowTrendPoint] {
-        let calendar = Calendar.current
-        let components: Set<Calendar.Component> = rangeDayCount > 95
-            ? [.year, .month] : [.year, .month, .day]
-        let grouped = Dictionary(grouping: transactions) {
-            calendar.date(from: calendar.dateComponents(components, from: $0.timestamp))
-                ?? calendar.startOfDay(for: $0.timestamp)
-        }
-
-        return grouped.map { date, items in
-            let income = items.filter(\.isPostedIncome).reduce(Int64(0)) {
-                $0 + $1.amountMinor
-            }
-            let expense = items.filter(\.isPostedExpense).reduce(Int64(0)) {
-                $0 + $1.amountMinor
-            }
-            return CashFlowTrendPoint(
-                date: date,
-                incomeMinor: income,
-                expenseMinor: expense,
-                netMinor: income - expense
-            )
-        }
-        .sorted { $0.date < $1.date }
+        derived.cashFlowTrend
     }
 
     var spendPulsePoints: [SpendingPulsePoint] {
-        let calendar = Calendar.current
-        let unit = spendPulseUnit
-        let components: Set<Calendar.Component> = unit == .month
-            ? [.year, .month] : [.year, .month, .day]
-        let grouped = Dictionary(grouping: transactions) {
-            calendar.date(from: calendar.dateComponents(components, from: $0.timestamp))
-                ?? calendar.startOfDay(for: $0.timestamp)
-        }
-
-        return pulseDates(calendar: calendar, unit: unit).map { date in
-            let items = grouped[date] ?? []
-            return SpendingPulsePoint(
-                date: date,
-                incomeMinor: items.filter(\.isPostedIncome).reduce(Int64(0)) {
-                    $0 + $1.amountMinor
-                },
-                expenseMinor: items.filter(\.isPostedExpense).reduce(Int64(0)) {
-                    $0 + $1.amountMinor
-                }
-            )
-        }
+        derived.spendPulsePoints
     }
 
     var dailyExpenseInsights: [CalendarExpenseInsight] {
-        let calendar = Calendar.current
-        let grouped = Dictionary(grouping: transactions.filter(\.isPostedExpense)) {
-            calendar.startOfDay(for: $0.timestamp)
-        }
-        return grouped.map { day, items in
-            CalendarExpenseInsight(
-                date: day,
-                expenseMinor: items.reduce(Int64(0)) { $0 + $1.amountMinor },
-                transactionCount: items.count
-            )
-        }
-        .sorted { $0.date < $1.date }
+        derived.dailyExpenseInsights
     }
 
     var spendActivityDays: [SpendActivityDay] {
-        spendActivityDays(
-            from: range.start,
-            through: range.end,
-            transactions: transactions
-        )
+        derived.spendActivityDays
     }
 
     var yearSpendActivityDays: [SpendActivityDay] {
-        let calendar = Calendar.current
-        let yearComponents = calendar.dateComponents([.year], from: range.end)
-        let yearStart = calendar.date(from: yearComponents) ?? range.start
-        let nextYearStart = calendar.date(byAdding: .year, value: 1, to: yearStart)
-            ?? range.end
-        let yearEnd = calendar.date(byAdding: .day, value: -1, to: nextYearStart)
-            ?? range.end
-
-        return spendActivityDays(
-            from: yearStart,
-            through: yearEnd,
-            transactions: allTransactions
-        )
+        derived.yearSpendActivityDays
     }
 
     var spendActivityYearText: String {
@@ -2251,38 +2199,19 @@ private struct InsightReport {
     }
 
     var highestExpenseDay: CalendarExpenseInsight? {
-        dailyExpenseInsights.max { $0.expenseMinor < $1.expenseMinor }
+        derived.highestExpenseDay
     }
 
     var lowestExpenseDay: CalendarExpenseInsight? {
-        dailyExpenseInsights
-            .filter { $0.expenseMinor > 0 }
-            .min { $0.expenseMinor < $1.expenseMinor }
+        derived.lowestExpenseDay
     }
 
     var busiestDay: CalendarExpenseInsight? {
-        dailyExpenseInsights.max { $0.transactionCount < $1.transactionCount }
+        derived.busiestDay
     }
 
     var weekExpenseDeltaMinor: Int64 {
-        let calendar = Calendar.current
-        let end = calendar.startOfDay(for: range.end)
-        let currentWeekStart = calendar.date(byAdding: .day, value: -6, to: end) ?? end
-        let previousWeekStart = calendar.date(byAdding: .day, value: -7, to: currentWeekStart)
-            ?? currentWeekStart
-        let previousWeekEnd = calendar.date(byAdding: .day, value: -1, to: currentWeekStart)
-            ?? currentWeekStart
-        let current = expenseTotal(
-            from: currentWeekStart,
-            through: end,
-            calendar: calendar
-        )
-        let previous = expenseTotal(
-            from: previousWeekStart,
-            through: previousWeekEnd,
-            calendar: calendar
-        )
-        return current - previous
+        derived.weekExpenseDeltaMinor
     }
 
     var weekTrendText: String {
@@ -2291,73 +2220,31 @@ private struct InsightReport {
     }
 
     var activeRecurringCount: Int {
-        recurringRules.filter { $0.active }.count
+        derived.activeRecurringCount
     }
 
     var monthlyRecurringLoadMinor: Int64 {
-        recurringRules.filter { $0.active && $0.isExpense }.reduce(0) {
-            $0 + normalizedMonthlyAmount(for: $1)
-        }
+        derived.monthlyRecurringLoadMinor
     }
 
     var recurringInsights: [RecurringInsight] {
-        recurringRules
-            .filter { $0.active && $0.isExpense }
-            .sorted { normalizedMonthlyAmount(for: $0) > normalizedMonthlyAmount(for: $1) }
-            .map {
-                RecurringInsight(
-                    name: $0.note?.nilIfBlank ?? $0.category?.name ?? String(localized: "Recurring"),
-                    detail: AppLocalization.format(
-                        "%@ · next %@",
-                        $0.cadence.title,
-                        $0.nextRunDate.formatted(
-                            Date.FormatStyle(date: .abbreviated, time: .omitted)
-                                .locale(AppLocalization.locale)
-                        )
-                    ),
-                    amountMinor: $0.amountMinor,
-                    monthlyAmountMinor: normalizedMonthlyAmount(for: $0),
-                    icon: $0.category?.iconKey ?? "repeat"
-                )
-            }
+        derived.recurringInsights
     }
 
     var goalInsights: [GoalInsight] {
-        goals.sorted {
-            ($0.targetDate ?? .distantFuture) < ($1.targetDate ?? .distantFuture)
-        }
-        .map {
-            let remaining = max(0, $0.targetMinor - $0.savedMinor)
-            let progress = Double($0.savedMinor) / Double(max($0.targetMinor, 1))
-            let date = $0.targetDate?.formatted(date: .abbreviated, time: .omitted)
-                ?? String(localized: "No target date")
-            return GoalInsight(
-                name: $0.name,
-                savedMinor: $0.savedMinor,
-                targetMinor: $0.targetMinor,
-                remainingMinor: remaining,
-                progress: min(max(progress, 0), 1),
-                colorHex: $0.colorHex,
-                detail: date
-            )
-        }
+        derived.goalInsights
     }
 
     var totalGoalSavedMinor: Int64 {
-        goals.reduce(0) { $0 + $1.savedMinor }
+        derived.totalGoalSavedMinor
     }
 
     var totalGoalRemainingMinor: Int64 {
-        goals.reduce(0) { $0 + max(0, $1.targetMinor - $1.savedMinor) }
+        derived.totalGoalRemainingMinor
     }
 
     var topTransactions: [TransactionItem] {
-        Array(
-            transactions
-                .filter(\.isPostedExpense)
-                .sorted { $0.amountMinor > $1.amountMinor }
-                .prefix(5)
-        )
+        derived.topTransactions
     }
 
     private func expenseTotal(from start: Date, through end: Date, calendar: Calendar) -> Int64 {
@@ -2429,9 +2316,7 @@ private struct InsightReport {
     }
 
     func drillDown(for category: CategoryInsight) -> CategoryDrillDown {
-        let filtered = transactions
-            .filter { $0.isPostedExpense && $0.categoryName == category.name }
-            .sorted { $0.timestamp > $1.timestamp }
+        let filtered = derived.categoryTransactionsByName[category.name] ?? []
         return CategoryDrillDown(
             name: category.name,
             amountMinor: category.amountMinor,
@@ -2446,6 +2331,526 @@ private struct InsightReport {
     }
 
     private func normalizedMonthlyAmount(for rule: RecurringRuleItem) -> Int64 {
+        let interval = max(1, rule.intervalCount)
+        switch rule.cadence {
+        case .daily:
+            return rule.amountMinor * Int64(30 / interval)
+        case .weekly:
+            return rule.amountMinor * Int64(max(1, 4 / interval))
+        case .monthly:
+            return rule.amountMinor / Int64(interval)
+        }
+    }
+}
+
+private struct InsightReportDerivedData {
+    let incomeTotalMinor: Int64
+    let expenseTotalMinor: Int64
+    let previousExpenseTotalMinor: Int64
+    let dailyAverageExpenseMinor: Int64
+    let rangeDayCount: Int
+    let cashFlowTrendUnit: Calendar.Component
+    let safeToSpend: SafeToSpendResult
+    let categoryBudgetInsights: [CategoryBudgetInsight]
+    let budgetAlerts: [BudgetAlertItem]
+    let insightSignals: [InsightSignal]
+    let totalCategoryBudgetMinor: Int64
+    let totalCategoryBudgetSpentMinor: Int64
+    let overCategoryBudgetCount: Int
+    let categoryInsights: [CategoryInsight]
+    let categoryTransactionsByName: [String: [TransactionItem]]
+    let cashFlowTrend: [CashFlowTrendPoint]
+    let spendPulsePoints: [SpendingPulsePoint]
+    let dailyExpenseInsights: [CalendarExpenseInsight]
+    let spendActivityDays: [SpendActivityDay]
+    let yearSpendActivityDays: [SpendActivityDay]
+    let highestExpenseDay: CalendarExpenseInsight?
+    let lowestExpenseDay: CalendarExpenseInsight?
+    let busiestDay: CalendarExpenseInsight?
+    let weekExpenseDeltaMinor: Int64
+    let activeRecurringCount: Int
+    let monthlyRecurringLoadMinor: Int64
+    let recurringInsights: [RecurringInsight]
+    let goalInsights: [GoalInsight]
+    let totalGoalSavedMinor: Int64
+    let totalGoalRemainingMinor: Int64
+    let topTransactions: [TransactionItem]
+
+    static func build(
+        range: BudgetPeriod,
+        transactions: [TransactionItem],
+        previousTransactions: [TransactionItem],
+        allTransactions: [TransactionItem],
+        categoryBudgets: [CategoryBudgetItem],
+        goals: [GoalItem],
+        recurringRules: [RecurringRuleItem],
+        activeBudget: BudgetPeriodItem?,
+        palette: [Color]
+    ) -> InsightReportDerivedData {
+        let calendar = Calendar.current
+        let rangeDayCount = max(
+            1,
+            (calendar.dateComponents([.day], from: range.start, to: range.end).day ?? 0) + 1
+        )
+        let trendUnit: Calendar.Component = rangeDayCount > 95 ? .month : .day
+        let postedTransactions = transactions.filter(\.isPosted)
+        let postedExpenses = postedTransactions.filter(\.isExpense)
+        let postedIncome = postedTransactions.filter { !$0.isExpense }
+        let incomeTotalMinor = postedIncome.reduce(Int64(0)) { $0 + $1.amountMinor }
+        let expenseTotalMinor = postedExpenses.reduce(Int64(0)) { $0 + $1.amountMinor }
+        let previousExpenseTotalMinor = previousTransactions
+            .filter(\.isPostedExpense)
+            .reduce(Int64(0)) { $0 + $1.amountMinor }
+        let dailyAverageExpenseMinor = expenseTotalMinor / Int64(rangeDayCount)
+        let safeToSpend = SafeToSpendUseCase.calculate(
+            budget: activeBudget,
+            transactions: transactions,
+            goals: goals,
+            recurringRules: recurringRules
+        )
+
+        var expenseByCategoryID: [UUID: Int64] = [:]
+        for transaction in postedExpenses {
+            if let categoryID = transaction.category?.id {
+                expenseByCategoryID[categoryID, default: 0] += transaction.amountMinor
+            }
+        }
+
+        let categoryBudgetInsights = categoryBudgets
+            .filter {
+                $0.isActive
+                    && $0.amountMinor > 0
+                    && $0.category?.isIncome == false
+                    && $0.category?.archived == false
+            }
+            .map { budget in
+                let category = budget.category
+                let spent = category.map { expenseByCategoryID[$0.id] ?? 0 } ?? 0
+                let remaining = max(0, budget.amountMinor - spent)
+                let over = max(0, spent - budget.amountMinor)
+                return CategoryBudgetInsight(
+                    name: category?.name ?? "Unknown Category",
+                    icon: category?.iconKey ?? "questionmark.circle.fill",
+                    colorHex: category?.colorHex ?? "#5A6B6B",
+                    budgetMinor: budget.amountMinor,
+                    spentMinor: spent,
+                    remainingMinor: remaining,
+                    overMinor: over,
+                    progress: Double(spent) / Double(max(1, budget.amountMinor))
+                )
+            }
+            .sorted {
+                if $0.isOverBudget != $1.isOverBudget {
+                    return $0.isOverBudget && !$1.isOverBudget
+                }
+                return $0.progress > $1.progress
+            }
+        let budgetAlerts = BudgetAlertsUseCase.calculate(
+            categoryBudgets: categoryBudgets,
+            transactions: transactions,
+            period: range
+        )
+        let insightSignals = InsightSignalsUseCase.generate(
+            period: range,
+            transactions: transactions,
+            previousTransactions: previousTransactions,
+            allTransactions: allTransactions,
+            categoryBudgets: categoryBudgets,
+            recurringRules: recurringRules,
+            activeBudget: activeBudget,
+            budgetAlerts: budgetAlerts,
+            currencyCode: activeBudget?.currencyCode ?? MoneyFormatter.currencyCodeFromLocale()
+        )
+        let totalCategoryBudgetMinor = categoryBudgetInsights.reduce(Int64(0)) {
+            $0 + $1.budgetMinor
+        }
+        let totalCategoryBudgetSpentMinor = categoryBudgetInsights.reduce(Int64(0)) {
+            $0 + $1.spentMinor
+        }
+        let overCategoryBudgetCount = categoryBudgetInsights.filter { $0.isOverBudget }.count
+
+        let categoryTransactionsByName = Dictionary(grouping: postedExpenses, by: \.categoryName)
+            .mapValues { $0.sorted { $0.timestamp > $1.timestamp } }
+        let categoryRows = categoryTransactionsByName.map { name, items in
+            (name, items.reduce(Int64(0)) { $0 + $1.amountMinor })
+        }
+        .sorted { $0.1 > $1.1 }
+        .prefix(7)
+        let chartPalette = palette.isEmpty ? FloatTheme.palette(for: "float").chartColors : palette
+        let categoryInsights = categoryRows.enumerated().map { index, item in
+            CategoryInsight(
+                name: item.0,
+                amountMinor: item.1,
+                share: expenseTotalMinor == 0 ? 0 : Double(item.1) / Double(expenseTotalMinor),
+                color: chartPalette[index % chartPalette.count]
+            )
+        }
+
+        let cashFlowTrend = makeCashFlowTrend(
+            transactions: transactions,
+            rangeDayCount: rangeDayCount,
+            calendar: calendar
+        )
+        let spendPulsePoints = makeSpendPulsePoints(
+            transactions: transactions,
+            range: range,
+            unit: trendUnit,
+            calendar: calendar
+        )
+        let dailyExpenseInsights = makeDailyExpenseInsights(
+            transactions: postedExpenses,
+            calendar: calendar
+        )
+        let spendActivityDays = makeSpendActivityDays(
+            from: range.start,
+            through: range.end,
+            transactions: transactions,
+            calendar: calendar
+        )
+        let yearRange = activityYearRange(for: range, calendar: calendar)
+        let yearSpendActivityDays = makeSpendActivityDays(
+            from: yearRange.start,
+            through: yearRange.end,
+            transactions: allTransactions,
+            calendar: calendar
+        )
+        let highestExpenseDay = dailyExpenseInsights.max { $0.expenseMinor < $1.expenseMinor }
+        let lowestExpenseDay = dailyExpenseInsights
+            .filter { $0.expenseMinor > 0 }
+            .min { $0.expenseMinor < $1.expenseMinor }
+        let busiestDay = dailyExpenseInsights.max { $0.transactionCount < $1.transactionCount }
+        let weekExpenseDeltaMinor = weekExpenseDelta(
+            range: range,
+            transactions: postedExpenses,
+            calendar: calendar
+        )
+
+        let activeRecurringCount = recurringRules.filter(\.active).count
+        let monthlyRecurringLoadMinor = recurringRules.filter { $0.active && $0.isExpense }
+            .reduce(Int64(0)) { $0 + normalizedMonthlyAmount(for: $1) }
+        let recurringInsights = recurringRules
+            .filter { $0.active && $0.isExpense }
+            .sorted { normalizedMonthlyAmount(for: $0) > normalizedMonthlyAmount(for: $1) }
+            .map {
+                RecurringInsight(
+                    name: $0.note?.nilIfBlank ?? $0.category?.name ?? String(localized: "Recurring"),
+                    detail: AppLocalization.format(
+                        "%@ · next %@",
+                        $0.cadence.title,
+                        $0.nextRunDate.formatted(
+                            Date.FormatStyle(date: .abbreviated, time: .omitted)
+                                .locale(AppLocalization.locale)
+                        )
+                    ),
+                    amountMinor: $0.amountMinor,
+                    monthlyAmountMinor: normalizedMonthlyAmount(for: $0),
+                    icon: $0.category?.iconKey ?? "repeat"
+                )
+            }
+        let goalInsights = goals.sorted {
+            ($0.targetDate ?? .distantFuture) < ($1.targetDate ?? .distantFuture)
+        }
+        .map {
+            let remaining = max(0, $0.targetMinor - $0.savedMinor)
+            let progress = Double($0.savedMinor) / Double(max($0.targetMinor, 1))
+            let date = $0.targetDate?.formatted(date: .abbreviated, time: .omitted)
+                ?? String(localized: "No target date")
+            return GoalInsight(
+                name: $0.name,
+                savedMinor: $0.savedMinor,
+                targetMinor: $0.targetMinor,
+                remainingMinor: remaining,
+                progress: min(max(progress, 0), 1),
+                colorHex: $0.colorHex,
+                detail: date
+            )
+        }
+        let totalGoalSavedMinor = goals.reduce(Int64(0)) { $0 + $1.savedMinor }
+        let totalGoalRemainingMinor = goals.reduce(Int64(0)) {
+            $0 + max(0, $1.targetMinor - $1.savedMinor)
+        }
+        let topTransactions = Array(
+            postedExpenses
+                .sorted { $0.amountMinor > $1.amountMinor }
+                .prefix(5)
+        )
+
+        return InsightReportDerivedData(
+            incomeTotalMinor: incomeTotalMinor,
+            expenseTotalMinor: expenseTotalMinor,
+            previousExpenseTotalMinor: previousExpenseTotalMinor,
+            dailyAverageExpenseMinor: dailyAverageExpenseMinor,
+            rangeDayCount: rangeDayCount,
+            cashFlowTrendUnit: trendUnit,
+            safeToSpend: safeToSpend,
+            categoryBudgetInsights: categoryBudgetInsights,
+            budgetAlerts: budgetAlerts,
+            insightSignals: insightSignals,
+            totalCategoryBudgetMinor: totalCategoryBudgetMinor,
+            totalCategoryBudgetSpentMinor: totalCategoryBudgetSpentMinor,
+            overCategoryBudgetCount: overCategoryBudgetCount,
+            categoryInsights: categoryInsights,
+            categoryTransactionsByName: categoryTransactionsByName,
+            cashFlowTrend: cashFlowTrend,
+            spendPulsePoints: spendPulsePoints,
+            dailyExpenseInsights: dailyExpenseInsights,
+            spendActivityDays: spendActivityDays,
+            yearSpendActivityDays: yearSpendActivityDays,
+            highestExpenseDay: highestExpenseDay,
+            lowestExpenseDay: lowestExpenseDay,
+            busiestDay: busiestDay,
+            weekExpenseDeltaMinor: weekExpenseDeltaMinor,
+            activeRecurringCount: activeRecurringCount,
+            monthlyRecurringLoadMinor: monthlyRecurringLoadMinor,
+            recurringInsights: recurringInsights,
+            goalInsights: goalInsights,
+            totalGoalSavedMinor: totalGoalSavedMinor,
+            totalGoalRemainingMinor: totalGoalRemainingMinor,
+            topTransactions: topTransactions
+        )
+    }
+
+    private static func makeCashFlowTrend(
+        transactions: [TransactionItem],
+        rangeDayCount: Int,
+        calendar: Calendar
+    ) -> [CashFlowTrendPoint] {
+        let components: Set<Calendar.Component> = rangeDayCount > 95
+            ? [.year, .month] : [.year, .month, .day]
+        let grouped = Dictionary(grouping: transactions) {
+            calendar.date(from: calendar.dateComponents(components, from: $0.timestamp))
+                ?? calendar.startOfDay(for: $0.timestamp)
+        }
+
+        return grouped.map { date, items in
+            let income = items.filter(\.isPostedIncome).reduce(Int64(0)) {
+                $0 + $1.amountMinor
+            }
+            let expense = items.filter(\.isPostedExpense).reduce(Int64(0)) {
+                $0 + $1.amountMinor
+            }
+            return CashFlowTrendPoint(
+                date: date,
+                incomeMinor: income,
+                expenseMinor: expense,
+                netMinor: income - expense
+            )
+        }
+        .sorted { $0.date < $1.date }
+    }
+
+    private static func makeSpendPulsePoints(
+        transactions: [TransactionItem],
+        range: BudgetPeriod,
+        unit: Calendar.Component,
+        calendar: Calendar
+    ) -> [SpendingPulsePoint] {
+        let components: Set<Calendar.Component> = unit == .month
+            ? [.year, .month] : [.year, .month, .day]
+        let grouped = Dictionary(grouping: transactions) {
+            calendar.date(from: calendar.dateComponents(components, from: $0.timestamp))
+                ?? calendar.startOfDay(for: $0.timestamp)
+        }
+
+        return pulseDates(range: range, calendar: calendar, unit: unit).map { date in
+            let items = grouped[date] ?? []
+            return SpendingPulsePoint(
+                date: date,
+                incomeMinor: items.filter(\.isPostedIncome).reduce(Int64(0)) {
+                    $0 + $1.amountMinor
+                },
+                expenseMinor: items.filter(\.isPostedExpense).reduce(Int64(0)) {
+                    $0 + $1.amountMinor
+                }
+            )
+        }
+    }
+
+    private static func makeDailyExpenseInsights(
+        transactions: [TransactionItem],
+        calendar: Calendar
+    ) -> [CalendarExpenseInsight] {
+        let grouped = Dictionary(grouping: transactions) {
+            calendar.startOfDay(for: $0.timestamp)
+        }
+        return grouped.map { day, items in
+            CalendarExpenseInsight(
+                date: day,
+                expenseMinor: items.reduce(Int64(0)) { $0 + $1.amountMinor },
+                transactionCount: items.count
+            )
+        }
+        .sorted { $0.date < $1.date }
+    }
+
+    private static func makeSpendActivityDays(
+        from start: Date,
+        through end: Date,
+        transactions sourceTransactions: [TransactionItem],
+        calendar: Calendar
+    ) -> [SpendActivityDay] {
+        let rangeStart = calendar.startOfDay(for: start)
+        let rangeEnd = calendar.startOfDay(for: end)
+        let gridStart = startOfActivityWeek(containing: rangeStart, calendar: calendar)
+        let gridEnd = calendar.date(
+            byAdding: .day,
+            value: 6,
+            to: startOfActivityWeek(containing: rangeEnd, calendar: calendar)
+        ) ?? rangeEnd
+
+        let grouped = Dictionary(grouping: sourceTransactions.filter(\.isPostedExpense)) {
+            calendar.startOfDay(for: $0.timestamp)
+        }
+        let expenseByDay = grouped.mapValues { items in
+            items.reduce(Int64(0)) { $0 + $1.amountMinor }
+        }
+        let countByDay = grouped.mapValues(\.count)
+
+        let rangeDates = dates(from: rangeStart, through: rangeEnd, calendar: calendar)
+        let weekTotals = Dictionary(grouping: rangeDates) {
+            startOfActivityWeek(containing: $0, calendar: calendar)
+        }
+        .mapValues { dates in
+            dates.reduce(Int64(0)) { $0 + (expenseByDay[$1] ?? 0) }
+        }
+
+        var runningTotal: Int64 = 0
+        var cumulativeByDay: [Date: Int64] = [:]
+        for day in rangeDates {
+            runningTotal += expenseByDay[day] ?? 0
+            cumulativeByDay[day] = runningTotal
+        }
+
+        return dates(from: gridStart, through: gridEnd, calendar: calendar).map { day in
+            let isInsideRange = day >= rangeStart && day <= rangeEnd
+            let weekStart = startOfActivityWeek(containing: day, calendar: calendar)
+            return SpendActivityDay(
+                date: day,
+                isInsideRange: isInsideRange,
+                expenseMinor: isInsideRange ? expenseByDay[day] ?? 0 : 0,
+                transactionCount: isInsideRange ? countByDay[day] ?? 0 : 0,
+                weeklyExpenseMinor: isInsideRange ? weekTotals[weekStart] ?? 0 : 0,
+                cumulativeExpenseMinor: isInsideRange ? cumulativeByDay[day] ?? 0 : 0
+            )
+        }
+    }
+
+    private static func weekExpenseDelta(
+        range: BudgetPeriod,
+        transactions: [TransactionItem],
+        calendar: Calendar
+    ) -> Int64 {
+        let end = calendar.startOfDay(for: range.end)
+        let currentWeekStart = calendar.date(byAdding: .day, value: -6, to: end) ?? end
+        let previousWeekStart = calendar.date(byAdding: .day, value: -7, to: currentWeekStart)
+            ?? currentWeekStart
+        let previousWeekEnd = calendar.date(byAdding: .day, value: -1, to: currentWeekStart)
+            ?? currentWeekStart
+        let current = expenseTotal(
+            from: currentWeekStart,
+            through: end,
+            transactions: transactions,
+            calendar: calendar
+        )
+        let previous = expenseTotal(
+            from: previousWeekStart,
+            through: previousWeekEnd,
+            transactions: transactions,
+            calendar: calendar
+        )
+        return current - previous
+    }
+
+    private static func expenseTotal(
+        from start: Date,
+        through end: Date,
+        transactions: [TransactionItem],
+        calendar: Calendar
+    ) -> Int64 {
+        let startOfRange = calendar.startOfDay(for: start)
+        let endExclusive = calendar.date(
+            byAdding: .day,
+            value: 1,
+            to: calendar.startOfDay(for: end)
+        ) ?? end
+        return transactions
+            .filter {
+                startOfRange <= $0.timestamp
+                    && $0.timestamp < endExclusive
+            }
+            .reduce(Int64(0)) { $0 + $1.amountMinor }
+    }
+
+    private static func activityYearRange(
+        for range: BudgetPeriod,
+        calendar: Calendar
+    ) -> BudgetPeriod {
+        let yearComponents = calendar.dateComponents([.year], from: range.end)
+        let yearStart = calendar.date(from: yearComponents) ?? range.start
+        let nextYearStart = calendar.date(byAdding: .year, value: 1, to: yearStart)
+            ?? range.end
+        let yearEnd = calendar.date(byAdding: .day, value: -1, to: nextYearStart)
+            ?? range.end
+        return BudgetPeriod(start: yearStart, end: yearEnd)
+    }
+
+    private static func pulseDates(
+        range: BudgetPeriod,
+        calendar: Calendar,
+        unit: Calendar.Component
+    ) -> [Date] {
+        if unit == .month {
+            let start = calendar.date(
+                from: calendar.dateComponents([.year, .month], from: range.start)
+            ) ?? calendar.startOfDay(for: range.start)
+            let end = calendar.date(
+                from: calendar.dateComponents([.year, .month], from: range.end)
+            ) ?? calendar.startOfDay(for: range.end)
+            return datesByAdding(.month, from: start, through: end, calendar: calendar)
+        }
+        return dates(from: range.start, through: range.end, calendar: calendar)
+    }
+
+    private static func dates(from start: Date, through end: Date, calendar: Calendar) -> [Date] {
+        var results: [Date] = []
+        var cursor = calendar.startOfDay(for: start)
+        let last = calendar.startOfDay(for: end)
+        while cursor <= last {
+            results.append(cursor)
+            guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else {
+                break
+            }
+            cursor = next
+        }
+        return results
+    }
+
+    private static func datesByAdding(
+        _ component: Calendar.Component,
+        from start: Date,
+        through end: Date,
+        calendar: Calendar
+    ) -> [Date] {
+        var results: [Date] = []
+        var cursor = start
+        while cursor <= end {
+            results.append(cursor)
+            guard let next = calendar.date(byAdding: component, value: 1, to: cursor) else {
+                break
+            }
+            cursor = next
+        }
+        return results
+    }
+
+    private static func startOfActivityWeek(containing date: Date, calendar: Calendar) -> Date {
+        let day = calendar.startOfDay(for: date)
+        let weekday = calendar.component(.weekday, from: day)
+        let offset = (weekday - calendar.firstWeekday + 7) % 7
+        return calendar.date(byAdding: .day, value: -offset, to: day) ?? day
+    }
+
+    private static func normalizedMonthlyAmount(for rule: RecurringRuleItem) -> Int64 {
         let interval = max(1, rule.intervalCount)
         switch rule.cadence {
         case .daily:

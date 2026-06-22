@@ -40,6 +40,8 @@ struct TransactionsView: View {
     @State private var isTransferSheetPresented = false
     @State private var isBulkEntrySheetPresented = false
     @State private var activeContextMenuItemID: String?
+    @State private var hasLoadedInitialState = false
+    @State private var needsLedgerRefresh = false
 
     private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
     private var accounts: [AccountItem] { filterActiveProfile(allAccounts) }
@@ -79,7 +81,18 @@ struct TransactionsView: View {
             || minimumAmountMinor != nil || maximumAmountMinor != nil
     }
 
+    private var externalSheetRefreshState: ExternalSheetRefreshState {
+        ExternalSheetRefreshState(
+            isEntryPresented: appState.isEntrySheetPresented,
+            isTransferPresented: appState.isTransferSheetPresented
+        )
+    }
+
     var body: some View {
+        configuredTransactionsContent
+    }
+
+    private var configuredTransactionsContent: some View {
         transactionsScrollContent
         .navigationTitle("Transactions")
         .navigationBarItems(trailing: transactionNavigationBarItems)
@@ -101,6 +114,10 @@ struct TransactionsView: View {
         .sheet(isPresented: $isBulkEntrySheetPresented, content: bulkEntrySheet)
         .task {
             loadInitialState()
+        }
+        .onChange(of: externalSheetRefreshState) { oldState, newState in
+            guard oldState.hadPresentedSheet && !newState.hadPresentedSheet else { return }
+            refreshLedgerAfterExternalChange()
         }
         .onChange(of: appState.pendingSpotlightRequest?.id) { _, _ in
             handleSpotlightRequestChange()
@@ -161,6 +178,9 @@ struct TransactionsView: View {
             }
             .padding(20)
             .padding(.bottom, 130)
+        }
+        .refreshable {
+            await refreshLedgerFromPull()
         }
     }
 
@@ -734,24 +754,74 @@ struct TransactionsView: View {
     {
         let minAmount = minimumAmountMinor
         let maxAmount = maximumAmountMinor
+        let lowerAmount = minAmount ?? 0
+        let upperAmount = maxAmount ?? Int64.max
+        let postedStatus = TransactionStatus.posted.rawValue
+        let pendingStatus = TransactionStatus.pending.rawValue
         let includeExpenses = selectedType == .all || selectedType == .expenses
         let includeIncome = selectedType == .all || selectedType == .income
         let includePending = selectedType == .all || selectedType == .pending
         guard includeExpenses || includeIncome || includePending else { return [] }
 
-        let descriptor = FetchDescriptor<TransactionItem>(
-            sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
-        )
+        let descriptor: FetchDescriptor<TransactionItem>
+        switch selectedType {
+        case .expenses:
+            descriptor = FetchDescriptor<TransactionItem>(
+                predicate: #Predicate<TransactionItem> { transaction in
+                    transaction.statusRaw == postedStatus
+                        && transaction.isExpense
+                        && transaction.timestamp >= start
+                        && transaction.timestamp <= end
+                        && transaction.amountMinor >= lowerAmount
+                        && transaction.amountMinor <= upperAmount
+                },
+                sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+            )
+        case .income:
+            descriptor = FetchDescriptor<TransactionItem>(
+                predicate: #Predicate<TransactionItem> { transaction in
+                    transaction.statusRaw == postedStatus
+                        && !transaction.isExpense
+                        && transaction.timestamp >= start
+                        && transaction.timestamp <= end
+                        && transaction.amountMinor >= lowerAmount
+                        && transaction.amountMinor <= upperAmount
+                },
+                sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+            )
+        case .pending:
+            descriptor = FetchDescriptor<TransactionItem>(
+                predicate: #Predicate<TransactionItem> { transaction in
+                    transaction.statusRaw == pendingStatus
+                        && transaction.amountMinor >= lowerAmount
+                        && transaction.amountMinor <= upperAmount
+                },
+                sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+            )
+        case .all:
+            descriptor = FetchDescriptor<TransactionItem>(
+                predicate: #Predicate<TransactionItem> { transaction in
+                    ((transaction.statusRaw == postedStatus
+                        && transaction.timestamp >= start
+                        && transaction.timestamp <= end)
+                        || transaction.statusRaw == pendingStatus)
+                        && transaction.amountMinor >= lowerAmount
+                        && transaction.amountMinor <= upperAmount
+                },
+                sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
+            )
+        case .transfers:
+            return []
+        }
+
         return filterActiveProfile(try modelContext.fetch(descriptor)).filter { transaction in
             let displayDate = transaction.displayDate
             let matchesDate = displayDate >= start && displayDate <= end
-            let matchesAmount = (minAmount == nil || transaction.amountMinor >= minAmount!)
-                && (maxAmount == nil || transaction.amountMinor <= maxAmount!)
             let matchesType =
                 (includeExpenses && transaction.isPostedExpense)
                 || (includeIncome && transaction.isPostedIncome)
                 || (includePending && transaction.isPending)
-            return matchesDate && matchesAmount && matchesType
+            return matchesDate && matchesType
         }
     }
 
@@ -780,14 +850,16 @@ struct TransactionsView: View {
     {
         let minAmount = minimumAmountMinor
         let maxAmount = maximumAmountMinor
+        let lowerAmount = minAmount ?? 0
+        let upperAmount = maxAmount ?? Int64.max
         guard selectedType == .all || selectedType == .transfers else { return [] }
 
         let descriptor = FetchDescriptor<TransferItem>(
             predicate: #Predicate<TransferItem> { transfer in
                 transfer.timestamp >= start
                     && transfer.timestamp <= end
-                    && (minAmount == nil || transfer.amountMinor >= minAmount!)
-                    && (maxAmount == nil || transfer.amountMinor <= maxAmount!)
+                    && transfer.amountMinor >= lowerAmount
+                    && transfer.amountMinor <= upperAmount
             },
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]
         )
@@ -923,13 +995,32 @@ struct TransactionsView: View {
     }
 
     private func loadInitialState() {
-        resetAndLoadFirstPage()
+        if !hasLoadedInitialState || needsLedgerRefresh {
+            hasLoadedInitialState = true
+            needsLedgerRefresh = false
+            resetAndLoadFirstPage()
+        }
         handleSpotlightRequestChange()
+    }
+
+    private func refreshLedgerFromPull() async {
+        guard !isLoadingPage else { return }
+        await Task.yield()
+        resetAndLoadFirstPage()
     }
 
     private func handleSpotlightRequestChange() {
         let request = appState.pendingSpotlightRequest
         processSpotlightRequest(request)
+    }
+
+    private func refreshLedgerAfterExternalChange() {
+        guard hasLoadedInitialState else { return }
+        if appState.selectedTab == .transactions {
+            resetAndLoadFirstPage()
+        } else {
+            needsLedgerRefresh = true
+        }
     }
 
     private func removeFilter(_ kind: TransactionFilterChip.Kind) {
@@ -1086,6 +1177,15 @@ private enum TransactionSortOption: String, CaseIterable, Identifiable {
         case .newestFirst: "Newest first"
         case .oldestFirst: "Oldest first"
         }
+    }
+}
+
+private struct ExternalSheetRefreshState: Equatable {
+    let isEntryPresented: Bool
+    let isTransferPresented: Bool
+
+    var hadPresentedSheet: Bool {
+        isEntryPresented || isTransferPresented
     }
 }
 

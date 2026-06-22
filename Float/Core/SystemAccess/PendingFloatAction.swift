@@ -12,6 +12,7 @@ enum PendingFloatActionKind: String, Codable {
 enum FloatDestination: String, CaseIterable, Codable, Identifiable {
     case home
     case transactions
+    case household
     case calendar
     case reports
     case settings

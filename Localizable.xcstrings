@@ -934,6 +934,9 @@
     "Add Amount Transaction" : {
 
     },
+    "Add bill" : {
+
+    },
     "Add category" : {
       "localizations" : {
         "bn" : {
@@ -1019,6 +1022,9 @@
         }
       }
     },
+    "Add family members to approve shared expenses, track allowances, and create reimbursements." : {
+
+    },
     "Add Income" : {
       "localizations" : {
         "bn" : {
@@ -1040,6 +1046,12 @@
       }
     },
     "Add line" : {
+
+    },
+    "Add member" : {
+
+    },
+    "Add Member" : {
 
     },
     "Add milestone" : {
@@ -1071,6 +1083,9 @@
         }
       }
     },
+    "Add rent, utilities, subscriptions, or school fees that the household tracks together." : {
+
+    },
     "Add scenario" : {
 
     },
@@ -1078,6 +1093,9 @@
 
     },
     "Add settlement entry" : {
+
+    },
+    "Add shared expense" : {
 
     },
     "Add split row" : {
@@ -1217,6 +1235,9 @@
           }
         }
       }
+    },
+    "Adult" : {
+
     },
     "After recurring, goals, and spending recorded this period." : {
       "extractionState" : "stale",
@@ -1426,6 +1447,18 @@
     "Apply smart entry" : {
 
     },
+    "Approval requested" : {
+
+    },
+    "Approvals, bills, and closeouts will build a shared audit trail here." : {
+
+    },
+    "Approve" : {
+
+    },
+    "Approved" : {
+
+    },
     "Archive" : {
       "localizations" : {
         "bn" : {
@@ -1562,6 +1595,15 @@
           }
         }
       }
+    },
+    "Bill" : {
+
+    },
+    "Bill Command Center" : {
+
+    },
+    "Bills" : {
+
     },
     "Budget" : {
       "localizations" : {
@@ -1946,6 +1988,9 @@
         }
       }
     },
+    "Child" : {
+
+    },
     "Choose a report range to build the spend activity map." : {
       "localizations" : {
         "en" : {
@@ -2014,6 +2059,9 @@
           }
         }
       }
+    },
+    "Color hex" : {
+
     },
     "Commitments and goals" : {
       "localizations" : {
@@ -2193,6 +2241,9 @@
         }
       }
     },
+    "Create approval automatically" : {
+
+    },
     "Create backup" : {
       "localizations" : {
         "bn" : {
@@ -2346,6 +2397,9 @@
           }
         }
       }
+    },
+    "Custom split" : {
+
     },
     "Daily" : {
       "localizations" : {
@@ -2670,6 +2724,9 @@
         }
       }
     },
+    "Dependent" : {
+
+    },
     "Description" : {
       "localizations" : {
         "bn" : {
@@ -2749,6 +2806,9 @@
       }
     },
     "Due date" : {
+
+    },
+    "Due in 7 days" : {
 
     },
     "Due soon" : {
@@ -2835,6 +2895,9 @@
           }
         }
       }
+    },
+    "Edit Member" : {
+
     },
     "Edit milestone" : {
 
@@ -3005,6 +3068,9 @@
       }
     },
     "Entry" : {
+
+    },
+    "Equal split" : {
 
     },
     "Event categories" : {
@@ -3179,6 +3245,9 @@
         }
       }
     },
+    "Expense approved" : {
+
+    },
     "Expense category" : {
       "localizations" : {
         "bn" : {
@@ -3241,6 +3310,9 @@
           }
         }
       }
+    },
+    "Expense rejected" : {
+
     },
     "Expense transactions will appear here when added." : {
       "localizations" : {
@@ -3580,6 +3652,9 @@
         }
       }
     },
+    "Guest" : {
+
+    },
     "Hex color" : {
       "localizations" : {
         "bn" : {
@@ -3649,6 +3724,9 @@
     "History" : {
 
     },
+    "HM" : {
+
+    },
     "Home" : {
       "localizations" : {
         "bn" : {
@@ -3700,6 +3778,39 @@
           }
         }
       }
+    },
+    "Household" : {
+
+    },
+    "Household activity" : {
+
+    },
+    "Household Activity" : {
+
+    },
+    "Household bill" : {
+
+    },
+    "Household Bill" : {
+
+    },
+    "Household bill added" : {
+
+    },
+    "Household closeout created" : {
+
+    },
+    "Household member" : {
+
+    },
+    "Household member added" : {
+
+    },
+    "Household OS" : {
+
+    },
+    "Coordinate shared expenses, approvals, bills, members, and monthly closeouts." : {
+
     },
     "How money moved across this range" : {
       "localizations" : {
@@ -4187,6 +4298,12 @@
     "Matches" : {
 
     },
+    "Member" : {
+
+    },
+    "Members" : {
+
+    },
     "Merchant" : {
 
     },
@@ -4244,6 +4361,12 @@
         }
       }
     },
+    "Monthly allowance" : {
+
+    },
+    "Monthly closeout" : {
+
+    },
     "Monthly load" : {
       "localizations" : {
         "bn" : {
@@ -4300,6 +4423,9 @@
       }
     },
     "Needs attention" : {
+
+    },
+    "Needs reimbursement" : {
 
     },
     "Negative" : {
@@ -4598,6 +4724,12 @@
         }
       }
     },
+    "No household activity" : {
+
+    },
+    "No household members" : {
+
+    },
     "No matching cases" : {
 
     },
@@ -4620,6 +4752,12 @@
           }
         }
       }
+    },
+    "No members" : {
+
+    },
+    "No payer" : {
+
     },
     "No payment plan" : {
 
@@ -4664,6 +4802,9 @@
 
     },
     "No settlement cases yet" : {
+
+    },
+    "No shared bills" : {
 
     },
     "No signals yet" : {
@@ -4811,6 +4952,9 @@
         }
       }
     },
+    "Nothing waiting" : {
+
+    },
     "Notice" : {
 
     },
@@ -4849,6 +4993,9 @@
       }
     },
     "On-device" : {
+
+    },
+    "One member" : {
 
     },
     "One time" : {
@@ -4949,6 +5096,9 @@
     "Open Float's on-device receipt scanner." : {
 
     },
+    "Open member balances" : {
+
+    },
     "Open scanner" : {
 
     },
@@ -5019,6 +5169,9 @@
 
     },
     "Opening the selected Float item." : {
+
+    },
+    "Optional note" : {
 
     },
     "Original" : {
@@ -5105,7 +5258,13 @@
         }
       }
     },
+    "Ownership" : {
+
+    },
     "Paid" : {
+
+    },
+    "Paid by" : {
 
     },
     "Partial match" : {
@@ -5171,6 +5330,9 @@
           }
         }
       }
+    },
+    "Pending approval" : {
+
     },
     "Pending due today" : {
       "localizations" : {
@@ -5676,6 +5838,15 @@
         }
       }
     },
+    "Reimburse" : {
+
+    },
+    "Reject" : {
+
+    },
+    "Rejected" : {
+
+    },
     "Reload transactions" : {
       "localizations" : {
         "bn" : {
@@ -5864,6 +6035,9 @@
           }
         }
       }
+    },
+    "Role" : {
+
     },
     "Rules running" : {
       "localizations" : {
@@ -6219,6 +6393,21 @@
           }
         }
       }
+    },
+    "Shared Approval Inbox" : {
+
+    },
+    "Shared approvals, member allowances, bills, and reimbursements in one place." : {
+
+    },
+    "Shared expense" : {
+
+    },
+    "Shared Expense" : {
+
+    },
+    "Shared expenses that need payer, member, or reimbursement review will appear here." : {
+
     },
     "Show completed" : {
       "localizations" : {
@@ -6785,6 +6974,9 @@
           }
         }
       }
+    },
+    "This month" : {
+
     },
     "This period" : {
       "localizations" : {

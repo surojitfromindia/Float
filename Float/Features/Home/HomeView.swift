@@ -22,6 +22,8 @@ struct HomeView: View {
     @State private var isBulkEntrySheetPresented = false
     @State private var newTransactionIsExpense: Bool?
     @State private var isHeroCompact = false
+    @State private var hasMaterializedRecurringRules = false
+    @State private var lastDashboardLoadKey: HomeDashboardLoadKey?
 
     private let heroCompactThreshold: CGFloat = 28
 
@@ -149,7 +151,7 @@ struct HomeView: View {
                         insightSignalsSection
                         cashFlowForecast
                         budgetAlertsSection
-                        recentTransactionsSection
+//                        recentTransactionsSection
                         budgetOverview
                     }
                     .padding(.horizontal, 20)
@@ -221,28 +223,26 @@ struct HomeView: View {
                 .presentationDragIndicator(.visible)
         }
         .onAppear {
-            MaterializeRecurringTransactionsUseCase.run(
-                modelContext: modelContext
-            )
+            materializeRecurringRulesIfNeeded()
         }
         .task(id: dashboardLoadKey) {
-            await loadDashboardSnapshot()
+            await loadDashboardSnapshotIfNeeded(for: dashboardLoadKey)
         }
         .onChange(of: appState.isEntrySheetPresented) { _, isPresented in
             guard !isPresented else { return }
-            Task { await loadDashboardSnapshot() }
+            Task { await loadDashboardSnapshot(force: true) }
         }
         .onChange(of: isEntrySheetPresented) { _, isPresented in
             guard !isPresented else { return }
-            Task { await loadDashboardSnapshot() }
+            Task { await loadDashboardSnapshot(force: true) }
         }
         .onChange(of: isBulkEntrySheetPresented) { _, isPresented in
             guard !isPresented else { return }
-            Task { await loadDashboardSnapshot() }
+            Task { await loadDashboardSnapshot(force: true) }
         }
         .onChange(of: appState.isTransferSheetPresented) { _, isPresented in
             guard !isPresented else { return }
-            Task { await loadDashboardSnapshot() }
+            Task { await loadDashboardSnapshot(force: true) }
         }
     }
 
@@ -624,6 +624,7 @@ struct HomeView: View {
 
     private var dashboardLoadKey: HomeDashboardLoadKey {
         HomeDashboardLoadKey(
+            dayStart: Calendar.current.startOfDay(for: Date()),
             currencyCode: appState.selectedCurrencyCode,
             budgetID: activeBudget?.id,
             budgetUpdatedAt: activeBudget?.updatedAt,
@@ -643,7 +644,27 @@ struct HomeView: View {
         )
     }
 
-    private func loadDashboardSnapshot() async {
+    private func materializeRecurringRulesIfNeeded() {
+        guard !hasMaterializedRecurringRules else { return }
+        hasMaterializedRecurringRules = true
+        MaterializeRecurringTransactionsUseCase.run(
+            modelContext: modelContext
+        )
+    }
+
+    private func loadDashboardSnapshotIfNeeded(for key: HomeDashboardLoadKey) async {
+        guard lastDashboardLoadKey != key else { return }
+        await loadDashboardSnapshot(key: key)
+    }
+
+    private func loadDashboardSnapshot(force: Bool = false) async {
+        let key = dashboardLoadKey
+        guard force || lastDashboardLoadKey != key else { return }
+        await loadDashboardSnapshot(key: key)
+    }
+
+    private func loadDashboardSnapshot(key: HomeDashboardLoadKey) async {
+        lastDashboardLoadKey = key
         await Task.yield()
         dashboardSnapshot = fetchDashboardSnapshot()
         LocalNotificationScheduler.refresh(
@@ -944,6 +965,7 @@ private func localizedAbbreviatedDate(_ date: Date) -> String {
 }
 
 private struct HomeDashboardLoadKey: Equatable {
+    let dayStart: Date
     let currencyCode: String
     let budgetID: UUID?
     let budgetUpdatedAt: Date?

@@ -159,19 +159,28 @@ struct SettingsView: View {
         }
 
         Section("Manage") {
-            settingsNavigationLink("Calendar", destination: CalendarView())
-            settingsNavigationLink("Planner", destination: ScenarioPlannerView())
-            settingsNavigationLink("Budget", destination: BudgetSettingsView())
-            settingsNavigationLink("Goals", destination: GoalsView())
-            settingsNavigationLink("Recurring", destination: RecurringView())
-            settingsNavigationLink("Templates", destination: TransactionTemplateManagerView())
-            settingsNavigationLink("Template Groups", destination: TransactionTemplateGroupManagerView())
-            settingsNavigationLink("Categories", destination: CategoryManagerView())
-            settingsNavigationLink("Accounts", destination: AccountManagerView())
-            settingsNavigationLink("People", destination: PeopleManagerView())
-            settingsNavigationLink("Profiles", destination: ProfileManagerView())
-            settingsNavigationLink("Settlements", destination: SettlementsView())
-            settingsNavigationLink("Review Queue", destination: ReviewQueueView())
+            settingsNavigationLink("Calendar") { CalendarView() }
+            settingsNavigationLink("Planner") { ScenarioPlannerView() }
+            settingsNavigationLink("Budget") { BudgetSettingsView() }
+            settingsNavigationLink("Goals") { GoalsView() }
+            settingsNavigationLink("Recurring") { RecurringView() }
+            settingsNavigationLink("Templates") { TransactionTemplateManagerView() }
+            settingsNavigationLink("Template Groups") { TransactionTemplateGroupManagerView() }
+            settingsNavigationLink("Categories") { CategoryManagerView() }
+            settingsNavigationLink("Accounts") { AccountManagerView() }
+            settingsNavigationLink("People") { PeopleManagerView() }
+            settingsNavigationLink("Profiles") { ProfileManagerView() }
+            settingsNavigationLink("Settlements") { SettlementsView() }
+            settingsNavigationLink("Review Queue") { ReviewQueueView() }
+        }
+
+        Section("Household OS") {
+            settingsNavigationLink(
+                "Household",
+                description: "Coordinate shared expenses, approvals, bills, members, and monthly closeouts."
+            ) {
+                HouseholdView()
+            }
         }
 
         Section("Portable data") {
@@ -222,12 +231,28 @@ struct SettingsView: View {
 
     private func settingsNavigationLink<Destination: View>(
         _ title: LocalizedStringKey,
-        destination: Destination
+        @ViewBuilder destination: @escaping () -> Destination
+    ) -> some View {
+        settingsNavigationLink(title, description: nil, destination: destination)
+    }
+
+    private func settingsNavigationLink<Destination: View>(
+        _ title: LocalizedStringKey,
+        description: LocalizedStringKey?,
+        @ViewBuilder destination: @escaping () -> Destination
     ) -> some View {
         NavigationLink {
-            destination
+            destination()
         } label: {
-            Text(title)
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                if let description {
+                    Text(description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
         }
     }
 
@@ -294,6 +319,8 @@ struct SettingsView: View {
             AccountManagerView()
         case .people:
             PeopleManagerView()
+        case .household:
+            HouseholdView()
         case .profiles:
             ProfileManagerView()
         case .settlements:
@@ -357,6 +384,12 @@ struct SettingsView: View {
                 receiptCaptures: fetchAll(ReceiptCaptureItem.self),
                 receiptLineItems: fetchAll(ReceiptLineItem.self),
                 attachments: fetchAll(AttachmentItem.self),
+                householdMembers: fetchAll(HouseholdMemberItem.self),
+                householdExpenses: fetchAll(HouseholdExpenseItem.self),
+                householdExpenseSplits: fetchAll(HouseholdExpenseSplitItem.self),
+                householdBills: fetchAll(HouseholdBillItem.self),
+                householdAllowances: fetchAll(HouseholdAllowanceItem.self),
+                householdActivities: fetchAll(HouseholdActivityItem.self),
                 currencyCode: appState.selectedCurrencyCode
             )
             message = "Preparing backup."
@@ -407,6 +440,12 @@ struct SettingsView: View {
         for item in fetchAll(SettlementMilestoneItem.self) { modelContext.delete(item) }
         for item in fetchAll(SettlementEntryItem.self) { modelContext.delete(item) }
         for item in fetchAll(SettlementCaseItem.self) { modelContext.delete(item) }
+        for item in fetchAll(HouseholdActivityItem.self) { modelContext.delete(item) }
+        for item in fetchAll(HouseholdAllowanceItem.self) { modelContext.delete(item) }
+        for item in fetchAll(HouseholdExpenseSplitItem.self) { modelContext.delete(item) }
+        for item in fetchAll(HouseholdExpenseItem.self) { modelContext.delete(item) }
+        for item in fetchAll(HouseholdBillItem.self) { modelContext.delete(item) }
+        for item in fetchAll(HouseholdMemberItem.self) { modelContext.delete(item) }
         for item in fetchAll(AttachmentItem.self) { modelContext.delete(item) }
         for item in fetchAll(ReceiptLineItem.self) { modelContext.delete(item) }
         for item in fetchAll(ReceiptCaptureItem.self) { modelContext.delete(item) }

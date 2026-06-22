@@ -43,6 +43,12 @@ struct FloatBackupDTO: Codable {
     var receiptCaptures: [ReceiptCaptureDTO]
     var receiptLineItems: [ReceiptLineDTO]
     var attachments: [AttachmentDTO]
+    var householdMembers: [HouseholdMemberDTO]
+    var householdExpenses: [HouseholdExpenseDTO]
+    var householdExpenseSplits: [HouseholdExpenseSplitDTO]
+    var householdBills: [HouseholdBillDTO]
+    var householdAllowances: [HouseholdAllowanceDTO]
+    var householdActivities: [HouseholdActivityDTO]
     var settings: SettingsDTO
 
     enum CodingKeys: String, CodingKey {
@@ -68,6 +74,12 @@ struct FloatBackupDTO: Codable {
         case receiptCaptures
         case receiptLineItems
         case attachments
+        case householdMembers
+        case householdExpenses
+        case householdExpenseSplits
+        case householdBills
+        case householdAllowances
+        case householdActivities
         case settings
     }
 
@@ -94,6 +106,12 @@ struct FloatBackupDTO: Codable {
         receiptCaptures: [ReceiptCaptureDTO] = [],
         receiptLineItems: [ReceiptLineDTO] = [],
         attachments: [AttachmentDTO] = [],
+        householdMembers: [HouseholdMemberDTO] = [],
+        householdExpenses: [HouseholdExpenseDTO] = [],
+        householdExpenseSplits: [HouseholdExpenseSplitDTO] = [],
+        householdBills: [HouseholdBillDTO] = [],
+        householdAllowances: [HouseholdAllowanceDTO] = [],
+        householdActivities: [HouseholdActivityDTO] = [],
         settings: SettingsDTO
     ) {
         self.accounts = accounts
@@ -118,6 +136,12 @@ struct FloatBackupDTO: Codable {
         self.receiptCaptures = receiptCaptures
         self.receiptLineItems = receiptLineItems
         self.attachments = attachments
+        self.householdMembers = householdMembers
+        self.householdExpenses = householdExpenses
+        self.householdExpenseSplits = householdExpenseSplits
+        self.householdBills = householdBills
+        self.householdAllowances = householdAllowances
+        self.householdActivities = householdActivities
         self.settings = settings
     }
 
@@ -145,6 +169,12 @@ struct FloatBackupDTO: Codable {
         receiptCaptures = try container.decodeIfPresent([ReceiptCaptureDTO].self, forKey: .receiptCaptures) ?? []
         receiptLineItems = try container.decodeIfPresent([ReceiptLineDTO].self, forKey: .receiptLineItems) ?? []
         attachments = try container.decodeIfPresent([AttachmentDTO].self, forKey: .attachments) ?? []
+        householdMembers = try container.decodeIfPresent([HouseholdMemberDTO].self, forKey: .householdMembers) ?? []
+        householdExpenses = try container.decodeIfPresent([HouseholdExpenseDTO].self, forKey: .householdExpenses) ?? []
+        householdExpenseSplits = try container.decodeIfPresent([HouseholdExpenseSplitDTO].self, forKey: .householdExpenseSplits) ?? []
+        householdBills = try container.decodeIfPresent([HouseholdBillDTO].self, forKey: .householdBills) ?? []
+        householdAllowances = try container.decodeIfPresent([HouseholdAllowanceDTO].self, forKey: .householdAllowances) ?? []
+        householdActivities = try container.decodeIfPresent([HouseholdActivityDTO].self, forKey: .householdActivities) ?? []
         settings = try container.decode(SettingsDTO.self, forKey: .settings)
     }
 }
@@ -584,6 +614,85 @@ struct AttachmentDTO: Codable {
     var receiptID: UUID?
     var createdAt: Date
     var updatedAt: Date
+}
+struct HouseholdMemberDTO: Codable {
+    var id: UUID
+    var displayName: String
+    var roleRaw: String
+    var colorHex: String
+    var monthlyAllowanceMinor: Int64
+    var personID: UUID?
+    var archived: Bool
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct HouseholdExpenseDTO: Codable {
+    var id: UUID
+    var title: String
+    var amountMinor: Int64
+    var currencyCode: String
+    var expenseDate: Date
+    var splitMethodRaw: String
+    var approvalStatusRaw: String
+    var reimbursementRequired: Bool
+    var note: String?
+    var payerID: UUID?
+    var categoryID: UUID?
+    var accountID: UUID?
+    var transactionID: UUID?
+    var receiptCaptureID: UUID?
+    var approvedAt: Date?
+    var rejectedAt: Date?
+    var settledAt: Date?
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct HouseholdExpenseSplitDTO: Codable {
+    var id: UUID
+    var sortOrder: Int
+    var amountMinor: Int64
+    var reimbursedMinor: Int64
+    var memberID: UUID?
+    var expenseID: UUID?
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct HouseholdBillDTO: Codable {
+    var id: UUID
+    var title: String
+    var amountMinor: Int64
+    var currencyCode: String
+    var dueDate: Date
+    var cadence: RecurringCadence
+    var payerID: UUID?
+    var categoryID: UUID?
+    var accountID: UUID?
+    var active: Bool
+    var autoCreateApproval: Bool
+    var note: String?
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct HouseholdAllowanceDTO: Codable {
+    var id: UUID
+    var memberID: UUID?
+    var periodStart: Date
+    var periodEnd: Date
+    var allowanceMinor: Int64
+    var spentMinor: Int64
+    var currencyCode: String
+    var note: String?
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct HouseholdActivityDTO: Codable {
+    var id: UUID
+    var kindRaw: String
+    var title: String
+    var message: String
+    var amountMinor: Int64?
+    var referenceID: UUID?
+    var createdAt: Date
 }
 struct SettingsDTO: Codable {
     var currencyCode: String
