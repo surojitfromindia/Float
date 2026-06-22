@@ -2,17 +2,12 @@ import SwiftData
 import SwiftUI
 
 struct HouseholdView: View {
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
     @Query(sort: \HouseholdMemberItem.createdAt) private var allMembers: [HouseholdMemberItem]
     @Query(sort: \HouseholdExpenseItem.createdAt, order: .reverse) private var allExpenses: [HouseholdExpenseItem]
     @Query(sort: \HouseholdBillItem.dueDate) private var allBills: [HouseholdBillItem]
-    @Query(sort: \HouseholdActivityItem.createdAt, order: .reverse) private var allActivities: [HouseholdActivityItem]
-    @State private var memberToEdit: HouseholdMemberItem?
-    @State private var isAddingMember = false
-    @State private var isAddingExpense = false
-    @State private var isAddingBill = false
+    @State private var sheet: HouseholdSheet?
     @State private var message = ""
 
     private var members: [HouseholdMemberItem] {
@@ -23,354 +18,272 @@ struct HouseholdView: View {
         filterActiveProfile(allExpenses)
     }
 
-    private var bills: [HouseholdBillItem] {
-        filterActiveProfile(allBills).filter(\.active)
-    }
-
-    private var activities: [HouseholdActivityItem] {
-        Array(filterActiveProfile(allActivities).prefix(8))
-    }
-
     private var pendingExpenses: [HouseholdExpenseItem] {
         expenses.filter { $0.approvalStatus == .pending }
     }
 
-    private var approvedThisMonth: [HouseholdExpenseItem] {
-        let calendar = Calendar.current
-        return expenses.filter {
+    private var approvedOpenExpenses: [HouseholdExpenseItem] {
+        expenses.filter {
             $0.approvalStatus == .approved
-                && calendar.isDate($0.expenseDate, equalTo: Date(), toGranularity: .month)
+                && $0.reimbursementRequired
+                && $0.settledAt == nil
         }
+    }
+
+    private var bills: [HouseholdBillItem] {
+        filterActiveProfile(allBills).filter(\.active)
     }
 
     private var dueSoonBills: [HouseholdBillItem] {
         bills.filter(\.isDueSoon)
     }
 
-    private var monthSpendMinor: Int64 {
-        approvedThisMonth.reduce(Int64(0)) { $0 + $1.amountMinor }
-    }
-
-    private var pendingAmountMinor: Int64 {
-        pendingExpenses.reduce(Int64(0)) { $0 + $1.amountMinor }
-    }
-
     private var reimbursementDueMinor: Int64 {
-        expenses.reduce(Int64(0)) { $0 + $1.outstandingReimbursementMinor }
+        approvedOpenExpenses.reduce(Int64(0)) { $0 + $1.outstandingReimbursementMinor }
+    }
+
+    private var monthSpendMinor: Int64 {
+        let calendar = Calendar.current
+        return expenses.reduce(Int64(0)) { total, expense in
+            guard expense.approvalStatus == .approved,
+                  calendar.isDate(expense.expenseDate, equalTo: Date(), toGranularity: .month)
+            else { return total }
+            return total + expense.amountMinor
+        }
+    }
+
+    private var memberSummaries: [HouseholdMemberSummary] {
+        members.map { member in
+            var getsBackMinor = Int64(0)
+            var owesMinor = Int64(0)
+            var pendingCount = 0
+
+            for expense in approvedOpenExpenses {
+                if expense.payer?.id == member.id {
+                    getsBackMinor += expense.outstandingReimbursementMinor
+                }
+
+                for split in expense.sortedSplits where split.member?.id == member.id {
+                    if expense.payer?.id != member.id {
+                        owesMinor += split.outstandingMinor
+                    }
+                }
+            }
+
+            for expense in pendingExpenses {
+                if expense.payer?.id == member.id
+                    || expense.sortedSplits.contains(where: { $0.member?.id == member.id }) {
+                    pendingCount += 1
+                }
+            }
+
+            return HouseholdMemberSummary(
+                member: member,
+                getsBackMinor: getsBackMinor,
+                owesMinor: owesMinor,
+                pendingCount: pendingCount
+            )
+        }
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            let topInset = proxy.safeAreaInsets.top
-
-            VStack(spacing: 0) {
-                hero(topInset: topInset)
-                    .zIndex(1)
-
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 18) {
-                        metricsGrid
-                        approvalInbox
-                        membersSection
-                        billsSection
-                        activitySection
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 16)
-                    .padding(.bottom, 120)
-                }
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 18) {
+                nextStepCard
+                summaryStrip
+                attentionSection
+                peopleSection
+                billsSection
             }
-            .navigationTitle("")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(.hidden, for: .navigationBar)
-            .floatBackground()
-            .ignoresSafeArea(edges: .top)
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 120)
         }
-        .sheet(isPresented: $isAddingMember) {
-            HouseholdMemberEditorSheet(member: nil)
-                .presentationDetents([.medium, .large])
+        .navigationTitle("Household OS")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button("Split expense", systemImage: "plus.circle.fill") {
+                        sheet = .expense
+                    }
+                    Button("Add member", systemImage: "person.badge.plus") {
+                        sheet = .member(nil)
+                    }
+                    Button("Add bill", systemImage: "calendar.badge.plus") {
+                        sheet = .bill
+                    }
+                    Button("Close out reimbursements", systemImage: "arrow.left.arrow.right.circle.fill") {
+                        createCloseout()
+                    }
+                    .disabled(reimbursementDueMinor == 0)
+                } label: {
+                    Image(systemName: "plus")
+                }
+                .tint(appState.themePalette.accent)
+            }
         }
-        .sheet(item: $memberToEdit) { member in
-            HouseholdMemberEditorSheet(member: member)
-                .presentationDetents([.medium, .large])
-        }
-        .sheet(isPresented: $isAddingExpense) {
-            HouseholdExpenseEditorSheet()
-                .presentationDetents([.large])
-        }
-        .sheet(isPresented: $isAddingBill) {
-            HouseholdBillEditorSheet()
-                .presentationDetents([.medium, .large])
+        .floatBackground()
+        .sheet(item: $sheet) { sheet in
+            switch sheet {
+            case .member(let member):
+                HouseholdMemberEditorSheet(member: member)
+                    .presentationDetents([.medium, .large])
+            case .expense:
+                HouseholdExpenseEditorSheet()
+                    .presentationDetents([.large])
+            case .bill:
+                HouseholdBillEditorSheet()
+                    .presentationDetents([.medium, .large])
+            }
         }
     }
 
-    private func hero(topInset: CGFloat) -> some View {
-        householdHeroSurface {
+    private var nextStepCard: some View {
+        GlassCard(padding: 18) {
             VStack(alignment: .leading, spacing: 16) {
-                HStack(alignment: .top) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Household OS")
-                            .font(.largeTitle.bold())
-                            .foregroundStyle(heroPrimaryText)
-                        Text("Shared approvals, member allowances, bills, and reimbursements in one place.")
+                HStack(alignment: .top, spacing: 12) {
+                    FloatIconBadge(icon: nextStep.icon, tint: nextStep.tint, size: 42)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(nextStep.title)
+                            .font(.headline)
+                        Text(nextStep.message)
                             .font(.subheadline)
-                            .foregroundStyle(heroSecondaryText)
+                            .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    Spacer(minLength: 0)
                 }
 
-                HStack(spacing: 14) {
-                    Button {
-                        isAddingExpense = true
-                    } label: {
-                        Label("Add shared expense", systemImage: "plus.circle.fill")
-                            .font(.subheadline.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                    }
-                    .foregroundStyle(heroButtonText)
-                    .background(
-                        LinearGradient(
-                            colors: [
-                                heroControlTint.opacity(colorScheme == .dark ? 0.92 : 0.86),
-                                heroControlTint.opacity(colorScheme == .dark ? 0.72 : 0.68),
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        in: Capsule()
-                    )
-                    .overlay(
-                        Capsule()
-                            .strokeBorder(.white.opacity(colorScheme == .dark ? 0.18 : 0.22), lineWidth: 1)
-                    )
-                    .shadow(
-                        color: heroControlTint.opacity(colorScheme == .dark ? 0.22 : 0.16),
-                        radius: 12,
-                        x: 0,
-                        y: 8
-                    )
-
-                    Menu {
-                        Button("Add member") { isAddingMember = true }
-                        Button("Add bill") { isAddingBill = true }
-                        Button("Monthly closeout") { createCloseout() }
-                    } label: {
-                        Image(systemName: "ellipsis.circle.fill")
-                            .font(.system(size: 24, weight: .semibold))
-                            .symbolRenderingMode(.hierarchical)
-                            .foregroundStyle(heroControlTint)
-                            .frame(width: 54, height: 48)
-                            .background(heroControlTint.opacity(colorScheme == .dark ? 0.14 : 0.10), in: Capsule())
-                            .overlay(
-                                Capsule()
-                                    .strokeBorder(heroControlTint.opacity(colorScheme == .dark ? 0.18 : 0.12), lineWidth: 1)
-                            )
-                    }
+                Button(action: nextStep.action) {
+                    Label(nextStep.buttonTitle, systemImage: nextStep.buttonIcon)
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
                 }
+                .buttonStyle(.borderedProminent)
+                .tint(appState.themePalette.accent)
 
                 if !message.isEmpty {
                     Text(message)
                         .font(.caption)
-                        .foregroundStyle(heroSecondaryText)
+                        .foregroundStyle(.secondary)
                 }
             }
-            .padding(.top, topInset + 18)
-            .padding(.horizontal, 26)
-            .padding(.bottom, 34)
         }
     }
 
-    private var heroPrimaryText: Color {
-        colorScheme == .dark ? .white : Color.black.opacity(0.78)
-    }
-
-    private var heroSecondaryText: Color {
-        colorScheme == .dark ? .white.opacity(0.78) : Color.black.opacity(0.58)
-    }
-
-    private var heroControlTint: Color {
-        appState.themePalette.accent
-    }
-
-    private var heroButtonText: Color {
-        colorScheme == .dark ? .white : Color.white.opacity(0.96)
-    }
-
-    private func householdHeroSurface<Content: View>(
-        @ViewBuilder content: () -> Content
-    ) -> some View {
-        let palette = appState.themePalette.hero
-        let shape = UnevenRoundedRectangle(
-            topLeadingRadius: 0,
-            bottomLeadingRadius: 34,
-            bottomTrailingRadius: 34,
-            topTrailingRadius: 0,
-            style: .continuous
-        )
-        let isDark = colorScheme == .dark
-        let bottomFade = isDark
-            ? palette.backgroundBottom
-            : Color(.systemGroupedBackground)
-
-        return content()
-            .background(.ultraThinMaterial, in: shape)
-            .background(
-                LinearGradient(
-                    stops: [
-                        Gradient.Stop(
-                            color: palette.backgroundTop.opacity(isDark ? 0.92 : 0.76),
-                            location: 0
-                        ),
-                        Gradient.Stop(
-                            color: palette.glow.opacity(isDark ? 0.58 : 0.38),
-                            location: 0.36
-                        ),
-                        Gradient.Stop(
-                            color: palette.accent.opacity(isDark ? 0.42 : 0.28),
-                            location: 0.68
-                        ),
-                        Gradient.Stop(
-                            color: palette.backgroundBottom.opacity(isDark ? 0.18 : 0.22),
-                            location: 1
-                        ),
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                ),
-                in: shape
-            )
-            .overlay(alignment: .topTrailing) {
-                ZStack {
-                    Circle()
-                        .fill(.white.opacity(isDark ? 0.20 : 0.16))
-                        .frame(width: 190, height: 190)
-                        .blur(radius: 38)
-                        .offset(x: 48, y: -58)
-                    Circle()
-                        .fill(palette.glow.opacity(isDark ? 0.28 : 0.20))
-                        .frame(width: 150, height: 150)
-                        .blur(radius: 34)
-                        .offset(x: -58, y: 54)
-                }
-                .allowsHitTesting(false)
-            }
-            .overlay(alignment: .bottom) {
-                LinearGradient(
-                    colors: [
-                        .clear,
-                        bottomFade.opacity(isDark ? 0.30 : 0.24),
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .frame(height: 54)
-                .allowsHitTesting(false)
-            }
-            .clipShape(shape)
-            .shadow(
-                color: .black.opacity(isDark ? 0.26 : 0.1),
-                radius: 18,
-                x: 0,
-                y: 10
-            )
-    }
-
-    private var metricsGrid: some View {
+    private var summaryStrip: some View {
         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
             SummaryMetricTile(
                 title: "Pending",
-                value: money(pendingAmountMinor),
-                captionText: AppLocalization.format("%lld approvals", Int64(pendingExpenses.count)),
+                value: "\(pendingExpenses.count)",
+                caption: "Need review",
                 icon: "checklist",
                 tint: appState.themePalette.caution
             )
             SummaryMetricTile(
-                title: "This month",
-                value: money(monthSpendMinor),
-                captionText: AppLocalization.format("%lld approved", Int64(approvedThisMonth.count)),
-                icon: "calendar",
+                title: "To settle",
+                value: money(reimbursementDueMinor),
+                caption: "Open reimbursements",
+                icon: "arrow.left.arrow.right.circle.fill",
                 tint: appState.themePalette.accent
             )
             SummaryMetricTile(
-                title: "Reimburse",
-                value: money(reimbursementDueMinor),
-                caption: "Open member balances",
-                icon: "arrow.left.arrow.right.circle.fill",
+                title: "This month",
+                value: money(monthSpendMinor),
+                caption: "Approved shared spend",
+                icon: "calendar",
                 tint: Color(hex: "#0A6FAE")
             )
             SummaryMetricTile(
-                title: "Bills",
+                title: "Bills due",
                 value: "\(dueSoonBills.count)",
-                caption: "Due in 7 days",
+                caption: "Next 7 days",
                 icon: "doc.text.fill",
                 tint: Color(hex: "#8A6DD7")
             )
         }
     }
 
-    private var approvalInbox: some View {
+    private var attentionSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(
-                title: "Shared Approval Inbox",
-                actionTitle: "Add",
-                action: { isAddingExpense = true }
-            )
+            SectionHeader(title: "Needs attention")
 
-            if pendingExpenses.isEmpty {
-                GlassCard {
-                    EmptyStateView(
-                        icon: "checkmark.seal.fill",
-                        title: "Nothing waiting",
-                        message: "Shared expenses that need payer, member, or reimbursement review will appear here."
-                    )
-                }
+            if members.isEmpty {
+                HouseholdGuideCard(
+                    icon: "person.2.fill",
+                    title: "Add your people first",
+                    message: "Create one member for each person you split household money with.",
+                    buttonTitle: "Add first member",
+                    tint: appState.themePalette.accent,
+                    action: { sheet = .member(nil) }
+                )
+            } else if pendingExpenses.isEmpty && dueSoonBills.isEmpty && reimbursementDueMinor == 0 {
+                HouseholdGuideCard(
+                    icon: "checkmark.seal.fill",
+                    title: "Everything is clear",
+                    message: "Add a shared expense when someone pays for the household.",
+                    buttonTitle: "Split expense",
+                    tint: appState.themePalette.accent,
+                    action: { sheet = .expense }
+                )
             } else {
-                ForEach(pendingExpenses) { expense in
-                    HouseholdExpenseRow(
+                ForEach(pendingExpenses.prefix(3)) { expense in
+                    HouseholdExpenseReviewRow(
                         expense: expense,
                         currencyCode: appState.selectedCurrencyCode,
                         onApprove: { approve(expense) },
                         onReject: { reject(expense) }
                     )
                 }
+
+                ForEach(dueSoonBills.prefix(2)) { bill in
+                    HouseholdBillRow(bill: bill, currencyCode: appState.selectedCurrencyCode)
+                }
+
+                if reimbursementDueMinor > 0 {
+                    HouseholdGuideCard(
+                        icon: "arrow.left.arrow.right.circle.fill",
+                        title: "Reimbursements are ready",
+                        message: "Create settlement cases for everyone who owes money.",
+                        buttonTitle: "Close out now",
+                        tint: appState.themePalette.accent,
+                        action: createCloseout
+                    )
+                }
             }
         }
     }
 
-    private var membersSection: some View {
+    private var peopleSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(
-                title: "Members",
+                title: "People",
                 actionTitle: "Add",
-                action: { isAddingMember = true }
+                action: { sheet = .member(nil) }
             )
+
             if members.isEmpty {
-                GlassCard {
-                    EmptyStateView(
-                        icon: "person.3.fill",
-                        title: "No household members",
-                        message: "Add family members to approve shared expenses, track allowances, and create reimbursements."
-                    )
-                }
+                EmptyStateView(
+                    icon: "person.3.fill",
+                    title: "No people yet",
+                    message: "People are required before you can split expenses."
+                )
+                .floatGlassSurface(cornerRadius: FloatTheme.tileRadius)
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 12) {
-                        ForEach(members) { member in
-                            Button {
-                                memberToEdit = member
-                            } label: {
-                                HouseholdMemberCard(
-                                    member: member,
-                                    currencyCode: appState.selectedCurrencyCode
-                                )
-                            }
-                            .buttonStyle(.plain)
+                VStack(spacing: 10) {
+                    ForEach(memberSummaries) { summary in
+                        Button {
+                            sheet = .member(summary.member)
+                        } label: {
+                            HouseholdPersonRow(
+                                summary: summary,
+                                currencyCode: appState.selectedCurrencyCode
+                            )
                         }
+                        .buttonStyle(.plain)
                     }
-                    .padding(.vertical, 2)
                 }
-                .scrollClipDisabled()
             }
         }
     }
@@ -378,43 +291,77 @@ struct HouseholdView: View {
     private var billsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             SectionHeader(
-                title: "Bill Command Center",
+                title: "Bills",
                 actionTitle: "Add",
-                action: { isAddingBill = true }
+                action: { sheet = .bill }
             )
+
             if bills.isEmpty {
-                GlassCard {
-                    EmptyStateView(
-                        icon: "doc.text.magnifyingglass",
-                        title: "No shared bills",
-                        message: "Add rent, utilities, subscriptions, or school fees that the household tracks together."
-                    )
-                }
+                HouseholdGuideCard(
+                    icon: "calendar.badge.plus",
+                    title: "Track recurring bills",
+                    message: "Add rent, utilities, school fees, or subscriptions that the household reviews together.",
+                    buttonTitle: "Add bill",
+                    tint: Color(hex: "#8A6DD7"),
+                    action: { sheet = .bill }
+                )
             } else {
-                ForEach(bills.prefix(5)) { bill in
+                ForEach(bills.prefix(4)) { bill in
                     HouseholdBillRow(bill: bill, currencyCode: appState.selectedCurrencyCode)
                 }
             }
         }
     }
 
-    private var activitySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            SectionHeader(title: "Household Activity")
-            if activities.isEmpty {
-                GlassCard {
-                    EmptyStateView(
-                        icon: "clock.arrow.circlepath",
-                        title: "No household activity",
-                        message: "Approvals, bills, and closeouts will build a shared audit trail here."
-                    )
-                }
-            } else {
-                ForEach(activities) { activity in
-                    HouseholdActivityRow(activity: activity, currencyCode: appState.selectedCurrencyCode)
-                }
-            }
+    private var nextStep: HouseholdNextStep {
+        if members.isEmpty {
+            return HouseholdNextStep(
+                icon: "person.2.fill",
+                title: "Start with people",
+                message: "Add the people who share expenses with you. After that, every split takes only a few taps.",
+                buttonTitle: "Add first member",
+                buttonIcon: "person.badge.plus",
+                tint: appState.themePalette.accent,
+                action: { sheet = .member(nil) }
+            )
         }
+
+        if let firstPending = pendingExpenses.first {
+            return HouseholdNextStep(
+                icon: "checklist",
+                title: "Review pending expense",
+                message: AppLocalization.format(
+                    "%@ is waiting to be approved and posted as a transaction.",
+                    firstPending.title
+                ),
+                buttonTitle: "Review queue",
+                buttonIcon: "checkmark.circle.fill",
+                tint: appState.themePalette.caution,
+                action: {}
+            )
+        }
+
+        if reimbursementDueMinor > 0 {
+            return HouseholdNextStep(
+                icon: "arrow.left.arrow.right.circle.fill",
+                title: "Settle the household",
+                message: "Approved splits are ready to become settlement cases.",
+                buttonTitle: "Close out reimbursements",
+                buttonIcon: "arrow.right.circle.fill",
+                tint: appState.themePalette.accent,
+                action: createCloseout
+            )
+        }
+
+        return HouseholdNextStep(
+            icon: "plus.circle.fill",
+            title: "Add the next shared expense",
+            message: "Use this when someone pays for groceries, bills, travel, or anything shared at home.",
+            buttonTitle: "Split expense",
+            buttonIcon: "plus",
+            tint: appState.themePalette.accent,
+            action: { sheet = .expense }
+        )
     }
 
     private func money(_ amountMinor: Int64) -> String {
@@ -458,7 +405,77 @@ struct HouseholdView: View {
     }
 }
 
-private struct HouseholdExpenseRow: View {
+private enum HouseholdSheet: Identifiable {
+    case member(HouseholdMemberItem?)
+    case expense
+    case bill
+
+    var id: String {
+        switch self {
+        case .member(let member): "member-\(member?.id.uuidString ?? "new")"
+        case .expense: "expense"
+        case .bill: "bill"
+        }
+    }
+}
+
+private struct HouseholdNextStep {
+    let icon: String
+    let title: LocalizedStringResource
+    let message: String
+    let buttonTitle: LocalizedStringResource
+    let buttonIcon: String
+    let tint: Color
+    let action: () -> Void
+}
+
+private struct HouseholdMemberSummary: Identifiable {
+    let member: HouseholdMemberItem
+    let getsBackMinor: Int64
+    let owesMinor: Int64
+    let pendingCount: Int
+
+    var id: UUID { member.id }
+    var netMinor: Int64 { getsBackMinor - owesMinor }
+}
+
+private struct HouseholdGuideCard: View {
+    let icon: String
+    let title: LocalizedStringResource
+    let message: LocalizedStringResource
+    let buttonTitle: LocalizedStringResource
+    let tint: Color
+    let action: () -> Void
+
+    var body: some View {
+        GlassCard(padding: 16) {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    FloatIconBadge(icon: icon, tint: tint, size: 38)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title)
+                            .font(.headline)
+                        Text(message)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 0)
+                }
+
+                Button(action: action) {
+                    Text(buttonTitle)
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(tint)
+            }
+        }
+    }
+}
+
+private struct HouseholdExpenseReviewRow: View {
     let expense: HouseholdExpenseItem
     let currencyCode: String
     let onApprove: () -> Void
@@ -466,7 +483,7 @@ private struct HouseholdExpenseRow: View {
 
     var body: some View {
         GlassCard(padding: 16) {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .top, spacing: 12) {
                     FloatIconBadge(
                         icon: expense.category?.iconKey ?? "cart.fill",
@@ -476,15 +493,15 @@ private struct HouseholdExpenseRow: View {
                         Text(expense.title)
                             .font(.headline)
                         Text(AppLocalization.format(
-                            "%@ paid - %@",
+                            "%@ paid for %@",
                             expense.payerName,
                             expense.beneficiarySummary
                         ))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
                     }
-                    Spacer()
+                    Spacer(minLength: 0)
                     Text(MoneyFormatter.string(minorUnits: expense.amountMinor, currencyCode: currencyCode))
                         .moneyStyle(size: 16, weight: .bold)
                 }
@@ -500,37 +517,66 @@ private struct HouseholdExpenseRow: View {
     }
 }
 
-private struct HouseholdMemberCard: View {
-    let member: HouseholdMemberItem
+private struct HouseholdPersonRow: View {
+    let summary: HouseholdMemberSummary
     let currencyCode: String
 
+    private var tint: Color {
+        Color(hex: summary.member.colorHex)
+    }
+
+    private var balanceText: String {
+        if summary.netMinor > 0 {
+            return AppLocalization.format(
+                "Gets back %@",
+                MoneyFormatter.string(minorUnits: summary.netMinor, currencyCode: currencyCode)
+            )
+        }
+        if summary.netMinor < 0 {
+            return AppLocalization.format(
+                "Owes %@",
+                MoneyFormatter.string(minorUnits: abs(summary.netMinor), currencyCode: currencyCode)
+            )
+        }
+        return String(localized: "Settled")
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text(member.displayInitials)
-                    .font(.headline)
-                    .foregroundStyle(Color(hex: member.colorHex))
-                    .frame(width: 42, height: 42)
-                    .background(Color(hex: member.colorHex).opacity(0.16), in: Circle())
-                Spacer()
-                Text(member.role.title)
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-            }
+        HStack(spacing: 12) {
+            Text(summary.member.displayInitials)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(tint)
+                .frame(width: 42, height: 42)
+                .background(tint.opacity(0.14), in: Circle())
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(member.displayName)
+                Text(summary.member.displayName)
                     .font(.headline)
                     .foregroundStyle(.primary)
-                Text("Monthly allowance")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Text(MoneyFormatter.string(minorUnits: member.monthlyAllowanceMinor, currencyCode: currencyCode))
-                    .moneyStyle(size: 18, weight: .bold)
+                HStack(spacing: 8) {
+                    Text(summary.member.role.title)
+                    Text(balanceText)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
+
+            Spacer(minLength: 0)
+
+            if summary.pendingCount > 0 {
+                Text("\(summary.pendingCount)")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.white)
+                    .frame(width: 24, height: 24)
+                    .background(Color.orange, in: Circle())
+                    .accessibilityLabel(AppLocalization.format("%lld pending items", Int64(summary.pendingCount)))
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
         }
-        .frame(width: 180, alignment: .leading)
-        .padding(16)
+        .padding(14)
         .floatGlassSurface(cornerRadius: FloatTheme.tileRadius, interactive: true)
     }
 }
@@ -549,65 +595,19 @@ private struct HouseholdBillRow: View {
                 Text(bill.title)
                     .font(.headline)
                 Text(AppLocalization.format(
-                    "%@ - %@",
+                    "%@ pays - due %@",
                     bill.payer?.displayName ?? String(localized: "No payer"),
                     bill.dueDate.formatted(date: .abbreviated, time: .omitted)
                 ))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
-            Spacer()
+            Spacer(minLength: 0)
             Text(MoneyFormatter.string(minorUnits: bill.amountMinor, currencyCode: currencyCode))
                 .moneyStyle(size: 15, weight: .semibold)
         }
         .padding(16)
         .floatGlassSurface(cornerRadius: FloatTheme.tileRadius)
-    }
-}
-
-private struct HouseholdActivityRow: View {
-    let activity: HouseholdActivityItem
-    let currencyCode: String
-
-    var body: some View {
-        HStack(spacing: 12) {
-            FloatIconBadge(icon: icon, tint: tint, size: 34)
-            VStack(alignment: .leading, spacing: 3) {
-                Text(activity.title)
-                    .font(.subheadline.weight(.semibold))
-                Text(activity.message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-            Spacer()
-            if let amount = activity.amountMinor {
-                Text(MoneyFormatter.string(minorUnits: amount, currencyCode: currencyCode))
-                    .moneyStyle(size: 13, weight: .semibold)
-            }
-        }
-        .padding(14)
-        .floatGlassSurface(cornerRadius: FloatTheme.tileRadius)
-    }
-
-    private var icon: String {
-        switch activity.kind {
-        case .expenseCreated: "plus.circle.fill"
-        case .expenseApproved: "checkmark.seal.fill"
-        case .expenseRejected: "xmark.circle.fill"
-        case .billAdded: "doc.text.fill"
-        case .allowanceChanged: "person.crop.circle.badge.checkmark"
-        case .closeoutCreated: "arrow.left.arrow.right.circle.fill"
-        }
-    }
-
-    private var tint: Color {
-        switch activity.kind {
-        case .expenseRejected: Color(hex: "#B4613B")
-        case .billAdded: Color(hex: "#8A6DD7")
-        case .closeoutCreated: Color(hex: "#0A6FAE")
-        default: Color(hex: "#0E7C7B")
-        }
     }
 }
 
@@ -621,6 +621,8 @@ private struct HouseholdMemberEditorSheet: View {
     @State private var colorHex: String
     @State private var allowanceText: String
     @State private var message = ""
+
+    private let colorChoices = ["#0E7C7B", "#0A6FAE", "#8A6DD7", "#B4613B", "#4F8A3B"]
 
     init(member: HouseholdMemberItem?) {
         self.member = member
@@ -638,18 +640,45 @@ private struct HouseholdMemberEditorSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Member") {
+                Section("Person") {
                     TextField("Name", text: $name)
                     Picker("Role", selection: $role) {
                         ForEach(HouseholdMemberRole.allCases) { role in
                             Text(role.title).tag(role)
                         }
                     }
-                    TextField("Monthly allowance", text: $allowanceText)
-                        .keyboardType(.decimalPad)
-                    TextField("Color hex", text: $colorHex)
-                        .textInputAutocapitalization(.characters)
+                    .pickerStyle(.segmented)
                 }
+
+                Section("Monthly allowance") {
+                    TextField("Optional amount", text: $allowanceText)
+                        .keyboardType(.decimalPad)
+                }
+
+                Section("Color") {
+                    HStack(spacing: 12) {
+                        ForEach(colorChoices, id: \.self) { hex in
+                            Button {
+                                colorHex = hex
+                            } label: {
+                                Circle()
+                                    .fill(Color(hex: hex))
+                                    .frame(width: 30, height: 30)
+                                    .overlay {
+                                        if colorHex == hex {
+                                            Image(systemName: "checkmark")
+                                                .font(.caption.weight(.bold))
+                                                .foregroundStyle(.white)
+                                        }
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(AppLocalization.format("Choose color %@", hex))
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+
                 if !message.isEmpty {
                     Section {
                         Text(message).foregroundStyle(.secondary)
@@ -663,6 +692,7 @@ private struct HouseholdMemberEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save)
+                        .disabled(name.isBlankForHousehold)
                 }
             }
         }
@@ -718,51 +748,111 @@ private struct HouseholdExpenseEditorSheet: View {
         filterActiveProfile(allAccounts).filter { !$0.archived }
     }
 
+    private var selectedMembers: [HouseholdMemberItem] {
+        members.filter { selectedMemberIDs.contains($0.id) }
+    }
+
+    private var amountMinor: Int64 {
+        BudgetAmountField.minorUnits(
+            fromMajorAmount: amountText,
+            currencyCode: appState.selectedCurrencyCode
+        )
+    }
+
+    private var canSave: Bool {
+        !title.isBlankForHousehold && amountMinor > 0 && !selectedMembers.isEmpty
+    }
+
+    private var splitPreview: [HouseholdSplitPreview] {
+        guard amountMinor > 0, !selectedMembers.isEmpty else { return [] }
+        switch splitMethod {
+        case .equal, .custom:
+            let base = amountMinor / Int64(selectedMembers.count)
+            let remainder = amountMinor - base * Int64(selectedMembers.count)
+            return selectedMembers.enumerated().map { index, member in
+                HouseholdSplitPreview(
+                    member: member,
+                    amountMinor: base + (index == 0 ? remainder : 0)
+                )
+            }
+        case .singleMember:
+            return selectedMembers.enumerated().map { index, member in
+                HouseholdSplitPreview(member: member, amountMinor: index == 0 ? amountMinor : 0)
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             Form {
-                Section("Expense") {
-                    TextField("Title", text: $title)
+                Section("What was paid?") {
+                    TextField("Example: Groceries, rent, school fee", text: $title)
                     TextField("Amount", text: $amountText)
                         .keyboardType(.decimalPad)
                     DatePicker("Date", selection: $expenseDate, displayedComponents: .date)
-                    Picker("Category", selection: $categoryID) {
-                        Text("None").tag(UUID?.none)
-                        ForEach(categories) { category in
-                            Text(category.name).tag(Optional(category.id))
-                        }
-                    }
-                    Picker("Account", selection: $accountID) {
-                        Text("None").tag(UUID?.none)
-                        ForEach(accounts) { account in
-                            Text(account.name).tag(Optional(account.id))
-                        }
-                    }
                 }
 
-                Section("Household") {
+                Section("Who shares it?") {
                     Picker("Paid by", selection: $payerID) {
                         Text("No payer").tag(UUID?.none)
                         ForEach(members) { member in
                             Text(member.displayName).tag(Optional(member.id))
                         }
                     }
-                    Picker("Split", selection: $splitMethod) {
-                        ForEach(HouseholdSplitMethod.allCases) { method in
-                            Text(method.title).tag(method)
-                        }
+
+                    Picker("Split style", selection: $splitMethod) {
+                        Text("Equal").tag(HouseholdSplitMethod.equal)
+                        Text("One person").tag(HouseholdSplitMethod.singleMember)
                     }
-                    Toggle("Needs reimbursement", isOn: $reimbursementRequired)
-                    ForEach(members) { member in
-                        Toggle(
-                            member.displayName,
-                            isOn: memberBinding(member.id)
-                        )
+
+                    Toggle("Track reimbursement", isOn: $reimbursementRequired)
+
+                    if members.isEmpty {
+                        Text("Add people before splitting an expense.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(members) { member in
+                            Toggle(member.displayName, isOn: memberBinding(member.id))
+                        }
                     }
                 }
 
-                Section("Note") {
-                    TextField("Optional note", text: $note, axis: .vertical)
+                Section("Split preview") {
+                    if splitPreview.isEmpty {
+                        Text("Enter an amount and choose people to see the split.")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(splitPreview) { preview in
+                            LabeledContent(
+                                preview.member.displayName,
+                                value: MoneyFormatter.string(
+                                    minorUnits: preview.amountMinor,
+                                    currencyCode: appState.selectedCurrencyCode
+                                )
+                            )
+                        }
+                        Text("Saving creates a pending review item. Approve it to post the transaction.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section {
+                    DisclosureGroup("Optional bookkeeping") {
+                        Picker("Category", selection: $categoryID) {
+                            Text("None").tag(UUID?.none)
+                            ForEach(categories) { category in
+                                Text(category.name).tag(Optional(category.id))
+                            }
+                        }
+                        Picker("Account", selection: $accountID) {
+                            Text("None").tag(UUID?.none)
+                            ForEach(accounts) { account in
+                                Text(account.name).tag(Optional(account.id))
+                            }
+                        }
+                        TextField("Note", text: $note, axis: .vertical)
+                    }
                 }
 
                 if !message.isEmpty {
@@ -771,13 +861,14 @@ private struct HouseholdExpenseEditorSheet: View {
                     }
                 }
             }
-            .navigationTitle("Shared Expense")
+            .navigationTitle("Split Expense")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save)
+                        .disabled(!canSave)
                 }
             }
             .onAppear(perform: configureDefaults)
@@ -798,26 +889,20 @@ private struct HouseholdExpenseEditorSheet: View {
     }
 
     private func configureDefaults() {
-        if payerID == nil {
-            payerID = members.first?.id
-        }
+        payerID = payerID ?? members.first?.id
         if selectedMemberIDs.isEmpty {
-            selectedMemberIDs = Set(members.prefix(2).map(\.id))
+            selectedMemberIDs = Set(members.map(\.id))
         }
         categoryID = categoryID ?? categories.first?.id
         accountID = accountID ?? accounts.first?.id
     }
 
     private func save() {
-        let selectedMembers = members.filter { selectedMemberIDs.contains($0.id) }
         do {
             _ = try HouseholdRepository(modelContext: modelContext).createExpense(
                 HouseholdExpenseDraft(
                     title: title,
-                    amountMinor: BudgetAmountField.minorUnits(
-                        fromMajorAmount: amountText,
-                        currencyCode: appState.selectedCurrencyCode
-                    ),
+                    amountMinor: amountMinor,
                     currencyCode: appState.selectedCurrencyCode,
                     expenseDate: expenseDate,
                     payer: payerID.flatMap { id in members.first { $0.id == id } },
@@ -836,6 +921,13 @@ private struct HouseholdExpenseEditorSheet: View {
             message = error.localizedDescription
         }
     }
+}
+
+private struct HouseholdSplitPreview: Identifiable {
+    let member: HouseholdMemberItem
+    let amountMinor: Int64
+
+    var id: UUID { member.id }
 }
 
 private struct HouseholdBillEditorSheet: View {
@@ -868,11 +960,22 @@ private struct HouseholdBillEditorSheet: View {
         filterActiveProfile(allAccounts).filter { !$0.archived }
     }
 
+    private var amountMinor: Int64 {
+        BudgetAmountField.minorUnits(
+            fromMajorAmount: amountText,
+            currencyCode: appState.selectedCurrencyCode
+        )
+    }
+
+    private var canSave: Bool {
+        !title.isBlankForHousehold && amountMinor > 0
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section("Bill") {
-                    TextField("Title", text: $title)
+                    TextField("Example: Rent, electricity, internet", text: $title)
                     TextField("Amount", text: $amountText)
                         .keyboardType(.decimalPad)
                     DatePicker("Due date", selection: $dueDate, displayedComponents: .date)
@@ -881,29 +984,34 @@ private struct HouseholdBillEditorSheet: View {
                             Text(cadence.title).tag(cadence)
                         }
                     }
-                    Toggle("Create approval automatically", isOn: $autoCreateApproval)
                 }
 
-                Section("Ownership") {
+                Section("Owner") {
                     Picker("Paid by", selection: $payerID) {
                         Text("No payer").tag(UUID?.none)
                         ForEach(members) { member in
                             Text(member.displayName).tag(Optional(member.id))
                         }
                     }
-                    Picker("Category", selection: $categoryID) {
-                        Text("None").tag(UUID?.none)
-                        ForEach(categories) { category in
-                            Text(category.name).tag(Optional(category.id))
+                    Toggle("Create approval automatically", isOn: $autoCreateApproval)
+                }
+
+                Section {
+                    DisclosureGroup("Optional bookkeeping") {
+                        Picker("Category", selection: $categoryID) {
+                            Text("None").tag(UUID?.none)
+                            ForEach(categories) { category in
+                                Text(category.name).tag(Optional(category.id))
+                            }
                         }
-                    }
-                    Picker("Account", selection: $accountID) {
-                        Text("None").tag(UUID?.none)
-                        ForEach(accounts) { account in
-                            Text(account.name).tag(Optional(account.id))
+                        Picker("Account", selection: $accountID) {
+                            Text("None").tag(UUID?.none)
+                            ForEach(accounts) { account in
+                                Text(account.name).tag(Optional(account.id))
+                            }
                         }
+                        TextField("Note", text: $note, axis: .vertical)
                     }
-                    TextField("Optional note", text: $note, axis: .vertical)
                 }
 
                 if !message.isEmpty {
@@ -919,6 +1027,7 @@ private struct HouseholdBillEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save)
+                        .disabled(!canSave)
                 }
             }
             .onAppear {
@@ -933,10 +1042,7 @@ private struct HouseholdBillEditorSheet: View {
         do {
             _ = try HouseholdRepository(modelContext: modelContext).saveBill(
                 title: title,
-                amountMinor: BudgetAmountField.minorUnits(
-                    fromMajorAmount: amountText,
-                    currencyCode: appState.selectedCurrencyCode
-                ),
+                amountMinor: amountMinor,
                 currencyCode: appState.selectedCurrencyCode,
                 dueDate: dueDate,
                 cadence: cadence,
@@ -950,5 +1056,11 @@ private struct HouseholdBillEditorSheet: View {
         } catch {
             message = error.localizedDescription
         }
+    }
+}
+
+private extension String {
+    var isBlankForHousehold: Bool {
+        trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 }

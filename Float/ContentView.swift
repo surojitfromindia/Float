@@ -18,7 +18,7 @@ struct ContentView: View {
                 RecurringRulePersonTagItem.self, GoalItem.self, BudgetPeriodItem.self,
                 HouseholdMemberItem.self, HouseholdExpenseItem.self,
                 HouseholdExpenseSplitItem.self, HouseholdBillItem.self,
-                HouseholdAllowanceItem.self, HouseholdActivityItem.self,
+                HouseholdAllowanceItem.self,
             ],
             inMemory: true
         )

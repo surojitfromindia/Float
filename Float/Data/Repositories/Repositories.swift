@@ -138,7 +138,6 @@ enum ProfileDataService {
         deleteMatching(AttachmentItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(ReceiptLineItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(ReceiptCaptureItem.self, profileID: profileID, modelContext: modelContext)
-        deleteMatching(HouseholdActivityItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(HouseholdAllowanceItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(HouseholdExpenseSplitItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(HouseholdExpenseItem.self, profileID: profileID, modelContext: modelContext)
@@ -238,7 +237,6 @@ enum ProfileDataService {
         assign(HouseholdExpenseSplitItem.self, profileID: profileID, modelContext: modelContext)
         assign(HouseholdBillItem.self, profileID: profileID, modelContext: modelContext)
         assign(HouseholdAllowanceItem.self, profileID: profileID, modelContext: modelContext)
-        assign(HouseholdActivityItem.self, profileID: profileID, modelContext: modelContext)
     }
 
     private static func assign<T: PersistentModel & ProfileOwned>(
@@ -1752,13 +1750,6 @@ struct HouseholdRepository {
             monthlyAllowanceMinor: monthlyAllowanceMinor
         )
         modelContext.insert(model)
-        record(
-            .allowanceChanged,
-            title: String(localized: "Household member added"),
-            message: model.displayName,
-            amountMinor: model.monthlyAllowanceMinor,
-            referenceID: model.id
-        )
         try save()
         return model
     }
@@ -1806,13 +1797,6 @@ struct HouseholdRepository {
             expense.splits.append(split)
         }
 
-        record(
-            .expenseCreated,
-            title: String(localized: "Approval requested"),
-            message: expense.title,
-            amountMinor: expense.amountMinor,
-            referenceID: expense.id
-        )
         try save()
         return expense
     }
@@ -1842,13 +1826,6 @@ struct HouseholdRepository {
             expense.transaction = transaction
         }
 
-        record(
-            .expenseApproved,
-            title: String(localized: "Expense approved"),
-            message: expense.title,
-            amountMinor: expense.amountMinor,
-            referenceID: expense.id
-        )
         try save()
         FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
     }
@@ -1858,13 +1835,6 @@ struct HouseholdRepository {
         expense.approvalStatus = .rejected
         expense.rejectedAt = Date()
         expense.updatedAt = Date()
-        record(
-            .expenseRejected,
-            title: String(localized: "Expense rejected"),
-            message: expense.title,
-            amountMinor: expense.amountMinor,
-            referenceID: expense.id
-        )
         try save()
     }
 
@@ -1894,13 +1864,6 @@ struct HouseholdRepository {
             note: note
         )
         modelContext.insert(bill)
-        record(
-            .billAdded,
-            title: String(localized: "Household bill added"),
-            message: bill.title,
-            amountMinor: bill.amountMinor,
-            referenceID: bill.id
-        )
         try save()
         return bill
     }
@@ -1955,12 +1918,6 @@ struct HouseholdRepository {
             expense.updatedAt = Date()
         }
 
-        record(
-            .closeoutCreated,
-            title: String(localized: "Household closeout created"),
-            message: AppLocalization.format("%lld settlement cases created.", Int64(balances.count)),
-            amountMinor: balances.reduce(Int64(0)) { $0 + $1.amountMinor }
-        )
         try save()
         return balances.count
     }
@@ -2018,24 +1975,6 @@ struct HouseholdRepository {
         }
     }
 
-    private func record(
-        _ kind: HouseholdActivityKind,
-        title: String,
-        message: String,
-        amountMinor: Int64? = nil,
-        referenceID: UUID? = nil
-    ) {
-        modelContext.insert(
-            HouseholdActivityItem(
-                kind: kind,
-                title: title,
-                message: message,
-                amountMinor: amountMinor,
-                referenceID: referenceID
-            )
-        )
-    }
-
     private func save() throws {
         do {
             try modelContext.save()
@@ -2078,7 +2017,6 @@ struct SettingsRepository {
         try modelContext.delete(model: SettlementMilestoneItem.self)
         try modelContext.delete(model: SettlementEntryItem.self)
         try modelContext.delete(model: SettlementCaseItem.self)
-        try modelContext.delete(model: HouseholdActivityItem.self)
         try modelContext.delete(model: HouseholdAllowanceItem.self)
         try modelContext.delete(model: HouseholdExpenseSplitItem.self)
         try modelContext.delete(model: HouseholdExpenseItem.self)

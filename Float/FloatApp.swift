@@ -38,7 +38,6 @@ struct FloatApp: App {
             HouseholdExpenseSplitItem.self,
             HouseholdBillItem.self,
             HouseholdAllowanceItem.self,
-            HouseholdActivityItem.self,
         ])
         let modelConfiguration = ModelConfiguration(
             schema: schema,

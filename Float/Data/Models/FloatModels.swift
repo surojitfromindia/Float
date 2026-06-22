@@ -306,17 +306,6 @@ enum HouseholdSplitMethod: String, Codable, CaseIterable, Identifiable {
     }
 }
 
-enum HouseholdActivityKind: String, Codable, CaseIterable, Identifiable {
-    case expenseCreated
-    case expenseApproved
-    case expenseRejected
-    case billAdded
-    case allowanceChanged
-    case closeoutCreated
-
-    var id: String { rawValue }
-}
-
 @Model
 final class UserProfileItem {
     var id: UUID = UUID()
@@ -1745,40 +1734,6 @@ final class HouseholdAllowanceItem {
 extension HouseholdAllowanceItem: ProfileOwned {}
 
 @Model
-final class HouseholdActivityItem {
-    var id: UUID = UUID()
-    var profileID: UUID?
-    var kindRaw: String = HouseholdActivityKind.expenseCreated.rawValue
-    var title: String = ""
-    var message: String = ""
-    var amountMinor: Int64?
-    var referenceID: UUID?
-    var createdAt: Date = Date()
-
-    init(
-        id: UUID = UUID(),
-        profileID: UUID? = ActiveProfileRegistry.profileID,
-        kind: HouseholdActivityKind,
-        title: String,
-        message: String,
-        amountMinor: Int64? = nil,
-        referenceID: UUID? = nil,
-        createdAt: Date = Date()
-    ) {
-        self.id = id
-        self.profileID = profileID
-        self.kindRaw = kind.rawValue
-        self.title = title.nilIfBlank ?? String(localized: "Household activity")
-        self.message = message.nilIfBlank ?? ""
-        self.amountMinor = amountMinor.map(normalizedMinorUnits)
-        self.referenceID = referenceID
-        self.createdAt = createdAt
-    }
-}
-
-extension HouseholdActivityItem: ProfileOwned {}
-
-@Model
 final class TransactionPersonTagItem {
     var id: UUID = UUID()
     var profileID: UUID?
@@ -2292,13 +2247,6 @@ extension HouseholdBillItem {
 extension HouseholdAllowanceItem {
     var remainingMinor: Int64 {
         max(0, allowanceMinor - spentMinor)
-    }
-}
-
-extension HouseholdActivityItem {
-    var kind: HouseholdActivityKind {
-        get { HouseholdActivityKind(rawValue: kindRaw) ?? .expenseCreated }
-        set { kindRaw = newValue.rawValue }
     }
 }
 

@@ -31,7 +31,6 @@ enum BackupService {
         householdExpenseSplits: [HouseholdExpenseSplitItem],
         householdBills: [HouseholdBillItem],
         householdAllowances: [HouseholdAllowanceItem],
-        householdActivities: [HouseholdActivityItem],
         currencyCode: String
     ) throws -> BackupDocument {
         let dto = FloatBackupDTO(
@@ -62,7 +61,6 @@ enum BackupService {
             householdExpenseSplits: householdExpenseSplits.map(HouseholdExpenseSplitDTO.init),
             householdBills: householdBills.map(HouseholdBillDTO.init),
             householdAllowances: householdAllowances.map(HouseholdAllowanceDTO.init),
-            householdActivities: householdActivities.map(HouseholdActivityDTO.init),
             settings: SettingsDTO(
                 currencyCode: currencyCode,
                 exportedAt: Date()
@@ -271,10 +269,6 @@ enum BackupService {
             )
         }
 
-        for item in dto.householdActivities {
-            modelContext.insert(HouseholdActivityItem(dto: item))
-        }
-
         for item in dto.receiptLineItems {
             guard let receipt = item.receiptID.flatMap({ receiptMap[$0] }) else {
                 continue
@@ -393,7 +387,6 @@ enum BackupService {
             try modelContext.delete(model: SettlementMilestoneItem.self)
             try modelContext.delete(model: SettlementEntryItem.self)
             try modelContext.delete(model: SettlementCaseItem.self)
-            try modelContext.delete(model: HouseholdActivityItem.self)
             try modelContext.delete(model: HouseholdAllowanceItem.self)
             try modelContext.delete(model: HouseholdExpenseSplitItem.self)
             try modelContext.delete(model: HouseholdExpenseItem.self)
@@ -1029,34 +1022,6 @@ private extension HouseholdAllowanceItem {
             note: dto.note,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
-        )
-    }
-}
-
-private extension HouseholdActivityDTO {
-    init(_ item: HouseholdActivityItem) {
-        self.init(
-            id: item.id,
-            kindRaw: item.kindRaw,
-            title: item.title,
-            message: item.message,
-            amountMinor: item.amountMinor,
-            referenceID: item.referenceID,
-            createdAt: item.createdAt
-        )
-    }
-}
-
-private extension HouseholdActivityItem {
-    convenience init(dto: HouseholdActivityDTO) {
-        self.init(
-            id: dto.id,
-            kind: HouseholdActivityKind(rawValue: dto.kindRaw) ?? .expenseCreated,
-            title: dto.title,
-            message: dto.message,
-            amountMinor: dto.amountMinor,
-            referenceID: dto.referenceID,
-            createdAt: dto.createdAt
         )
     }
 }

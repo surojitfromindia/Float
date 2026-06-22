@@ -906,6 +906,9 @@
     "Add a planned purchase, bill, trip, or income change to see its effect." : {
 
     },
+    "Add a shared expense when someone pays for the household." : {
+
+    },
     "Add account" : {
       "localizations" : {
         "bn" : {
@@ -1022,7 +1025,7 @@
         }
       }
     },
-    "Add family members to approve shared expenses, track allowances, and create reimbursements." : {
+    "Add first member" : {
 
     },
     "Add Income" : {
@@ -1070,6 +1073,9 @@
         }
       }
     },
+    "Add people before splitting an expense." : {
+
+    },
     "Add person" : {
 
     },
@@ -1083,7 +1089,7 @@
         }
       }
     },
-    "Add rent, utilities, subscriptions, or school fees that the household tracks together." : {
+    "Add rent, utilities, school fees, or subscriptions that the household reviews together." : {
 
     },
     "Add scenario" : {
@@ -1093,9 +1099,6 @@
 
     },
     "Add settlement entry" : {
-
-    },
-    "Add shared expense" : {
 
     },
     "Add split row" : {
@@ -1127,6 +1130,9 @@
           }
         }
       }
+    },
+    "Add the next shared expense" : {
+
     },
     "Add to goal" : {
       "localizations" : {
@@ -1219,6 +1225,9 @@
           }
         }
       }
+    },
+    "Add your people first" : {
+
     },
     "Added" : {
 
@@ -1447,16 +1456,13 @@
     "Apply smart entry" : {
 
     },
-    "Approval requested" : {
-
-    },
-    "Approvals, bills, and closeouts will build a shared audit trail here." : {
-
-    },
     "Approve" : {
 
     },
     "Approved" : {
+
+    },
+    "Approved shared spend" : {
 
     },
     "Archive" : {
@@ -1599,10 +1605,10 @@
     "Bill" : {
 
     },
-    "Bill Command Center" : {
+    "Bills" : {
 
     },
-    "Bills" : {
+    "Bills due" : {
 
     },
     "Budget" : {
@@ -2035,6 +2041,12 @@
         }
       }
     },
+    "Close out now" : {
+
+    },
+    "Close out reimbursements" : {
+
+    },
     "Closed" : {
 
     },
@@ -2059,9 +2071,6 @@
           }
         }
       }
-    },
-    "Color hex" : {
-
     },
     "Commitments and goals" : {
       "localizations" : {
@@ -2181,6 +2190,9 @@
         }
       }
     },
+    "Coordinate shared expenses, approvals, bills, members, and monthly closeouts." : {
+
+    },
     "Copy" : {
       "localizations" : {
         "bn" : {
@@ -2269,6 +2281,9 @@
     "Create linked transaction" : {
 
     },
+    "Create one member for each person you split household money with." : {
+
+    },
     "Create reusable entries for coffee, groceries, bills, salary, or transfers." : {
       "localizations" : {
         "bn" : {
@@ -2278,6 +2293,9 @@
           }
         }
       }
+    },
+    "Create settlement cases for everyone who owes money." : {
+
     },
     "Create template groups from Settings." : {
       "localizations" : {
@@ -2808,9 +2826,6 @@
     "Due date" : {
 
     },
-    "Due in 7 days" : {
-
-    },
     "Due soon" : {
 
     },
@@ -3034,6 +3049,9 @@
     "Enter a title." : {
 
     },
+    "Enter an amount and choose people to see the split." : {
+
+    },
     "Enter an amount greater than zero." : {
       "localizations" : {
         "bn" : {
@@ -3068,6 +3086,9 @@
       }
     },
     "Entry" : {
+
+    },
+    "Equal" : {
 
     },
     "Equal split" : {
@@ -3160,6 +3181,15 @@
         }
       }
     },
+    "Everything is clear" : {
+
+    },
+    "Example: Groceries, rent, school fee" : {
+
+    },
+    "Example: Rent, electricity, internet" : {
+
+    },
     "Executive summary" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3245,9 +3275,6 @@
         }
       }
     },
-    "Expense approved" : {
-
-    },
     "Expense category" : {
       "localizations" : {
         "bn" : {
@@ -3310,9 +3337,6 @@
           }
         }
       }
-    },
-    "Expense rejected" : {
-
     },
     "Expense transactions will appear here when added." : {
       "localizations" : {
@@ -3782,34 +3806,16 @@
     "Household" : {
 
     },
-    "Household activity" : {
-
-    },
-    "Household Activity" : {
-
-    },
     "Household bill" : {
 
     },
     "Household Bill" : {
 
     },
-    "Household bill added" : {
-
-    },
-    "Household closeout created" : {
-
-    },
     "Household member" : {
 
     },
-    "Household member added" : {
-
-    },
     "Household OS" : {
-
-    },
-    "Coordinate shared expenses, approvals, bills, members, and monthly closeouts." : {
 
     },
     "How money moved across this range" : {
@@ -4298,12 +4304,6 @@
     "Matches" : {
 
     },
-    "Member" : {
-
-    },
-    "Members" : {
-
-    },
     "Merchant" : {
 
     },
@@ -4364,9 +4364,6 @@
     "Monthly allowance" : {
 
     },
-    "Monthly closeout" : {
-
-    },
     "Monthly load" : {
       "localizations" : {
         "bn" : {
@@ -4422,10 +4419,10 @@
         }
       }
     },
-    "Needs attention" : {
+    "Need review" : {
 
     },
-    "Needs reimbursement" : {
+    "Needs attention" : {
 
     },
     "Negative" : {
@@ -4544,6 +4541,9 @@
           }
         }
       }
+    },
+    "Next 7 days" : {
+
     },
     "Next day" : {
       "localizations" : {
@@ -4724,12 +4724,6 @@
         }
       }
     },
-    "No household activity" : {
-
-    },
-    "No household members" : {
-
-    },
     "No matching cases" : {
 
     },
@@ -4775,6 +4769,9 @@
     "No people tagged" : {
 
     },
+    "No people yet" : {
+
+    },
     "No person" : {
 
     },
@@ -4802,9 +4799,6 @@
 
     },
     "No settlement cases yet" : {
-
-    },
-    "No shared bills" : {
 
     },
     "No signals yet" : {
@@ -4952,9 +4946,6 @@
         }
       }
     },
-    "Nothing waiting" : {
-
-    },
     "Notice" : {
 
     },
@@ -4996,6 +4987,9 @@
 
     },
     "One member" : {
+
+    },
+    "One person" : {
 
     },
     "One time" : {
@@ -5096,7 +5090,7 @@
     "Open Float's on-device receipt scanner." : {
 
     },
-    "Open member balances" : {
+    "Open reimbursements" : {
 
     },
     "Open scanner" : {
@@ -5171,7 +5165,10 @@
     "Opening the selected Float item." : {
 
     },
-    "Optional note" : {
+    "Optional amount" : {
+
+    },
+    "Optional bookkeeping" : {
 
     },
     "Original" : {
@@ -5258,7 +5255,7 @@
         }
       }
     },
-    "Ownership" : {
+    "Owner" : {
 
     },
     "Paid" : {
@@ -5385,6 +5382,9 @@
       }
     },
     "People" : {
+
+    },
+    "People are required before you can split expenses." : {
 
     },
     "Period" : {
@@ -5838,7 +5838,7 @@
         }
       }
     },
-    "Reimburse" : {
+    "Reimbursements are ready" : {
 
     },
     "Reject" : {
@@ -6014,6 +6014,9 @@
       }
     },
     "Review before saving" : {
+
+    },
+    "Review pending expense" : {
 
     },
     "Review queue" : {
@@ -6209,6 +6212,9 @@
     "Saved scenarios" : {
 
     },
+    "Saving creates a pending review item. Approve it to post the transaction." : {
+
+    },
     "Scan receipt" : {
 
     },
@@ -6363,6 +6369,9 @@
         }
       }
     },
+    "Settle the household" : {
+
+    },
     "Settled" : {
 
     },
@@ -6394,19 +6403,7 @@
         }
       }
     },
-    "Shared Approval Inbox" : {
-
-    },
-    "Shared approvals, member allowances, bills, and reimbursements in one place." : {
-
-    },
     "Shared expense" : {
-
-    },
-    "Shared Expense" : {
-
-    },
-    "Shared expenses that need payer, member, or reimbursement review will appear here." : {
 
     },
     "Show completed" : {
@@ -6655,6 +6652,15 @@
         }
       }
     },
+    "Split expense" : {
+
+    },
+    "Split Expense" : {
+
+    },
+    "Split preview" : {
+
+    },
     "Split row actions" : {
       "localizations" : {
         "bn" : {
@@ -6664,6 +6670,9 @@
           }
         }
       }
+    },
+    "Split style" : {
+
     },
     "Split transaction" : {
       "localizations" : {
@@ -6694,6 +6703,9 @@
           }
         }
       }
+    },
+    "Start with people" : {
+
     },
     "Starting amount" : {
 
@@ -7104,6 +7116,9 @@
     "To pay" : {
 
     },
+    "To settle" : {
+
+    },
     "Today" : {
       "localizations" : {
         "bn" : {
@@ -7179,6 +7194,12 @@
           }
         }
       }
+    },
+    "Track recurring bills" : {
+
+    },
+    "Track reimbursement" : {
+
     },
     "Transaction" : {
 
@@ -7593,6 +7614,9 @@
         }
       }
     },
+    "What was paid?" : {
+
+    },
     "Where expenses concentrate" : {
       "localizations" : {
         "en" : {
@@ -7602,6 +7626,9 @@
           }
         }
       }
+    },
+    "Who shares it?" : {
+
     },
     "Will create" : {
       "localizations" : {

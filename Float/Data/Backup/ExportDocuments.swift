@@ -48,7 +48,6 @@ struct FloatBackupDTO: Codable {
     var householdExpenseSplits: [HouseholdExpenseSplitDTO]
     var householdBills: [HouseholdBillDTO]
     var householdAllowances: [HouseholdAllowanceDTO]
-    var householdActivities: [HouseholdActivityDTO]
     var settings: SettingsDTO
 
     enum CodingKeys: String, CodingKey {
@@ -79,7 +78,6 @@ struct FloatBackupDTO: Codable {
         case householdExpenseSplits
         case householdBills
         case householdAllowances
-        case householdActivities
         case settings
     }
 
@@ -111,7 +109,6 @@ struct FloatBackupDTO: Codable {
         householdExpenseSplits: [HouseholdExpenseSplitDTO] = [],
         householdBills: [HouseholdBillDTO] = [],
         householdAllowances: [HouseholdAllowanceDTO] = [],
-        householdActivities: [HouseholdActivityDTO] = [],
         settings: SettingsDTO
     ) {
         self.accounts = accounts
@@ -141,7 +138,6 @@ struct FloatBackupDTO: Codable {
         self.householdExpenseSplits = householdExpenseSplits
         self.householdBills = householdBills
         self.householdAllowances = householdAllowances
-        self.householdActivities = householdActivities
         self.settings = settings
     }
 
@@ -174,7 +170,6 @@ struct FloatBackupDTO: Codable {
         householdExpenseSplits = try container.decodeIfPresent([HouseholdExpenseSplitDTO].self, forKey: .householdExpenseSplits) ?? []
         householdBills = try container.decodeIfPresent([HouseholdBillDTO].self, forKey: .householdBills) ?? []
         householdAllowances = try container.decodeIfPresent([HouseholdAllowanceDTO].self, forKey: .householdAllowances) ?? []
-        householdActivities = try container.decodeIfPresent([HouseholdActivityDTO].self, forKey: .householdActivities) ?? []
         settings = try container.decode(SettingsDTO.self, forKey: .settings)
     }
 }
@@ -684,15 +679,6 @@ struct HouseholdAllowanceDTO: Codable {
     var note: String?
     var createdAt: Date
     var updatedAt: Date
-}
-struct HouseholdActivityDTO: Codable {
-    var id: UUID
-    var kindRaw: String
-    var title: String
-    var message: String
-    var amountMinor: Int64?
-    var referenceID: UUID?
-    var createdAt: Date
 }
 struct SettingsDTO: Codable {
     var currencyCode: String

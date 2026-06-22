@@ -389,7 +389,6 @@ struct SettingsView: View {
                 householdExpenseSplits: fetchAll(HouseholdExpenseSplitItem.self),
                 householdBills: fetchAll(HouseholdBillItem.self),
                 householdAllowances: fetchAll(HouseholdAllowanceItem.self),
-                householdActivities: fetchAll(HouseholdActivityItem.self),
                 currencyCode: appState.selectedCurrencyCode
             )
             message = "Preparing backup."
@@ -440,7 +439,6 @@ struct SettingsView: View {
         for item in fetchAll(SettlementMilestoneItem.self) { modelContext.delete(item) }
         for item in fetchAll(SettlementEntryItem.self) { modelContext.delete(item) }
         for item in fetchAll(SettlementCaseItem.self) { modelContext.delete(item) }
-        for item in fetchAll(HouseholdActivityItem.self) { modelContext.delete(item) }
         for item in fetchAll(HouseholdAllowanceItem.self) { modelContext.delete(item) }
         for item in fetchAll(HouseholdExpenseSplitItem.self) { modelContext.delete(item) }
         for item in fetchAll(HouseholdExpenseItem.self) { modelContext.delete(item) }
