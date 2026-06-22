@@ -471,6 +471,7 @@ final class TransactionItem {
     var event: EventItem?
     var note: String?
     var recurringRule: RecurringRuleItem?
+    var receiptCapture: ReceiptCaptureItem?
     @Relationship(deleteRule: .cascade, inverse: \TransactionPersonTagItem.transaction)
     var personTags: [TransactionPersonTagItem] = []
     var createdAt: Date = Date()
@@ -489,6 +490,7 @@ final class TransactionItem {
         event: EventItem? = nil,
         note: String? = nil,
         recurringRule: RecurringRuleItem? = nil,
+        receiptCapture: ReceiptCaptureItem? = nil,
         personTags: [TransactionPersonTagItem] = [],
         createdAt: Date = Date(),
         updatedAt: Date = Date()
@@ -509,6 +511,7 @@ final class TransactionItem {
         self.event = event
         self.note = note
         self.recurringRule = recurringRule
+        self.receiptCapture = receiptCapture
         self.personTags = personTags
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -741,6 +744,157 @@ final class EventItem {
 }
 
 extension EventItem: ProfileOwned {}
+
+enum AttachmentKind: String, Codable, CaseIterable, Identifiable {
+    case receiptImage
+
+    var id: String { rawValue }
+}
+
+@Model
+final class ReceiptCaptureItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var merchantName: String = ""
+    var transactionDate: Date = Date()
+    var totalAmountMinor: Int64 = 0
+    var currencyCode: String = "USD"
+    var rawText: String = ""
+    @Relationship(deleteRule: .cascade, inverse: \ReceiptLineItem.receipt)
+    var lineItems: [ReceiptLineItem] = []
+    @Relationship(deleteRule: .cascade, inverse: \AttachmentItem.receipt)
+    var attachments: [AttachmentItem] = []
+    @Relationship(deleteRule: .nullify, inverse: \TransactionItem.receiptCapture)
+    var transactions: [TransactionItem] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        merchantName: String,
+        transactionDate: Date = Date(),
+        totalAmountMinor: Int64,
+        currencyCode: String,
+        rawText: String = "",
+        lineItems: [ReceiptLineItem] = [],
+        attachments: [AttachmentItem] = [],
+        transactions: [TransactionItem] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID
+        self.merchantName = merchantName.nilIfBlank ?? String(localized: "Receipt")
+        self.transactionDate = transactionDate
+        self.totalAmountMinor = normalizedMinorUnits(totalAmountMinor)
+        self.currencyCode = currencyCode
+        self.rawText = rawText
+        self.lineItems = lineItems
+        self.attachments = attachments
+        self.transactions = transactions
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension ReceiptCaptureItem: ProfileOwned {}
+
+@Model
+final class ReceiptLineItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var sortOrder: Int = 0
+    var title: String = ""
+    var quantityText: String?
+    var amountMinor: Int64 = 0
+    var selectedForImport: Bool = true
+    var receipt: ReceiptCaptureItem?
+    var category: CategoryItem?
+    var account: AccountItem?
+    var transaction: TransactionItem?
+    var duplicateTransactionID: UUID?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        sortOrder: Int,
+        title: String,
+        quantityText: String? = nil,
+        amountMinor: Int64,
+        selectedForImport: Bool = true,
+        receipt: ReceiptCaptureItem? = nil,
+        category: CategoryItem? = nil,
+        account: AccountItem? = nil,
+        transaction: TransactionItem? = nil,
+        duplicateTransactionID: UUID? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID ?? receipt?.profileID ?? category?.profileID ?? account?.profileID
+        self.sortOrder = sortOrder
+        self.title = title.nilIfBlank ?? String(localized: "Receipt item")
+        self.quantityText = quantityText?.nilIfBlank
+        self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.selectedForImport = selectedForImport
+        self.receipt = receipt
+        self.category = category
+        self.account = account
+        self.transaction = transaction
+        self.duplicateTransactionID = duplicateTransactionID
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension ReceiptLineItem: ProfileOwned {}
+
+@Model
+final class AttachmentItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var kindRaw: String = AttachmentKind.receiptImage.rawValue
+    var fileName: String = ""
+    var mimeType: String = "image/jpeg"
+    @Attribute(.externalStorage) var data: Data = Data()
+    var receipt: ReceiptCaptureItem?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        kind: AttachmentKind = .receiptImage,
+        fileName: String,
+        mimeType: String = "image/jpeg",
+        data: Data,
+        receipt: ReceiptCaptureItem? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID ?? receipt?.profileID
+        self.kindRaw = kind.rawValue
+        self.fileName = fileName.nilIfBlank ?? String(localized: "receipt.jpg")
+        self.mimeType = mimeType.nilIfBlank ?? "image/jpeg"
+        self.data = data
+        self.receipt = receipt
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension AttachmentItem: ProfileOwned {}
+
+extension AttachmentItem {
+    var kind: AttachmentKind {
+        get { AttachmentKind(rawValue: kindRaw) ?? .receiptImage }
+        set { kindRaw = newValue.rawValue }
+    }
+}
 
 extension TransactionTemplateItem {
     var displayTitle: String {

@@ -899,7 +899,7 @@ struct TransactionsView: View {
                 presentEditTransfer(transfer)
             }
             appState.consumeSpotlightRequest(request)
-        case .account, .category, .people:
+        case .account, .category, .people, .goal, .settlement, .template, .recurring:
             break
         }
     }

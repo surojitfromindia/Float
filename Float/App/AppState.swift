@@ -164,9 +164,12 @@ final class AppState: ObservableObject {
     @Published var editingTransaction: TransactionItem?
     @Published var newTransactionTimestamp: Date?
     @Published var newTransactionIsExpense: Bool?
+    @Published var newTransactionAmountMinor: Int64?
+    @Published var newTransactionNote: String?
     @Published var isTransferSheetPresented = false
     @Published var editingTransfer: TransferItem?
     @Published var newTransferTimestamp: Date?
+    @Published var isReceiptCapturePresented = false
     @Published var pendingSpotlightRequest: FloatSpotlightNavigationRequest?
     @Published var activeProfileName = String(localized: "Personal")
 
@@ -202,10 +205,17 @@ final class AppState: ObservableObject {
     }
 
     // Opens the entry sheet with empty state for a new transaction.
-    func presentNewTransaction(timestamp: Date? = nil, isExpense: Bool? = nil) {
+    func presentNewTransaction(
+        timestamp: Date? = nil,
+        isExpense: Bool? = nil,
+        amountMinor: Int64? = nil,
+        note: String? = nil
+    ) {
         editingTransaction = nil
         newTransactionTimestamp = timestamp
         newTransactionIsExpense = isExpense
+        newTransactionAmountMinor = amountMinor
+        newTransactionNote = note
         isEntrySheetPresented = true
     }
 
@@ -214,6 +224,8 @@ final class AppState: ObservableObject {
         editingTransaction = transaction
         newTransactionTimestamp = nil
         newTransactionIsExpense = nil
+        newTransactionAmountMinor = nil
+        newTransactionNote = nil
         isEntrySheetPresented = true
     }
 
@@ -269,9 +281,12 @@ final class AppState: ObservableObject {
         editingTransaction = nil
         newTransactionTimestamp = nil
         newTransactionIsExpense = nil
+        newTransactionAmountMinor = nil
+        newTransactionNote = nil
         isTransferSheetPresented = false
         editingTransfer = nil
         newTransferTimestamp = nil
+        isReceiptCapturePresented = false
         pendingSettingsDestination = nil
         pendingSpotlightRequest = nil
     }
@@ -325,13 +340,24 @@ final class AppState: ObservableObject {
         switch action.kind {
         case .addExpense:
             selectedTab = .home
-            presentNewTransaction(isExpense: true)
+            presentNewTransaction(
+                isExpense: true,
+                amountMinor: action.amountMinor,
+                note: action.note
+            )
         case .addIncome:
             selectedTab = .home
-            presentNewTransaction(isExpense: false)
+            presentNewTransaction(
+                isExpense: false,
+                amountMinor: action.amountMinor,
+                note: action.note
+            )
         case .addTransfer:
             selectedTab = .home
             presentNewTransfer()
+        case .scanReceipt:
+            selectedTab = .home
+            isReceiptCapturePresented = true
         case .openDestination:
             route(to: action.destination ?? .home)
         case .openSearchResult:
@@ -363,6 +389,17 @@ final class AppState: ObservableObject {
         case .people:
             selectedTab = .settings
             pendingSettingsDestination = .people
+        case .goal:
+            selectedTab = .settings
+            pendingSettingsDestination = .goals
+        case .settlement:
+            selectedTab = .settlements
+        case .template:
+            selectedTab = .settings
+            pendingSettingsDestination = .templates
+        case .recurring:
+            selectedTab = .settings
+            pendingSettingsDestination = .recurring
         }
     }
 }

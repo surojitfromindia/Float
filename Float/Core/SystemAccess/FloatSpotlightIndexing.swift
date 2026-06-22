@@ -9,6 +9,10 @@ enum FloatSpotlightItemKind: String, Codable {
     case account
     case category
     case people
+    case goal
+    case settlement
+    case template
+    case recurring
 }
 
 struct FloatSpotlightTarget: Equatable {
@@ -81,6 +85,14 @@ enum FloatSpotlightIndexer {
             .filter { profileID == nil || $0.profileID == profileID }
         let people = ((try? modelContext.fetch(FetchDescriptor<PersonItem>())) ?? [])
             .filter { profileID == nil || $0.profileID == profileID }
+        let goals = ((try? modelContext.fetch(FetchDescriptor<GoalItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
+        let settlements = ((try? modelContext.fetch(FetchDescriptor<SettlementCaseItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
+        let templates = ((try? modelContext.fetch(FetchDescriptor<TransactionTemplateItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
+        let recurringRules = ((try? modelContext.fetch(FetchDescriptor<RecurringRuleItem>())) ?? [])
+            .filter { profileID == nil || $0.profileID == profileID }
 
         let indexedTransactions = spotlightTransactions(from: transactions)
         let indexedTransfers = spotlightTransfers(from: transfers)
@@ -97,8 +109,14 @@ enum FloatSpotlightIndexer {
             from: people,
             transactions: transactions
         )
+        let indexedGoals = spotlightGoals(from: goals)
+        let indexedSettlements = spotlightSettlements(from: settlements)
+        let indexedTemplates = spotlightTemplates(from: templates)
+        let indexedRecurring = spotlightRecurring(from: recurringRules)
 
-        return indexedTransactions + indexedTransfers + indexedAccounts + indexedCategories + indexedPeople
+        return indexedTransactions + indexedTransfers + indexedAccounts
+            + indexedCategories + indexedPeople + indexedGoals
+            + indexedSettlements + indexedTemplates + indexedRecurring
     }
 
     private static func spotlightTransactions(
@@ -202,6 +220,44 @@ enum FloatSpotlightIndexer {
                 }.count
                 return personItem(person, transactionCount: transactionCount)
             }
+    }
+
+    private static func spotlightGoals(from goals: [GoalItem]) -> [CSSearchableItem] {
+        goals
+            .filter { !$0.achieved }
+            .sorted {
+                ($0.targetDate ?? .distantFuture) < ($1.targetDate ?? .distantFuture)
+            }
+            .map(goalItem)
+    }
+
+    private static func spotlightSettlements(
+        from settlements: [SettlementCaseItem]
+    ) -> [CSSearchableItem] {
+        settlements
+            .filter { !$0.archived }
+            .sorted { $0.updatedAt > $1.updatedAt }
+            .prefix(80)
+            .map(settlementItem)
+    }
+
+    private static func spotlightTemplates(
+        from templates: [TransactionTemplateItem]
+    ) -> [CSSearchableItem] {
+        templates
+            .sorted { $0.updatedAt > $1.updatedAt }
+            .prefix(100)
+            .map(templateItem)
+    }
+
+    private static func spotlightRecurring(
+        from rules: [RecurringRuleItem]
+    ) -> [CSSearchableItem] {
+        rules
+            .filter(\.active)
+            .sorted { $0.nextRunDate < $1.nextRunDate }
+            .prefix(100)
+            .map(recurringItem)
     }
 
     private static func transactionItem(_ transaction: TransactionItem) -> CSSearchableItem {
@@ -373,6 +429,151 @@ enum FloatSpotlightIndexer {
             uniqueIdentifier: FloatSpotlightItemIdentifier.make(
                 kind: .people,
                 id: person.id
+            ),
+            domainIdentifier: domainIdentifier,
+            attributeSet: attributeSet
+        )
+    }
+
+    private static func goalItem(_ goal: GoalItem) -> CSSearchableItem {
+        let attributeSet = CSSearchableItemAttributeSet(
+            itemContentType: UTType.item.identifier
+        )
+        let target = MoneyFormatter.string(
+            minorUnits: goal.targetMinor,
+            currencyCode: Locale.current.currency?.identifier ?? "USD"
+        )
+        let saved = MoneyFormatter.string(
+            minorUnits: goal.savedMinor,
+            currencyCode: Locale.current.currency?.identifier ?? "USD"
+        )
+        attributeSet.title = goal.name
+        if let targetDate = goal.targetDate {
+            attributeSet.contentDescription = AppLocalization.format(
+                "%@ saved of %@ • Target %@",
+                saved,
+                target,
+                targetDate.formatted(date: .abbreviated, time: .omitted)
+            )
+        } else {
+            attributeSet.contentDescription = AppLocalization.format(
+                "%@ saved of %@",
+                saved,
+                target
+            )
+        }
+        attributeSet.keywords = sanitizedKeywords([
+            goal.name,
+            String(localized: "Goal"),
+            target,
+            saved,
+        ])
+
+        return CSSearchableItem(
+            uniqueIdentifier: FloatSpotlightItemIdentifier.make(
+                kind: .goal,
+                id: goal.id
+            ),
+            domainIdentifier: domainIdentifier,
+            attributeSet: attributeSet
+        )
+    }
+
+    private static func settlementItem(_ settlement: SettlementCaseItem) -> CSSearchableItem {
+        let attributeSet = CSSearchableItemAttributeSet(
+            itemContentType: UTType.item.identifier
+        )
+        attributeSet.title = settlement.displayTitle
+        attributeSet.contentDescription = [
+            settlement.personName,
+            settlement.status.title,
+            settlement.direction.title,
+        ].joined(separator: " • ")
+        attributeSet.contentModificationDate = settlement.updatedAt
+        attributeSet.keywords = sanitizedKeywords([
+            settlement.displayTitle,
+            settlement.personName,
+            settlement.status.title,
+            settlement.direction.title,
+            String(localized: "Settlement"),
+        ])
+
+        return CSSearchableItem(
+            uniqueIdentifier: FloatSpotlightItemIdentifier.make(
+                kind: .settlement,
+                id: settlement.id
+            ),
+            domainIdentifier: domainIdentifier,
+            attributeSet: attributeSet
+        )
+    }
+
+    private static func templateItem(_ template: TransactionTemplateItem) -> CSSearchableItem {
+        let attributeSet = CSSearchableItemAttributeSet(
+            itemContentType: UTType.item.identifier
+        )
+        let amount = MoneyFormatter.string(
+            minorUnits: template.amountMinor,
+            currencyCode: template.account?.currencyCode ?? "USD"
+        )
+        attributeSet.title = template.displayTitle
+        attributeSet.contentDescription = [
+            amount,
+            template.category?.name,
+            template.account?.name,
+        ]
+        .compactMap { $0 }
+        .joined(separator: " • ")
+        attributeSet.contentModificationDate = template.updatedAt
+        attributeSet.keywords = sanitizedKeywords([
+            template.displayTitle,
+            template.note,
+            template.category?.name,
+            template.account?.name,
+            String(localized: "Template"),
+        ])
+
+        return CSSearchableItem(
+            uniqueIdentifier: FloatSpotlightItemIdentifier.make(
+                kind: .template,
+                id: template.id
+            ),
+            domainIdentifier: domainIdentifier,
+            attributeSet: attributeSet
+        )
+    }
+
+    private static func recurringItem(_ rule: RecurringRuleItem) -> CSSearchableItem {
+        let attributeSet = CSSearchableItemAttributeSet(
+            itemContentType: UTType.item.identifier
+        )
+        let amount = MoneyFormatter.string(
+            minorUnits: rule.amountMinor,
+            currencyCode: rule.account?.currencyCode ?? "USD"
+        )
+        let title = rule.note?.trimmingCharacters(in: .whitespacesAndNewlines)
+        attributeSet.title = title?.isEmpty == false
+            ? title
+            : rule.category?.name ?? String(localized: "Recurring")
+        attributeSet.contentDescription = AppLocalization.format(
+            "%@ • %@ • Next %@",
+            amount,
+            rule.cadence.title,
+            rule.nextRunDate.formatted(date: .abbreviated, time: .omitted)
+        )
+        attributeSet.contentCreationDate = rule.createdAt
+        attributeSet.keywords = sanitizedKeywords([
+            title,
+            rule.category?.name,
+            rule.account?.name,
+            rule.cadence.title,
+            String(localized: "Recurring"),
+        ])
+
+        return CSSearchableItem(
+            uniqueIdentifier: FloatSpotlightItemIdentifier.make(
+                kind: .recurring,
+                id: rule.id
             ),
             domainIdentifier: domainIdentifier,
             attributeSet: attributeSet

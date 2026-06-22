@@ -13,7 +13,8 @@ struct ContentView: View {
             for: [
                 AccountItem.self, CategoryItem.self, PersonItem.self, TransactionItem.self,
                 TransactionPersonTagItem.self, TransactionTemplateItem.self, TransactionTemplateGroupItem.self,
-                TransactionTemplateGroupEntryItem.self, RecurringRuleItem.self,
+                TransactionTemplateGroupEntryItem.self, ReceiptCaptureItem.self,
+                ReceiptLineItem.self, AttachmentItem.self, RecurringRuleItem.self,
                 RecurringRulePersonTagItem.self, GoalItem.self, BudgetPeriodItem.self,
             ],
             inMemory: true

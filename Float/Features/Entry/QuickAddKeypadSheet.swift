@@ -36,6 +36,8 @@ struct QuickAddKeypadSheet: View {
     let event: EventItem?
     var initialTimestamp: Date?
     var initialIsExpense: Bool?
+    var initialAmountMinor: Int64?
+    var initialNote: String?
     @State private var keypadText = ""
     @State private var transactionKind = QuickTransactionKind.expense
     @State private var selectedCategory: CategoryItem?
@@ -49,6 +51,7 @@ struct QuickAddKeypadSheet: View {
     @State private var isInterpretingSmartEntry = false
     @State private var showingCategoryPicker = false
     @State private var showingSplitEntry = false
+    @State private var showingReceiptCapture = false
     @State private var recentTransactions: [TransactionItem] = []
     @State private var recentTransactionsLoadKey = false
     @State private var templates: [TransactionTemplateItem] = []
@@ -67,12 +70,16 @@ struct QuickAddKeypadSheet: View {
         transactionToEdit: TransactionItem?,
         event: EventItem? = nil,
         initialTimestamp: Date? = nil,
-        initialIsExpense: Bool? = nil
+        initialIsExpense: Bool? = nil,
+        initialAmountMinor: Int64? = nil,
+        initialNote: String? = nil
     ) {
         self.transactionToEdit = transactionToEdit
         self.event = event
         self.initialTimestamp = initialTimestamp
         self.initialIsExpense = initialIsExpense
+        self.initialAmountMinor = initialAmountMinor
+        self.initialNote = initialNote
     }
 
     private var amountMinor: Int64 {
@@ -299,6 +306,11 @@ struct QuickAddKeypadSheet: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
             }
+            .sheet(isPresented: $showingReceiptCapture) {
+                ReceiptCaptureFlow()
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+            }
         }
     }
 
@@ -386,6 +398,15 @@ struct QuickAddKeypadSheet: View {
                     )
                     .strokeBorder(palette.accent.opacity(0.16), lineWidth: 1)
                 )
+
+                Button {
+                    showingReceiptCapture = true
+                } label: {
+                    Label("Scan receipt", systemImage: "doc.viewfinder.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
             }
         }
     }
@@ -665,6 +686,12 @@ struct QuickAddKeypadSheet: View {
         if let initialTimestamp {
             timestamp = initialTimestamp
             expectedDueDate = initialTimestamp
+        }
+        if let initialAmountMinor, initialAmountMinor > 0 {
+            keypadText = String(initialAmountMinor)
+        }
+        if let initialNote, !initialNote.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            note = initialNote
         }
         applySmartCategorySuggestion()
     }

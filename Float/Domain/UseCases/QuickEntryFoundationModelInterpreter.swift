@@ -158,7 +158,8 @@ private enum QuickEntryFoundationModelInterpreter {
         var result = QuickEntryParseResult()
 
         if let amountMinor = amountMinor(
-            from: extraction,
+            from: originalText,
+            extraction: extraction,
             currencyCode: context.currencyCode
         ) {
             result.amountMinor = amountMinor
@@ -229,9 +230,17 @@ private enum QuickEntryFoundationModelInterpreter {
     }
 
     private static func amountMinor(
-        from extraction: QuickEntryModelExtraction,
+        from originalText: String,
+        extraction: QuickEntryModelExtraction,
         currencyCode: String
     ) -> Int64? {
+        if let amountMinor = deterministicAmountMinor(
+            from: originalText,
+            currencyCode: currencyCode
+        ) {
+            return amountMinor
+        }
+
         let quantity = extraction.quantityText
             .flatMap { decimalAmount(from: $0) }
         let unitPrice = extraction.unitPriceText
@@ -254,6 +263,291 @@ private enum QuickEntryFoundationModelInterpreter {
 
         return nil
     }
+
+    private static func deterministicAmountMinor(
+        from text: String,
+        currencyCode: String
+    ) -> Int64? {
+        let tokens = amountTokens(from: text)
+        guard !tokens.isEmpty else { return nil }
+
+        if let amountMinor = unitPriceAmountMinor(
+            from: tokens,
+            currencyCode: currencyCode
+        ) {
+            return amountMinor
+        }
+
+        let candidates = tokens.enumerated().compactMap { index, token -> AmountCandidate? in
+            guard let amount = token.decimalAmount,
+                  amount > 0,
+                  !isDateNumber(at: index, in: tokens, originalText: text),
+                  !isLikelyQuantityNumber(at: index, in: tokens) else {
+                return nil
+            }
+
+            return AmountCandidate(
+                amount: amount,
+                score: amountScore(at: index, in: tokens)
+            )
+        }
+
+        guard let best = candidates.sorted(by: {
+            if $0.score != $1.score { return $0.score > $1.score }
+            return $0.amount > $1.amount
+        }).first else {
+            return nil
+        }
+
+        let minor = minorUnits(from: best.amount, currencyCode: currencyCode)
+        return minor > 0 ? minor : nil
+    }
+
+    private static func unitPriceAmountMinor(
+        from tokens: [AmountToken],
+        currencyCode: String
+    ) -> Int64? {
+        for (quantityIndex, quantityToken) in tokens.enumerated() {
+            guard let quantity = quantityToken.decimalAmount,
+                  quantity > 0,
+                  isLikelyQuantityNumber(at: quantityIndex, in: tokens) else {
+                continue
+            }
+
+            let searchStart = min(quantityIndex + 2, tokens.endIndex)
+            guard searchStart < tokens.endIndex else { continue }
+
+            for priceIndex in searchStart..<tokens.endIndex {
+                guard let unitPrice = tokens[priceIndex].decimalAmount,
+                      unitPrice > 0,
+                      !isDateNumber(at: priceIndex, in: tokens, originalText: "") else {
+                    continue
+                }
+
+                let hasUnitPricingMarker =
+                    tokenBefore(priceIndex, in: tokens).map(unitPricePrefixes.contains) == true
+                        || tokenAfter(priceIndex, in: tokens).map(unitPriceSuffixes.contains) == true
+
+                guard hasUnitPricingMarker else { continue }
+
+                let total = quantity * unitPrice
+                let minor = minorUnits(from: total, currencyCode: currencyCode)
+                return minor > 0 ? minor : nil
+            }
+        }
+
+        return nil
+    }
+
+    private static func amountTokens(from text: String) -> [AmountToken] {
+        var tokens: [AmountToken] = []
+        var tokenStart: String.Index?
+
+        func appendToken(endingAt end: String.Index) {
+            guard let start = tokenStart else { return }
+            let rawText = String(text[start..<end])
+            let normalizedText = rawText
+                .lowercased()
+                .trimmingCharacters(in: .punctuationCharacters)
+            if !normalizedText.isEmpty {
+                tokens.append(AmountToken(
+                    rawText: rawText,
+                    normalizedText: normalizedText,
+                    range: start..<end
+                ))
+            }
+            tokenStart = nil
+        }
+
+        for index in text.indices {
+            if isAmountTokenCharacter(text[index]) {
+                if tokenStart == nil {
+                    tokenStart = index
+                }
+            } else {
+                appendToken(endingAt: index)
+            }
+        }
+
+        appendToken(endingAt: text.endIndex)
+        return tokens
+    }
+
+    private static func isAmountTokenCharacter(_ character: Character) -> Bool {
+        character.isLetter
+            || character.isNumber
+            || character == "."
+            || character == ","
+            || currencySymbols.contains(character)
+    }
+
+    private static func isDateNumber(
+        at index: Int,
+        in tokens: [AmountToken],
+        originalText: String
+    ) -> Bool {
+        guard tokens[index].decimalAmount != nil else { return false }
+
+        if !originalText.isEmpty,
+           isAdjacentToDateSeparator(tokens[index], in: originalText) {
+            return true
+        }
+
+        if let next = tokenAfter(index, in: tokens),
+           relativeDateComponent(next) != nil {
+            let afterComponent = tokenAfter(index + 1, in: tokens)
+            if afterComponent.map(relativeDateSuffixes.contains) == true {
+                return true
+            }
+        }
+
+        let previous = tokenBefore(index, in: tokens)
+        let next = tokenAfter(index, in: tokens)
+        if previous.map(monthWords.contains) == true || next.map(monthWords.contains) == true {
+            return true
+        }
+
+        return false
+    }
+
+    private static func isAdjacentToDateSeparator(
+        _ token: AmountToken,
+        in text: String
+    ) -> Bool {
+        if token.range.lowerBound > text.startIndex {
+            let previousIndex = text.index(before: token.range.lowerBound)
+            if dateSeparators.contains(text[previousIndex]) {
+                return true
+            }
+        }
+
+        if token.range.upperBound < text.endIndex,
+           dateSeparators.contains(text[token.range.upperBound]) {
+            return true
+        }
+
+        return false
+    }
+
+    private static func isLikelyQuantityNumber(
+        at index: Int,
+        in tokens: [AmountToken]
+    ) -> Bool {
+        guard let next = tokenAfter(index, in: tokens),
+              quantityUnits.contains(next) else {
+            return false
+        }
+
+        let previous = tokenBefore(index, in: tokens)
+        return previous.map(amountMarkers.contains) != true
+    }
+
+    private static func amountScore(
+        at index: Int,
+        in tokens: [AmountToken]
+    ) -> Int {
+        var score = index
+        let token = tokens[index]
+
+        if token.rawText.contains(where: currencySymbols.contains) {
+            score += 100
+        }
+
+        if tokenBefore(index, in: tokens).map(amountMarkers.contains) == true {
+            score += 60
+        }
+
+        if tokenAfter(index, in: tokens).map(amountMarkers.contains) == true {
+            score += 40
+        }
+
+        if tokenBefore(index, in: tokens).map(unitPricePrefixes.contains) == true {
+            score += 20
+        }
+
+        if tokenAfter(index, in: tokens).map(unitPriceSuffixes.contains) == true {
+            score += 20
+        }
+
+        return score
+    }
+
+    private static func tokenBefore(
+        _ index: Int,
+        in tokens: [AmountToken]
+    ) -> String? {
+        guard index > tokens.startIndex else { return nil }
+        return tokens[index - 1].normalizedText
+    }
+
+    private static func tokenAfter(
+        _ index: Int,
+        in tokens: [AmountToken]
+    ) -> String? {
+        let nextIndex = index + 1
+        guard nextIndex < tokens.endIndex else { return nil }
+        return tokens[nextIndex].normalizedText
+    }
+
+    private struct AmountToken {
+        let rawText: String
+        let normalizedText: String
+        let range: Range<String.Index>
+
+        var decimalAmount: Decimal? {
+            QuickEntryFoundationModelInterpreter.decimalAmount(from: rawText)
+        }
+    }
+
+    private struct AmountCandidate {
+        let amount: Decimal
+        let score: Int
+    }
+
+    private static let amountMarkers: Set<String> = [
+        "rs", "inr", "rupee", "rupees",
+        "usd", "dollar", "dollars",
+        "₹", "$", "€", "£", "¥",
+        "paid", "spent", "cost", "costs", "amount", "total",
+        "for", "forr", "at",
+    ]
+
+    private static let unitPricePrefixes: Set<String> = [
+        "for", "forr", "at", "@",
+    ]
+
+    private static let unitPriceSuffixes: Set<String> = [
+        "each", "ea", "per", "piece", "pc", "unit",
+    ]
+
+    private static let quantityUnits: Set<String> = [
+        "bag", "bags", "bottle", "bottles", "box", "boxes",
+        "cup", "cups", "dozen", "g", "gm", "gram", "grams",
+        "item", "items", "kg", "kgs", "kilogram", "kilograms",
+        "l", "liter", "liters", "litre", "litres", "ml",
+        "pack", "packs", "packet", "packets", "pc", "pcs",
+        "piece", "pieces", "plate", "plates", "serving", "servings",
+        "coffee", "coffees", "tea", "teas",
+    ]
+
+    private static let relativeDateSuffixes: Set<String> = [
+        "ago", "back", "before",
+    ]
+
+    private static let monthWords: Set<String> = [
+        "jan", "january", "feb", "february", "mar", "march",
+        "apr", "april", "may", "jun", "june", "jul", "july",
+        "aug", "august", "sep", "sept", "september",
+        "oct", "october", "nov", "november", "dec", "december",
+    ]
+
+    private static let currencySymbols: Set<Character> = [
+        "₹", "$", "€", "£", "¥",
+    ]
+
+    private static let dateSeparators: Set<Character> = [
+        "/", "-",
+    ]
 
     private static func decimalAmount(from text: String) -> Decimal? {
         let normalized = normalizedDecimalText(text)

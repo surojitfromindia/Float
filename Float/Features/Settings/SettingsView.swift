@@ -354,6 +354,9 @@ struct SettingsView: View {
                 settlementCases: fetchAll(SettlementCaseItem.self),
                 settlementEntries: fetchAll(SettlementEntryItem.self),
                 settlementMilestones: fetchAll(SettlementMilestoneItem.self),
+                receiptCaptures: fetchAll(ReceiptCaptureItem.self),
+                receiptLineItems: fetchAll(ReceiptLineItem.self),
+                attachments: fetchAll(AttachmentItem.self),
                 currencyCode: appState.selectedCurrencyCode
             )
             message = "Preparing backup."
@@ -404,6 +407,9 @@ struct SettingsView: View {
         for item in fetchAll(SettlementMilestoneItem.self) { modelContext.delete(item) }
         for item in fetchAll(SettlementEntryItem.self) { modelContext.delete(item) }
         for item in fetchAll(SettlementCaseItem.self) { modelContext.delete(item) }
+        for item in fetchAll(AttachmentItem.self) { modelContext.delete(item) }
+        for item in fetchAll(ReceiptLineItem.self) { modelContext.delete(item) }
+        for item in fetchAll(ReceiptCaptureItem.self) { modelContext.delete(item) }
         for item in fetchAll(TransactionItem.self) { modelContext.delete(item) }
         for item in fetchAll(TransactionTemplateGroupItem.self) { modelContext.delete(item) }
         for item in fetchAll(TransactionTemplateItem.self) { modelContext.delete(item) }

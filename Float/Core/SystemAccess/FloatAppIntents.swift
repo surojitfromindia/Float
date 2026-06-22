@@ -15,6 +15,7 @@ enum FloatShortcutDestination: String, AppEnum {
     case categories
     case accounts
     case people
+    case settlements
     case reviewQueue
 
     static var typeDisplayRepresentation = TypeDisplayRepresentation(
@@ -35,11 +36,68 @@ enum FloatShortcutDestination: String, AppEnum {
         .categories: "Categories",
         .accounts: "Accounts",
         .people: "People",
+        .settlements: "Settlements",
         .reviewQueue: "Review Queue",
     ]
 
     var destination: FloatDestination {
         FloatDestination(rawValue: rawValue) ?? .home
+    }
+}
+
+enum FloatTransactionIntentDirection: String, AppEnum {
+    case expense
+    case income
+
+    static var typeDisplayRepresentation = TypeDisplayRepresentation(
+        name: "Transaction Direction"
+    )
+
+    static var caseDisplayRepresentations: [FloatTransactionIntentDirection: DisplayRepresentation] = [
+        .expense: "Expense",
+        .income: "Income",
+    ]
+}
+
+enum FloatObjectIntentKind: String, AppEnum {
+    case transaction
+    case transfer
+    case account
+    case category
+    case person
+    case goal
+    case settlement
+    case template
+    case recurring
+
+    static var typeDisplayRepresentation = TypeDisplayRepresentation(
+        name: "Float Object"
+    )
+
+    static var caseDisplayRepresentations: [FloatObjectIntentKind: DisplayRepresentation] = [
+        .transaction: "Transaction",
+        .transfer: "Transfer",
+        .account: "Account",
+        .category: "Category",
+        .person: "Person",
+        .goal: "Goal",
+        .settlement: "Settlement",
+        .template: "Template",
+        .recurring: "Recurring Rule",
+    ]
+
+    var spotlightKind: FloatSpotlightItemKind {
+        switch self {
+        case .transaction: .transaction
+        case .transfer: .transfer
+        case .account: .account
+        case .category: .category
+        case .person: .people
+        case .goal: .goal
+        case .settlement: .settlement
+        case .template: .template
+        case .recurring: .recurring
+        }
     }
 }
 
@@ -76,6 +134,58 @@ struct AddFloatTransferIntent: AppIntent {
     func perform() async throws -> some IntentResult & ProvidesDialog {
         PendingFloatAction.save(PendingFloatAction(kind: .addTransfer))
         return .result(dialog: "Opening Float to add a transfer.")
+    }
+}
+
+struct AddFloatTransactionAmountIntent: AppIntent {
+    static var title: LocalizedStringResource = "Add Amount Transaction"
+    static var description = IntentDescription("Open Float with an expense or income amount prefilled.")
+    static var openAppWhenRun = true
+
+    @Parameter(title: "Amount")
+    var amount: Double
+
+    @Parameter(title: "Direction")
+    var direction: FloatTransactionIntentDirection
+
+    @Parameter(title: "Note")
+    var note: String?
+
+    init() {
+        amount = 0
+        direction = .expense
+        note = nil
+    }
+
+    init(amount: Double, direction: FloatTransactionIntentDirection, note: String? = nil) {
+        self.amount = amount
+        self.direction = direction
+        self.note = note
+    }
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        let amountMinor = WidgetSnapshotReader.minorUnits(from: amount)
+        PendingFloatAction.save(
+            PendingFloatAction(
+                kind: direction == .expense ? .addExpense : .addIncome,
+                amountMinor: amountMinor,
+                note: note?.trimmingCharacters(in: .whitespacesAndNewlines)
+            )
+        )
+        return .result(dialog: "Opening Float with the amount prefilled.")
+    }
+}
+
+struct ScanFloatReceiptIntent: AppIntent {
+    static var title: LocalizedStringResource = "Scan Receipt"
+    static var description = IntentDescription("Open Float's on-device receipt scanner.")
+    static var openAppWhenRun = true
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        PendingFloatAction.save(PendingFloatAction(kind: .scanReceipt))
+        return .result(dialog: "Opening Float to scan a receipt.")
     }
 }
 
@@ -118,6 +228,67 @@ struct GetFloatSafeToSpendIntent: AppIntent {
     }
 }
 
+struct GetFloatTodaySpendIntent: AppIntent {
+    static var title: LocalizedStringResource = "Get Today's Spend"
+    static var description = IntentDescription("Read today's recorded expense total from Float.")
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+        let summary = WidgetSnapshotReader.todaySpendSummary()
+        return .result(value: summary, dialog: IntentDialog(stringLiteral: summary))
+    }
+}
+
+struct GetFloatBudgetAlertIntent: AppIntent {
+    static var title: LocalizedStringResource = "Get Budget Alert"
+    static var description = IntentDescription("Read the highest priority budget alert from Float.")
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<String> & ProvidesDialog {
+        let summary = WidgetSnapshotReader.budgetAlertSummary()
+        return .result(value: summary, dialog: IntentDialog(stringLiteral: summary))
+    }
+}
+
+struct OpenFloatObjectIntent: AppIntent {
+    static var title: LocalizedStringResource = "Open Float Object"
+    static var description = IntentDescription("Open a specific Float object by identifier.")
+    static var openAppWhenRun = true
+
+    @Parameter(title: "Object Type")
+    var objectKind: FloatObjectIntentKind
+
+    @Parameter(title: "Identifier")
+    var identifier: String
+
+    init() {
+        objectKind = .transaction
+        identifier = ""
+    }
+
+    init(objectKind: FloatObjectIntentKind, identifier: String) {
+        self.objectKind = objectKind
+        self.identifier = identifier
+    }
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ProvidesDialog {
+        guard let id = UUID(uuidString: identifier.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+            return .result(dialog: "Float could not read that identifier.")
+        }
+        PendingFloatAction.save(
+            PendingFloatAction(
+                kind: .openSearchResult,
+                spotlightItemIdentifier: FloatSpotlightItemIdentifier.make(
+                    kind: objectKind.spotlightKind,
+                    id: id
+                )
+            )
+        )
+        return .result(dialog: "Opening the selected Float item.")
+    }
+}
+
 struct FloatShortcutsProvider: AppShortcutsProvider {
     static var shortcutTileColor: ShortcutTileColor = .teal
 
@@ -150,6 +321,24 @@ struct FloatShortcutsProvider: AppShortcutsProvider {
             systemImageName: "arrow.left.arrow.right.circle.fill"
         )
         AppShortcut(
+            intent: AddFloatTransactionAmountIntent(),
+            phrases: [
+                "Add amount in \(.applicationName)",
+                "Log amount in \(.applicationName)",
+            ],
+            shortTitle: "Add Amount",
+            systemImageName: "number.circle.fill"
+        )
+        AppShortcut(
+            intent: ScanFloatReceiptIntent(),
+            phrases: [
+                "Scan receipt in \(.applicationName)",
+                "Capture receipt in \(.applicationName)",
+            ],
+            shortTitle: "Scan Receipt",
+            systemImageName: "doc.viewfinder.fill"
+        )
+        AppShortcut(
             intent: GetFloatSafeToSpendIntent(),
             phrases: [
                 "What is safe to spend in \(.applicationName)",
@@ -157,6 +346,24 @@ struct FloatShortcutsProvider: AppShortcutsProvider {
             ],
             shortTitle: "Safe to Spend",
             systemImageName: "checkmark.seal.fill"
+        )
+        AppShortcut(
+            intent: GetFloatTodaySpendIntent(),
+            phrases: [
+                "What did I spend today in \(.applicationName)",
+                "Get today's spend from \(.applicationName)",
+            ],
+            shortTitle: "Today Spend",
+            systemImageName: "calendar"
+        )
+        AppShortcut(
+            intent: GetFloatBudgetAlertIntent(),
+            phrases: [
+                "Get budget alert from \(.applicationName)",
+                "Check budgets in \(.applicationName)",
+            ],
+            shortTitle: "Budget Alert",
+            systemImageName: "exclamationmark.triangle.fill"
         )
         AppShortcut(
             intent: OpenFloatDestinationIntent(destination: .reviewQueue),
@@ -177,14 +384,13 @@ private enum WidgetSnapshotReader {
         let daysRemaining: Int
         let statusText: String
         let currencyCode: String
+        let todayExpensesMinor: Int64?
+        let topBudgetAlertTitle: String?
+        let topBudgetAlertProgress: Double?
     }
 
     static func safeToSpendSummary() -> String {
-        guard
-            let defaults = UserDefaults(suiteName: PendingFloatAction.appGroupIdentifier),
-            let data = defaults.data(forKey: "float.safeToSpend.widgetSnapshot"),
-            let snapshot = try? JSONDecoder().decode(Snapshot.self, from: data)
-        else {
+        guard let snapshot = snapshot() else {
             return String(localized: "Open Float to update safe to spend.")
         }
 
@@ -199,5 +405,47 @@ private enum WidgetSnapshotReader {
         return String(
             localized: "\(safe) safe to spend, \(daily) per day, \(snapshot.daysRemaining) days left. \(snapshot.statusText)."
         )
+    }
+
+    static func todaySpendSummary() -> String {
+        guard let snapshot = snapshot() else {
+            return String(localized: "Open Float to update today's spend.")
+        }
+        let amount = MoneyFormatter.string(
+            minorUnits: snapshot.todayExpensesMinor ?? 0,
+            currencyCode: snapshot.currencyCode
+        )
+        return String(localized: "\(amount) spent today.")
+    }
+
+    static func budgetAlertSummary() -> String {
+        guard let snapshot = snapshot() else {
+            return String(localized: "Open Float to update budget alerts.")
+        }
+        guard let title = snapshot.topBudgetAlertTitle, !title.isEmpty else {
+            return String(localized: "No budget alerts right now.")
+        }
+        if let progress = snapshot.topBudgetAlertProgress {
+            return String(localized: "\(title) is at \(Int((progress * 100).rounded()))%.")
+        }
+        return title
+    }
+
+    static func minorUnits(from amount: Double) -> Int64 {
+        let currencyCode = snapshot()?.currencyCode
+            ?? Locale.current.currency?.identifier
+            ?? "USD"
+        let multiplier = pow(10.0, Double(MoneyFormatter.fractionDigits(for: currencyCode)))
+        return max(0, Int64((amount * multiplier).rounded()))
+    }
+
+    private static func snapshot() -> Snapshot? {
+        guard
+            let defaults = UserDefaults(suiteName: PendingFloatAction.appGroupIdentifier),
+            let data = defaults.data(forKey: "float.safeToSpend.widgetSnapshot")
+        else {
+            return nil
+        }
+        return try? JSONDecoder().decode(Snapshot.self, from: data)
     }
 }

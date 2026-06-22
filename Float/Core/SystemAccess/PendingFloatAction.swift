@@ -4,6 +4,7 @@ enum PendingFloatActionKind: String, Codable {
     case addExpense
     case addIncome
     case addTransfer
+    case scanReceipt
     case openDestination
     case openSearchResult
 }
@@ -35,6 +36,8 @@ struct PendingFloatAction: Codable {
     let kind: PendingFloatActionKind
     var destination: FloatDestination?
     var spotlightItemIdentifier: String?
+    var amountMinor: Int64?
+    var note: String?
     var createdAt = Date()
 
     static func save(_ action: PendingFloatAction) {

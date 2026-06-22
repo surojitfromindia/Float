@@ -131,6 +131,9 @@ enum ProfileDataService {
         deleteMatching(SettlementMilestoneItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(SettlementEntryItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(SettlementCaseItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(AttachmentItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(ReceiptLineItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(ReceiptCaptureItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(TransactionItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(EventItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(EventCategoryItem.self, profileID: profileID, modelContext: modelContext)
@@ -217,6 +220,9 @@ enum ProfileDataService {
         assign(SettlementCaseItem.self, profileID: profileID, modelContext: modelContext)
         assign(SettlementEntryItem.self, profileID: profileID, modelContext: modelContext)
         assign(SettlementMilestoneItem.self, profileID: profileID, modelContext: modelContext)
+        assign(ReceiptCaptureItem.self, profileID: profileID, modelContext: modelContext)
+        assign(ReceiptLineItem.self, profileID: profileID, modelContext: modelContext)
+        assign(AttachmentItem.self, profileID: profileID, modelContext: modelContext)
     }
 
     private static func assign<T: PersistentModel & ProfileOwned>(
@@ -261,6 +267,25 @@ struct TransactionDraft {
     let note: String?
 }
 
+struct ReceiptLineImportDraft {
+    let title: String
+    let quantityText: String?
+    let amountMinor: Int64
+    let category: CategoryItem
+    let account: AccountItem
+    let duplicateTransactionID: UUID?
+}
+
+struct ReceiptCaptureDraft {
+    let merchantName: String
+    let transactionDate: Date
+    let totalAmountMinor: Int64
+    let currencyCode: String
+    let rawText: String
+    let imageData: [Data]
+    let lineItems: [ReceiptLineImportDraft]
+}
+
 struct PendingTransactionDraft {
     let amountMinor: Int64
     let expectedDueDate: Date
@@ -293,6 +318,7 @@ struct TransactionRepository {
         account: AccountItem,
         event: EventItem? = nil,
         note: String?,
+        receiptCapture: ReceiptCaptureItem? = nil,
         people: [PersonItem]? = nil
     ) throws -> TransactionItem {
         let transaction = TransactionItem(
@@ -302,7 +328,8 @@ struct TransactionRepository {
             category: category,
             account: account,
             event: event,
-            note: note?.trimmedNilIfBlank
+            note: note?.trimmedNilIfBlank,
+            receiptCapture: receiptCapture
         )
         modelContext.insert(transaction)
         if let people {
@@ -559,6 +586,69 @@ struct TransactionRepository {
                 note: draft.note?.trimmedNilIfBlank
             )
         )
+    }
+}
+
+@MainActor
+struct ReceiptCaptureRepository {
+    let modelContext: ModelContext
+
+    func createImportedReceipt(from draft: ReceiptCaptureDraft) throws -> ReceiptCaptureItem {
+        let receipt = ReceiptCaptureItem(
+            merchantName: draft.merchantName.trimmedNilIfBlank ?? String(localized: "Receipt"),
+            transactionDate: draft.transactionDate,
+            totalAmountMinor: draft.totalAmountMinor,
+            currencyCode: draft.currencyCode,
+            rawText: draft.rawText
+        )
+        modelContext.insert(receipt)
+
+        for (index, data) in draft.imageData.enumerated() {
+            let attachment = AttachmentItem(
+                fileName: "receipt-\(index + 1).jpg",
+                data: data,
+                receipt: receipt
+            )
+            modelContext.insert(attachment)
+            receipt.attachments.append(attachment)
+        }
+
+        for (index, lineDraft) in draft.lineItems.enumerated() {
+            let transaction = TransactionItem(
+                amountMinor: lineDraft.amountMinor,
+                isExpense: true,
+                timestamp: draft.transactionDate,
+                category: lineDraft.category,
+                account: lineDraft.account,
+                note: lineDraft.title,
+                receiptCapture: receipt
+            )
+            modelContext.insert(transaction)
+
+            let line = ReceiptLineItem(
+                sortOrder: index,
+                title: lineDraft.title,
+                quantityText: lineDraft.quantityText,
+                amountMinor: lineDraft.amountMinor,
+                selectedForImport: true,
+                receipt: receipt,
+                category: lineDraft.category,
+                account: lineDraft.account,
+                transaction: transaction,
+                duplicateTransactionID: lineDraft.duplicateTransactionID
+            )
+            modelContext.insert(line)
+            receipt.lineItems.append(line)
+            receipt.transactions.append(transaction)
+        }
+
+        do {
+            try modelContext.save()
+            FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
+            return receipt
+        } catch {
+            throw DataIntegrityError.saveFailed
+        }
     }
 }
 

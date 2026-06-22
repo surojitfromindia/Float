@@ -23,6 +23,9 @@ enum BackupService {
         settlementCases: [SettlementCaseItem],
         settlementEntries: [SettlementEntryItem],
         settlementMilestones: [SettlementMilestoneItem],
+        receiptCaptures: [ReceiptCaptureItem],
+        receiptLineItems: [ReceiptLineItem],
+        attachments: [AttachmentItem],
         currencyCode: String
     ) throws -> BackupDocument {
         let dto = FloatBackupDTO(
@@ -45,6 +48,9 @@ enum BackupService {
             settlementCases: settlementCases.map(SettlementCaseDTO.init),
             settlementEntries: settlementEntries.map(SettlementEntryDTO.init),
             settlementMilestones: settlementMilestones.map(SettlementMilestoneDTO.init),
+            receiptCaptures: receiptCaptures.map(ReceiptCaptureDTO.init),
+            receiptLineItems: receiptLineItems.map(ReceiptLineDTO.init),
+            attachments: attachments.map(AttachmentDTO.init),
             settings: SettingsDTO(
                 currencyCode: currencyCode,
                 exportedAt: Date()
@@ -173,6 +179,13 @@ enum BackupService {
             modelContext.insert(model)
         }
 
+        var receiptMap: [UUID: ReceiptCaptureItem] = [:]
+        for item in dto.receiptCaptures {
+            let model = ReceiptCaptureItem(dto: item)
+            receiptMap[item.id] = model
+            modelContext.insert(model)
+        }
+
         var transactionMap: [UUID: TransactionItem] = [:]
         for item in dto.transactions {
             let model = TransactionItem(
@@ -182,10 +195,35 @@ enum BackupService {
                 event: item.eventID.flatMap { eventMap[$0] },
                 recurringRule: item.recurringRuleID.flatMap {
                     recurringMap[$0]
-                }
+                },
+                receiptCapture: item.receiptCaptureID.flatMap { receiptMap[$0] }
             )
             transactionMap[item.id] = model
             modelContext.insert(model)
+        }
+
+        for item in dto.receiptLineItems {
+            guard let receipt = item.receiptID.flatMap({ receiptMap[$0] }) else {
+                continue
+            }
+            let line = ReceiptLineItem(
+                dto: item,
+                receipt: receipt,
+                category: item.categoryID.flatMap { categoryMap[$0] },
+                account: item.accountID.flatMap { accountMap[$0] },
+                transaction: item.transactionID.flatMap { transactionMap[$0] }
+            )
+            modelContext.insert(line)
+            receipt.lineItems.append(line)
+        }
+
+        for item in dto.attachments {
+            guard let receipt = item.receiptID.flatMap({ receiptMap[$0] }) else {
+                continue
+            }
+            let attachment = AttachmentItem(dto: item, receipt: receipt)
+            modelContext.insert(attachment)
+            receipt.attachments.append(attachment)
         }
 
         var settlementCaseMap: [UUID: SettlementCaseItem] = [:]
@@ -282,6 +320,9 @@ enum BackupService {
             try modelContext.delete(model: SettlementMilestoneItem.self)
             try modelContext.delete(model: SettlementEntryItem.self)
             try modelContext.delete(model: SettlementCaseItem.self)
+            try modelContext.delete(model: AttachmentItem.self)
+            try modelContext.delete(model: ReceiptLineItem.self)
+            try modelContext.delete(model: ReceiptCaptureItem.self)
             try modelContext.delete(model: TransactionItem.self)
             try modelContext.delete(model: EventItem.self)
             try modelContext.delete(model: EventCategoryItem.self)
@@ -551,6 +592,7 @@ private extension TransactionDTO {
             eventID: item.event?.id,
             note: item.note,
             recurringRuleID: item.recurringRule?.id,
+            receiptCaptureID: item.receiptCapture?.id,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt
         )
@@ -578,7 +620,8 @@ private extension TransactionItem {
         category: CategoryItem? = nil,
         account: AccountItem? = nil,
         event: EventItem? = nil,
-        recurringRule: RecurringRuleItem? = nil
+        recurringRule: RecurringRuleItem? = nil,
+        receiptCapture: ReceiptCaptureItem? = nil
     ) {
         self.init(
             id: dto.id,
@@ -592,6 +635,113 @@ private extension TransactionItem {
             event: event,
             note: dto.note,
             recurringRule: recurringRule,
+            receiptCapture: receiptCapture,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension ReceiptCaptureDTO {
+    init(_ item: ReceiptCaptureItem) {
+        self.init(
+            id: item.id,
+            merchantName: item.merchantName,
+            transactionDate: item.transactionDate,
+            totalAmountMinor: item.totalAmountMinor,
+            currencyCode: item.currencyCode,
+            rawText: item.rawText,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension ReceiptCaptureItem {
+    convenience init(dto: ReceiptCaptureDTO) {
+        self.init(
+            id: dto.id,
+            merchantName: dto.merchantName,
+            transactionDate: dto.transactionDate,
+            totalAmountMinor: dto.totalAmountMinor,
+            currencyCode: dto.currencyCode,
+            rawText: dto.rawText,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension ReceiptLineDTO {
+    init(_ item: ReceiptLineItem) {
+        self.init(
+            id: item.id,
+            sortOrder: item.sortOrder,
+            title: item.title,
+            quantityText: item.quantityText,
+            amountMinor: item.amountMinor,
+            selectedForImport: item.selectedForImport,
+            receiptID: item.receipt?.id,
+            categoryID: item.category?.id,
+            accountID: item.account?.id,
+            transactionID: item.transaction?.id,
+            duplicateTransactionID: item.duplicateTransactionID,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension ReceiptLineItem {
+    convenience init(
+        dto: ReceiptLineDTO,
+        receipt: ReceiptCaptureItem? = nil,
+        category: CategoryItem? = nil,
+        account: AccountItem? = nil,
+        transaction: TransactionItem? = nil
+    ) {
+        self.init(
+            id: dto.id,
+            sortOrder: dto.sortOrder,
+            title: dto.title,
+            quantityText: dto.quantityText,
+            amountMinor: dto.amountMinor,
+            selectedForImport: dto.selectedForImport,
+            receipt: receipt,
+            category: category,
+            account: account,
+            transaction: transaction,
+            duplicateTransactionID: dto.duplicateTransactionID,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension AttachmentDTO {
+    init(_ item: AttachmentItem) {
+        self.init(
+            id: item.id,
+            kindRaw: item.kindRaw,
+            fileName: item.fileName,
+            mimeType: item.mimeType,
+            data: item.data,
+            receiptID: item.receipt?.id,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension AttachmentItem {
+    convenience init(dto: AttachmentDTO, receipt: ReceiptCaptureItem? = nil) {
+        self.init(
+            id: dto.id,
+            kind: AttachmentKind(rawValue: dto.kindRaw) ?? .receiptImage,
+            fileName: dto.fileName,
+            mimeType: dto.mimeType,
+            data: dto.data,
+            receipt: receipt,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )

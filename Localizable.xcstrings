@@ -273,6 +273,16 @@
         }
       }
     },
+    "%@ is at %lld%%." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ is at %2$lld%%."
+          }
+        }
+      }
+    },
     "%@ is close" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -457,6 +467,9 @@
           }
         }
       }
+    },
+    "%@ spent today." : {
+
     },
     "%@ under yesterday" : {
       "extractionState" : "stale",
@@ -915,6 +928,12 @@
         }
       }
     },
+    "Add Amount" : {
+
+    },
+    "Add Amount Transaction" : {
+
+    },
     "Add category" : {
       "localizations" : {
         "bn" : {
@@ -1019,6 +1038,9 @@
           }
         }
       }
+    },
+    "Add line" : {
+
     },
     "Add milestone" : {
 
@@ -1563,6 +1585,9 @@
         }
       }
     },
+    "Budget Alert" : {
+
+    },
     "Budget alerts" : {
       "localizations" : {
         "bn" : {
@@ -1737,6 +1762,9 @@
           }
         }
       }
+    },
+    "Capture a receipt, review extracted lines, then save selected expenses." : {
+
     },
     "Card" : {
       "localizations" : {
@@ -2464,6 +2492,9 @@
           }
         }
       }
+    },
+    "Default" : {
+
     },
     "Default account" : {
       "localizations" : {
@@ -3325,6 +3356,9 @@
         }
       }
     },
+    "Float could not read that identifier." : {
+
+    },
     "Float Destination" : {
       "localizations" : {
         "bn" : {
@@ -3347,6 +3381,9 @@
           }
         }
       }
+    },
+    "Float Object" : {
+
     },
     "Forecast" : {
       "localizations" : {
@@ -3411,6 +3448,9 @@
         }
       }
     },
+    "Get Budget Alert" : {
+
+    },
     "Get Safe to Spend" : {
       "localizations" : {
         "bn" : {
@@ -3420,6 +3460,12 @@
           }
         }
       }
+    },
+    "Get Today's Spend" : {
+
+    },
+    "Goal" : {
+
     },
     "Goal target reminders" : {
       "localizations" : {
@@ -3675,6 +3721,12 @@
         }
       }
     },
+    "Identifier" : {
+
+    },
+    "Import this line" : {
+
+    },
     "In use" : {
       "localizations" : {
         "bn" : {
@@ -3816,6 +3868,9 @@
           }
         }
       }
+    },
+    "Item" : {
+
     },
     "Jump to month" : {
       "localizations" : {
@@ -4132,6 +4187,9 @@
     "Matches" : {
 
     },
+    "Merchant" : {
+
+    },
     "Metric" : {
       "localizations" : {
         "bn" : {
@@ -4411,6 +4469,9 @@
           }
         }
       }
+    },
+    "No budget alerts right now." : {
+
     },
     "No categories" : {
       "localizations" : {
@@ -4753,6 +4814,9 @@
     "Notice" : {
 
     },
+    "Object Type" : {
+
+    },
     "Of this report" : {
       "localizations" : {
         "en" : {
@@ -4803,6 +4867,9 @@
         }
       }
     },
+    "Open a specific Float object by identifier." : {
+
+    },
     "Open cases" : {
 
     },
@@ -4815,6 +4882,9 @@
           }
         }
       }
+    },
+    "Open Float Object" : {
+
     },
     "Open Float ready to add an expense." : {
       "localizations" : {
@@ -4857,6 +4927,9 @@
         }
       }
     },
+    "Open Float to update budget alerts." : {
+
+    },
     "Open Float to update safe to spend." : {
       "localizations" : {
         "bn" : {
@@ -4866,6 +4939,18 @@
           }
         }
       }
+    },
+    "Open Float to update today's spend." : {
+
+    },
+    "Open Float with an expense or income amount prefilled." : {
+
+    },
+    "Open Float's on-device receipt scanner." : {
+
+    },
+    "Open scanner" : {
+
     },
     "Open today" : {
       "localizations" : {
@@ -4926,6 +5011,15 @@
           }
         }
       }
+    },
+    "Opening Float to scan a receipt." : {
+
+    },
+    "Opening Float with the amount prefilled." : {
+
+    },
+    "Opening the selected Float item." : {
+
     },
     "Original" : {
 
@@ -5344,6 +5438,9 @@
         }
       }
     },
+    "Qty" : {
+
+    },
     "Qty %lld" : {
       "localizations" : {
         "bn" : {
@@ -5384,6 +5481,9 @@
         }
       }
     },
+    "Read the highest priority budget alert from Float." : {
+
+    },
     "Read the latest safe-to-spend amount from Float." : {
       "localizations" : {
         "bn" : {
@@ -5394,7 +5494,13 @@
         }
       }
     },
+    "Read today's recorded expense total from Float." : {
+
+    },
     "Reading" : {
+
+    },
+    "Reading receipt" : {
 
     },
     "Rebuilding your report for the selected range." : {
@@ -5406,6 +5512,24 @@
           }
         }
       }
+    },
+    "Receipt" : {
+
+    },
+    "Receipt Capture" : {
+
+    },
+    "Receipt item" : {
+
+    },
+    "Receipt lines" : {
+
+    },
+    "Receipt scanning is not available on this device." : {
+
+    },
+    "receipt.jpg" : {
+
     },
     "Recent" : {
       "localizations" : {
@@ -5509,6 +5633,9 @@
           }
         }
       }
+    },
+    "Recurring Rule" : {
+
     },
     "Recurring rules" : {
 
@@ -5715,6 +5842,9 @@
         }
       }
     },
+    "Review before saving" : {
+
+    },
     "Review queue" : {
       "localizations" : {
         "bn" : {
@@ -5905,6 +6035,12 @@
     "Saved scenarios" : {
 
     },
+    "Scan receipt" : {
+
+    },
+    "Scan Receipt" : {
+
+    },
     "Scenario" : {
 
     },
@@ -5993,6 +6129,9 @@
           }
         }
       }
+    },
+    "Select at least one valid receipt line." : {
+
     },
     "Set a budget for one budget period." : {
       "localizations" : {
@@ -6558,6 +6697,9 @@
     "Test future spending or income without saving real transactions." : {
 
     },
+    "Text recognition is running on device." : {
+
+    },
     "Theme" : {
       "localizations" : {
         "bn" : {
@@ -6792,6 +6934,9 @@
         }
       }
     },
+    "Today Spend" : {
+
+    },
     "Top category" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6855,6 +7000,9 @@
           }
         }
       }
+    },
+    "Transaction Direction" : {
+
     },
     "Transactions" : {
       "localizations" : {

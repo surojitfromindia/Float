@@ -19,6 +19,8 @@
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Float uses Face ID to protect your financial data when privacy lock is enabled.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Float uses the camera to scan receipts on device before saving extracted transactions.</string>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
 		<dict>

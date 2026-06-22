@@ -40,6 +40,9 @@ struct FloatBackupDTO: Codable {
     var settlementCases: [SettlementCaseDTO]
     var settlementEntries: [SettlementEntryDTO]
     var settlementMilestones: [SettlementMilestoneDTO]
+    var receiptCaptures: [ReceiptCaptureDTO]
+    var receiptLineItems: [ReceiptLineDTO]
+    var attachments: [AttachmentDTO]
     var settings: SettingsDTO
 
     enum CodingKeys: String, CodingKey {
@@ -62,6 +65,9 @@ struct FloatBackupDTO: Codable {
         case settlementCases
         case settlementEntries
         case settlementMilestones
+        case receiptCaptures
+        case receiptLineItems
+        case attachments
         case settings
     }
 
@@ -85,6 +91,9 @@ struct FloatBackupDTO: Codable {
         settlementCases: [SettlementCaseDTO] = [],
         settlementEntries: [SettlementEntryDTO] = [],
         settlementMilestones: [SettlementMilestoneDTO] = [],
+        receiptCaptures: [ReceiptCaptureDTO] = [],
+        receiptLineItems: [ReceiptLineDTO] = [],
+        attachments: [AttachmentDTO] = [],
         settings: SettingsDTO
     ) {
         self.accounts = accounts
@@ -106,6 +115,9 @@ struct FloatBackupDTO: Codable {
         self.settlementCases = settlementCases
         self.settlementEntries = settlementEntries
         self.settlementMilestones = settlementMilestones
+        self.receiptCaptures = receiptCaptures
+        self.receiptLineItems = receiptLineItems
+        self.attachments = attachments
         self.settings = settings
     }
 
@@ -130,6 +142,9 @@ struct FloatBackupDTO: Codable {
         settlementCases = try container.decodeIfPresent([SettlementCaseDTO].self, forKey: .settlementCases) ?? []
         settlementEntries = try container.decodeIfPresent([SettlementEntryDTO].self, forKey: .settlementEntries) ?? []
         settlementMilestones = try container.decodeIfPresent([SettlementMilestoneDTO].self, forKey: .settlementMilestones) ?? []
+        receiptCaptures = try container.decodeIfPresent([ReceiptCaptureDTO].self, forKey: .receiptCaptures) ?? []
+        receiptLineItems = try container.decodeIfPresent([ReceiptLineDTO].self, forKey: .receiptLineItems) ?? []
+        attachments = try container.decodeIfPresent([AttachmentDTO].self, forKey: .attachments) ?? []
         settings = try container.decode(SettingsDTO.self, forKey: .settings)
     }
 }
@@ -349,6 +364,7 @@ struct TransactionDTO: Codable {
     var eventID: UUID?
     var note: String?
     var recurringRuleID: UUID?
+    var receiptCaptureID: UUID?
     var createdAt: Date
     var updatedAt: Date
 
@@ -364,6 +380,7 @@ struct TransactionDTO: Codable {
         case eventID
         case note
         case recurringRuleID
+        case receiptCaptureID
         case createdAt
         case updatedAt
     }
@@ -380,6 +397,7 @@ struct TransactionDTO: Codable {
         eventID: UUID? = nil,
         note: String?,
         recurringRuleID: UUID?,
+        receiptCaptureID: UUID? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -394,6 +412,7 @@ struct TransactionDTO: Codable {
         self.eventID = eventID
         self.note = note
         self.recurringRuleID = recurringRuleID
+        self.receiptCaptureID = receiptCaptureID
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -412,6 +431,7 @@ struct TransactionDTO: Codable {
         eventID = try container.decodeIfPresent(UUID.self, forKey: .eventID)
         note = try container.decodeIfPresent(String.self, forKey: .note)
         recurringRuleID = try container.decodeIfPresent(UUID.self, forKey: .recurringRuleID)
+        receiptCaptureID = try container.decodeIfPresent(UUID.self, forKey: .receiptCaptureID)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }
@@ -527,6 +547,41 @@ struct ScenarioPlanDTO: Codable {
     var accountID: UUID?
     var note: String?
     var archived: Bool
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct ReceiptCaptureDTO: Codable {
+    var id: UUID
+    var merchantName: String
+    var transactionDate: Date
+    var totalAmountMinor: Int64
+    var currencyCode: String
+    var rawText: String
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct ReceiptLineDTO: Codable {
+    var id: UUID
+    var sortOrder: Int
+    var title: String
+    var quantityText: String?
+    var amountMinor: Int64
+    var selectedForImport: Bool
+    var receiptID: UUID?
+    var categoryID: UUID?
+    var accountID: UUID?
+    var transactionID: UUID?
+    var duplicateTransactionID: UUID?
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct AttachmentDTO: Codable {
+    var id: UUID
+    var kindRaw: String
+    var fileName: String
+    var mimeType: String
+    var data: Data
+    var receiptID: UUID?
     var createdAt: Date
     var updatedAt: Date
 }

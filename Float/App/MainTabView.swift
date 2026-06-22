@@ -30,8 +30,15 @@ struct MainTabView: View {
             QuickAddKeypadSheet(
                 transactionToEdit: appState.editingTransaction,
                 initialTimestamp: appState.newTransactionTimestamp,
-                initialIsExpense: appState.newTransactionIsExpense
+                initialIsExpense: appState.newTransactionIsExpense,
+                initialAmountMinor: appState.newTransactionAmountMinor,
+                initialNote: appState.newTransactionNote
             )
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $appState.isReceiptCapturePresented) {
+            ReceiptCaptureFlow()
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }

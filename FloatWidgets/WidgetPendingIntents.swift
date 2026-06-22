@@ -61,3 +61,23 @@ struct OpenWidgetReviewQueueIntent: AppIntent {
         return .result()
     }
 }
+
+struct OpenWidgetTemplatesIntent: AppIntent {
+    static var title: LocalizedStringResource = "Open Templates"
+    static var openAppWhenRun = true
+
+    func perform() async throws -> some IntentResult {
+        WidgetPendingFloatAction.save(kind: "openDestination", destination: "templates")
+        return .result()
+    }
+}
+
+struct ScanWidgetReceiptIntent: AppIntent {
+    static var title: LocalizedStringResource = "Scan Receipt"
+    static var openAppWhenRun = true
+
+    func perform() async throws -> some IntentResult {
+        WidgetPendingFloatAction.save(kind: "scanReceipt")
+        return .result()
+    }
+}

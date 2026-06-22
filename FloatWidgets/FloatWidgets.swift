@@ -94,7 +94,6 @@ private struct SafeToSpendProvider: TimelineProvider {
     }
 }
 
-@main
 struct FloatSafeToSpendWidget: Widget {
     private let kind = "FloatSafeToSpendWidget"
 
@@ -153,12 +152,12 @@ private struct SafeToSpendWidgetView: View {
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
-            HStack(spacing: 8) {
-                widgetButton(systemImage: "minus.circle.fill", intent: AddWidgetExpenseIntent())
-                widgetButton(systemImage: "plus.circle.fill", intent: AddWidgetIncomeIntent())
-                widgetButton(systemImage: "arrow.left.arrow.right.circle.fill", intent: AddWidgetTransferIntent())
+                HStack(spacing: 8) {
+                    widgetButton(systemImage: "minus.circle.fill", intent: AddWidgetExpenseIntent())
+                    widgetButton(systemImage: "plus.circle.fill", intent: AddWidgetIncomeIntent())
+                    widgetButton(systemImage: "doc.viewfinder.fill", intent: ScanWidgetReceiptIntent())
+                }
             }
-        }
         .padding()
     }
 
@@ -180,6 +179,7 @@ private struct SafeToSpendWidgetView: View {
                     widgetButton(systemImage: "minus.circle.fill", intent: AddWidgetExpenseIntent())
                     widgetButton(systemImage: "plus.circle.fill", intent: AddWidgetIncomeIntent())
                     widgetButton(systemImage: "arrow.left.arrow.right.circle.fill", intent: AddWidgetTransferIntent())
+                    widgetButton(systemImage: "square.text.square", intent: OpenWidgetTemplatesIntent())
                     widgetButton(systemImage: "checklist", intent: OpenWidgetReviewQueueIntent())
                 }
             }
@@ -359,5 +359,56 @@ private struct SafeToSpendWidgetView: View {
         formatter.numberStyle = .currency
         formatter.currencyCode = currencyCode
         return formatter.maximumFractionDigits
+    }
+}
+
+@available(iOSApplicationExtension 18.0, *)
+private struct FloatExpenseControl: ControlWidget {
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: "FloatExpenseControl") {
+            ControlWidgetButton(action: AddWidgetExpenseIntent()) {
+                Label("Expense", systemImage: "minus.circle.fill")
+            }
+        }
+        .displayName("Add Expense")
+        .description("Open Float ready to add an expense.")
+    }
+}
+
+@available(iOSApplicationExtension 18.0, *)
+private struct FloatReceiptControl: ControlWidget {
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: "FloatReceiptControl") {
+            ControlWidgetButton(action: ScanWidgetReceiptIntent()) {
+                Label("Scan Receipt", systemImage: "doc.viewfinder.fill")
+            }
+        }
+        .displayName("Scan Receipt")
+        .description("Open Float's receipt scanner.")
+    }
+}
+
+@available(iOSApplicationExtension 18.0, *)
+private struct FloatReviewControl: ControlWidget {
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: "FloatReviewControl") {
+            ControlWidgetButton(action: OpenWidgetReviewQueueIntent()) {
+                Label("Review", systemImage: "checklist")
+            }
+        }
+        .displayName("Review Queue")
+        .description("Open Float's review queue.")
+    }
+}
+
+@main
+private struct FloatWidgetsBundle: WidgetBundle {
+    var body: some Widget {
+        FloatSafeToSpendWidget()
+        if #available(iOSApplicationExtension 18.0, *) {
+            FloatExpenseControl()
+            FloatReceiptControl()
+            FloatReviewControl()
+        }
     }
 }
