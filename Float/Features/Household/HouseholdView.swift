@@ -2,6 +2,7 @@ import SwiftData
 import SwiftUI
 
 struct HouseholdView: View {
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject private var appState: AppState
     @Query(sort: \HouseholdMemberItem.createdAt) private var allMembers: [HouseholdMemberItem]
@@ -59,23 +60,32 @@ struct HouseholdView: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 18) {
-                hero
-                metricsGrid
-                approvalInbox
-                membersSection
-                billsSection
-                activitySection
+        GeometryReader { proxy in
+            let topInset = proxy.safeAreaInsets.top
+
+            VStack(spacing: 0) {
+                hero(topInset: topInset)
+                    .zIndex(1)
+
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 18) {
+                        metricsGrid
+                        approvalInbox
+                        membersSection
+                        billsSection
+                        activitySection
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 16)
+                    .padding(.bottom, 120)
+                }
             }
-            .padding(20)
-            .padding(.bottom, 120)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .navigationBar)
+            .floatBackground()
+            .ignoresSafeArea(edges: .top)
         }
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .navigationBar)
-        .floatBackground()
-        .ignoresSafeArea(edges: .top)
         .sheet(isPresented: $isAddingMember) {
             HouseholdMemberEditorSheet(member: nil)
                 .presentationDetents([.medium, .large])
@@ -94,67 +104,176 @@ struct HouseholdView: View {
         }
     }
 
-    private var hero: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Household OS")
-                        .font(.largeTitle.bold())
-                    Text("Shared approvals, member allowances, bills, and reimbursements in one place.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+    private func hero(topInset: CGFloat) -> some View {
+        householdHeroSurface {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Household OS")
+                            .font(.largeTitle.bold())
+                            .foregroundStyle(heroPrimaryText)
+                        Text("Shared approvals, member allowances, bills, and reimbursements in one place.")
+                            .font(.subheadline)
+                            .foregroundStyle(heroSecondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-                Spacer()
-                FloatIconBadge(
-                    icon: "house.and.flag.fill",
-                    tint: appState.themePalette.accent,
-                    size: 48
-                )
-            }
 
-            HStack(spacing: 10) {
-                Button {
-                    isAddingExpense = true
-                } label: {
-                    Label("Add shared expense", systemImage: "plus.circle.fill")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
+                HStack(spacing: 14) {
+                    Button {
+                        isAddingExpense = true
+                    } label: {
+                        Label("Add shared expense", systemImage: "plus.circle.fill")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .foregroundStyle(heroButtonText)
+                    .background(
+                        LinearGradient(
+                            colors: [
+                                heroControlTint.opacity(colorScheme == .dark ? 0.92 : 0.86),
+                                heroControlTint.opacity(colorScheme == .dark ? 0.72 : 0.68),
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        in: Capsule()
+                    )
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(.white.opacity(colorScheme == .dark ? 0.18 : 0.22), lineWidth: 1)
+                    )
+                    .shadow(
+                        color: heroControlTint.opacity(colorScheme == .dark ? 0.22 : 0.16),
+                        radius: 12,
+                        x: 0,
+                        y: 8
+                    )
+
+                    Menu {
+                        Button("Add member") { isAddingMember = true }
+                        Button("Add bill") { isAddingBill = true }
+                        Button("Monthly closeout") { createCloseout() }
+                    } label: {
+                        Image(systemName: "ellipsis.circle.fill")
+                            .font(.system(size: 24, weight: .semibold))
+                            .symbolRenderingMode(.hierarchical)
+                            .foregroundStyle(heroControlTint)
+                            .frame(width: 54, height: 48)
+                            .background(heroControlTint.opacity(colorScheme == .dark ? 0.14 : 0.10), in: Capsule())
+                            .overlay(
+                                Capsule()
+                                    .strokeBorder(heroControlTint.opacity(colorScheme == .dark ? 0.18 : 0.12), lineWidth: 1)
+                            )
+                    }
                 }
-                .buttonStyle(.borderedProminent)
 
-                Menu {
-                    Button("Add member") { isAddingMember = true }
-                    Button("Add bill") { isAddingBill = true }
-                    Button("Monthly closeout") { createCloseout() }
-                } label: {
-                    Image(systemName: "ellipsis.circle.fill")
-                        .font(.title2)
-                        .frame(width: 44, height: 44)
+                if !message.isEmpty {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(heroSecondaryText)
                 }
-                .buttonStyle(.bordered)
             }
-
-            if !message.isEmpty {
-                Text(message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            .padding(.top, topInset + 18)
+            .padding(.horizontal, 26)
+            .padding(.bottom, 34)
         }
-        .padding(20)
-        .padding(.top, 28)
-        .floatGlassSurface(
-            cornerRadius: FloatTheme.radius,
-            material: .ultraThinMaterial,
-            tint: appState.themePalette.accent,
-            strokeOpacity: 0.08,
-            shadowOpacity: 0.08,
-            shadowRadius: 24,
-            shadowY: 14
+    }
+
+    private var heroPrimaryText: Color {
+        colorScheme == .dark ? .white : Color.black.opacity(0.78)
+    }
+
+    private var heroSecondaryText: Color {
+        colorScheme == .dark ? .white.opacity(0.78) : Color.black.opacity(0.58)
+    }
+
+    private var heroControlTint: Color {
+        appState.themePalette.accent
+    }
+
+    private var heroButtonText: Color {
+        colorScheme == .dark ? .white : Color.white.opacity(0.96)
+    }
+
+    private func householdHeroSurface<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        let palette = appState.themePalette.hero
+        let shape = UnevenRoundedRectangle(
+            topLeadingRadius: 0,
+            bottomLeadingRadius: 34,
+            bottomTrailingRadius: 34,
+            topTrailingRadius: 0,
+            style: .continuous
         )
-        .padding(.horizontal, -20)
-        .padding(.top, -20)
+        let isDark = colorScheme == .dark
+        let bottomFade = isDark
+            ? palette.backgroundBottom
+            : Color(.systemGroupedBackground)
+
+        return content()
+            .background(.ultraThinMaterial, in: shape)
+            .background(
+                LinearGradient(
+                    stops: [
+                        Gradient.Stop(
+                            color: palette.backgroundTop.opacity(isDark ? 0.92 : 0.76),
+                            location: 0
+                        ),
+                        Gradient.Stop(
+                            color: palette.glow.opacity(isDark ? 0.58 : 0.38),
+                            location: 0.36
+                        ),
+                        Gradient.Stop(
+                            color: palette.accent.opacity(isDark ? 0.42 : 0.28),
+                            location: 0.68
+                        ),
+                        Gradient.Stop(
+                            color: palette.backgroundBottom.opacity(isDark ? 0.18 : 0.22),
+                            location: 1
+                        ),
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: shape
+            )
+            .overlay(alignment: .topTrailing) {
+                ZStack {
+                    Circle()
+                        .fill(.white.opacity(isDark ? 0.20 : 0.16))
+                        .frame(width: 190, height: 190)
+                        .blur(radius: 38)
+                        .offset(x: 48, y: -58)
+                    Circle()
+                        .fill(palette.glow.opacity(isDark ? 0.28 : 0.20))
+                        .frame(width: 150, height: 150)
+                        .blur(radius: 34)
+                        .offset(x: -58, y: 54)
+                }
+                .allowsHitTesting(false)
+            }
+            .overlay(alignment: .bottom) {
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        bottomFade.opacity(isDark ? 0.30 : 0.24),
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(height: 54)
+                .allowsHitTesting(false)
+            }
+            .clipShape(shape)
+            .shadow(
+                color: .black.opacity(isDark ? 0.26 : 0.1),
+                radius: 18,
+                x: 0,
+                y: 10
+            )
     }
 
     private var metricsGrid: some View {
