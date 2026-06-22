@@ -458,6 +458,8 @@ struct SettingsView: View {
         for item in fetchAll(InsightSignalItem.self) { modelContext.delete(item) }
         for item in fetchAll(MerchantAliasItem.self) { modelContext.delete(item) }
         for item in fetchAll(ScenarioPlanItem.self) { modelContext.delete(item) }
+        for item in fetchAll(BudgetCycleCategoryItem.self) { modelContext.delete(item) }
+        for item in fetchAll(BudgetCycleItem.self) { modelContext.delete(item) }
         for item in fetchAll(CategoryBudgetItem.self) { modelContext.delete(item) }
         for item in fetchAll(BudgetPeriodItem.self) { modelContext.delete(item) }
         for item in fetchAll(AccountItem.self) { modelContext.delete(item) }

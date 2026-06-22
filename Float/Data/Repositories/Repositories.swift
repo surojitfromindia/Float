@@ -103,7 +103,10 @@ enum ProfileDataService {
             transfers: count(TransferItem.self, profileID: id, modelContext: modelContext),
             recurringRules: count(RecurringRuleItem.self, profileID: id, modelContext: modelContext),
             goals: count(GoalItem.self, profileID: id, modelContext: modelContext),
-            budgets: count(BudgetPeriodItem.self, profileID: id, modelContext: modelContext),
+            budgets: count(BudgetPeriodItem.self, profileID: id, modelContext: modelContext)
+                + count(CategoryBudgetItem.self, profileID: id, modelContext: modelContext)
+                + count(BudgetCycleItem.self, profileID: id, modelContext: modelContext)
+                + count(BudgetCycleCategoryItem.self, profileID: id, modelContext: modelContext),
             settlements: count(SettlementCaseItem.self, profileID: id, modelContext: modelContext),
             household: count(HouseholdMemberItem.self, profileID: id, modelContext: modelContext)
                 + count(HouseholdExpenseItem.self, profileID: id, modelContext: modelContext)
@@ -156,6 +159,8 @@ enum ProfileDataService {
         deleteMatching(InsightSignalItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(MerchantAliasItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(ScenarioPlanItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(BudgetCycleCategoryItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(BudgetCycleItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(CategoryBudgetItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(BudgetPeriodItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(CategoryItem.self, profileID: profileID, modelContext: modelContext)
@@ -226,6 +231,8 @@ enum ProfileDataService {
         assign(ScenarioPlanItem.self, profileID: profileID, modelContext: modelContext)
         assign(BudgetPeriodItem.self, profileID: profileID, modelContext: modelContext)
         assign(CategoryBudgetItem.self, profileID: profileID, modelContext: modelContext)
+        assign(BudgetCycleItem.self, profileID: profileID, modelContext: modelContext)
+        assign(BudgetCycleCategoryItem.self, profileID: profileID, modelContext: modelContext)
         assign(SettlementCaseItem.self, profileID: profileID, modelContext: modelContext)
         assign(SettlementEntryItem.self, profileID: profileID, modelContext: modelContext)
         assign(SettlementMilestoneItem.self, profileID: profileID, modelContext: modelContext)
@@ -1284,12 +1291,14 @@ struct CategoryBudgetRepository {
     func save(
         category: CategoryItem,
         amountMinor: Int64,
+        rolloverPolicy: BudgetRolloverPolicy,
         currencyCode: String,
         existingBudgets: [CategoryBudgetItem]
     ) throws {
         if let existing = existingBudgets.first(where: { $0.category?.id == category.id }) {
             if amountMinor > 0 {
                 existing.amountMinor = amountMinor
+                existing.rolloverPolicy = rolloverPolicy
                 existing.currencyCode = currencyCode
                 existing.isActive = true
                 existing.updatedAt = Date()
@@ -1301,6 +1310,7 @@ struct CategoryBudgetRepository {
                 CategoryBudgetItem(
                     category: category,
                     amountMinor: amountMinor,
+                    rolloverPolicy: rolloverPolicy,
                     currencyCode: currencyCode
                 )
             )
@@ -2027,6 +2037,8 @@ struct SettingsRepository {
         try modelContext.delete(model: TransferItem.self)
         try modelContext.delete(model: RecurringRuleItem.self)
         try modelContext.delete(model: GoalItem.self)
+        try modelContext.delete(model: BudgetCycleCategoryItem.self)
+        try modelContext.delete(model: BudgetCycleItem.self)
         try modelContext.delete(model: CategoryBudgetItem.self)
         try modelContext.delete(model: BudgetPeriodItem.self)
         try modelContext.delete(model: CategoryItem.self)

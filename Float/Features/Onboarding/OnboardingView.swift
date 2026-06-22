@@ -128,6 +128,10 @@ struct OnboardingView: View {
         budget.expectedIncomeMinor = expectedIncomeMinor
         budget.currencyCode = appState.selectedCurrencyCode
         budget.isActive = true
+        BudgetCycleUseCase.syncCurrentCycle(
+            modelContext: modelContext,
+            profileID: ActiveProfileRegistry.profileID
+        )
         try? modelContext.save()
         appState.hasCompletedOnboarding = true
     }

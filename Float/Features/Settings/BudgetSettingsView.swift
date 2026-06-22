@@ -7,6 +7,7 @@ struct BudgetSettingsView: View {
     @Query private var allGoals: [GoalItem]
     @Query private var allRecurringRules: [RecurringRuleItem]
     @Query private var allBudgets: [BudgetPeriodItem]
+    @Query(sort: \BudgetCycleItem.startDate, order: .reverse) private var allCycles: [BudgetCycleItem]
     @Query(sort: \CategoryItem.sortOrder) private var allCategories: [CategoryItem]
     @Query private var allCategoryBudgets: [CategoryBudgetItem]
 
@@ -23,6 +24,7 @@ struct BudgetSettingsView: View {
     private var goals: [GoalItem] { filterActiveProfile(allGoals) }
     private var recurringRules: [RecurringRuleItem] { filterActiveProfile(allRecurringRules) }
     private var budgets: [BudgetPeriodItem] { filterActiveProfile(allBudgets) }
+    private var cycles: [BudgetCycleItem] { filterActiveProfile(allCycles) }
     private var categories: [CategoryItem] { filterActiveProfile(allCategories) }
     private var categoryBudgets: [CategoryBudgetItem] { filterActiveProfile(allCategoryBudgets) }
 
@@ -84,6 +86,22 @@ struct BudgetSettingsView: View {
         )
     }
 
+    private var currentCycle: BudgetCycleItem? {
+        cycles.first(where: { $0.status == .open }) ?? cycles.first
+    }
+
+    private var currentCycleEffectiveBudgetMinor: Int64 {
+        currentCycle?.categories.reduce(Int64(0)) { partial, item in
+            partial + item.effectiveBudgetMinor
+        } ?? 0
+    }
+
+    private var currentCycleRolloverMinor: Int64 {
+        currentCycle?.categories.reduce(Int64(0)) { partial, item in
+            partial + item.rolloverInMinor
+        } ?? 0
+    }
+
     var body: some View {
         Form {
             Section("Period") {
@@ -142,6 +160,23 @@ struct BudgetSettingsView: View {
                 Text(
                     "Home uses expected income minus recurring expenses, unfinished goal targets, and expenses already recorded this period."
                 )
+            }
+
+            Section {
+                if let currentCycle {
+                    detailRow("Cycle window", currentCycleDateRange(currentCycle))
+                    detailRow("Closeout status", currentCycle.status.title)
+                    budgetRow("Cycle total", currentCycleEffectiveBudgetMinor)
+                    if currentCycleRolloverMinor != 0 {
+                        budgetRow("Rollover in", currentCycleRolloverMinor)
+                    }
+                } else {
+                    Text("Save a budget to create the first cycle.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Current cycle")
             }
 
             Section {
@@ -209,6 +244,7 @@ struct BudgetSettingsView: View {
             CategoryBudgetEditorSheet(
                 category: category,
                 initialAmountMinor: categoryBudgetMinor(for: category),
+                initialRolloverPolicy: categoryBudgetPolicy(for: category),
                 otherBudgetMinor: max(
                     0,
                     categoryBudgetTotalMinor - categoryBudgetMinor(for: category)
@@ -216,8 +252,12 @@ struct BudgetSettingsView: View {
                 expectedIncomeMinor: previewExpectedIncomeMinor,
                 spentMinor: categorySpentMinor(for: category),
                 currencyCode: appState.selectedCurrencyCode
-            ) { amountMinor in
-                saveCategoryBudget(category, amountMinor: amountMinor)
+            ) { amountMinor, rolloverPolicy in
+                saveCategoryBudget(
+                    category,
+                    amountMinor: amountMinor,
+                    rolloverPolicy: rolloverPolicy
+                )
             }
         }
     }
@@ -243,6 +283,16 @@ struct BudgetSettingsView: View {
                 )
             )
             .foregroundStyle(.secondary)
+        }
+    }
+
+    private func detailRow(_ title: String, _ value: String) -> some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(value)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.trailing)
         }
     }
 
@@ -277,6 +327,10 @@ struct BudgetSettingsView: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
+                        Text(categoryBudgetPolicyText(for: category))
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .lineLimit(1)
                     }
 
                     Spacer()
@@ -307,6 +361,10 @@ struct BudgetSettingsView: View {
         )
     }
 
+    private func categoryBudgetPolicy(for category: CategoryItem) -> BudgetRolloverPolicy {
+        categoryBudgets.first(where: { $0.category?.id == category.id })?.rolloverPolicy ?? .none
+    }
+
     private func categorySpentMinor(for category: CategoryItem) -> Int64 {
         periodTransactions
             .filter {
@@ -329,6 +387,21 @@ struct BudgetSettingsView: View {
             return "Spent \(money(spentMinor)) · over by \(money(spentMinor - budgetMinor))"
         }
         return "Spent \(money(spentMinor)) · \(money(remainingMinor)) left"
+    }
+
+    private func categoryBudgetPolicyText(for category: CategoryItem) -> String {
+        AppLocalization.format(
+            "Rollover: %@",
+            categoryBudgetPolicy(for: category).title
+        )
+    }
+
+    private func currentCycleDateRange(_ cycle: BudgetCycleItem) -> String {
+        AppLocalization.format(
+            "%@ - %@",
+            cycle.startDate.formatted(date: .abbreviated, time: .omitted),
+            cycle.endDate.formatted(date: .abbreviated, time: .omitted)
+        )
     }
 
     private func money(_ amount: Int64) -> String {
@@ -412,8 +485,12 @@ struct BudgetSettingsView: View {
         budget.isActive = true
         budget.updatedAt = Date()
         saveCategoryBudgets()
+        BudgetCycleUseCase.syncCurrentCycle(
+            modelContext: modelContext,
+            profileID: ActiveProfileRegistry.profileID
+        )
         try? modelContext.save()
-        message = "Budget saved."
+        message = String(localized: "Budget saved.")
     }
 
     private func saveCategoryBudgets() {
@@ -422,13 +499,18 @@ struct BudgetSettingsView: View {
             try? repository.save(
                 category: category,
                 amountMinor: categoryBudgetMinor(for: category),
+                rolloverPolicy: categoryBudgetPolicy(for: category),
                 currencyCode: appState.selectedCurrencyCode,
                 existingBudgets: categoryBudgets
             )
         }
     }
 
-    private func saveCategoryBudget(_ category: CategoryItem, amountMinor: Int64) {
+    private func saveCategoryBudget(
+        _ category: CategoryItem,
+        amountMinor: Int64,
+        rolloverPolicy: BudgetRolloverPolicy
+    ) {
         categoryBudgetTexts[category.id] = amountMinor > 0
             ? BudgetAmountField.majorAmountString(
                 minorUnits: amountMinor,
@@ -438,10 +520,17 @@ struct BudgetSettingsView: View {
         try? CategoryBudgetRepository(modelContext: modelContext).save(
             category: category,
             amountMinor: amountMinor,
+            rolloverPolicy: rolloverPolicy,
             currencyCode: appState.selectedCurrencyCode,
             existingBudgets: categoryBudgets
         )
-        message = amountMinor > 0 ? "\(category.name) budget saved." : "\(category.name) budget cleared."
+        BudgetCycleUseCase.syncCurrentCycle(
+            modelContext: modelContext,
+            profileID: ActiveProfileRegistry.profileID
+        )
+        message = amountMinor > 0
+            ? AppLocalization.format("%@ budget saved.", category.name)
+            : AppLocalization.format("%@ budget cleared.", category.name)
     }
 }
 
@@ -454,25 +543,29 @@ private struct CategoryBudgetEditorSheet: View {
     @Environment(\.dismiss) private var dismiss
     let category: CategoryItem
     let initialAmountMinor: Int64
+    let initialRolloverPolicy: BudgetRolloverPolicy
     let otherBudgetMinor: Int64
     let expectedIncomeMinor: Int64
     let spentMinor: Int64
     let currencyCode: String
-    let onSave: (Int64) -> Void
+    let onSave: (Int64, BudgetRolloverPolicy) -> Void
 
     @State private var amountText: String
+    @State private var rolloverPolicy: BudgetRolloverPolicy
 
     init(
         category: CategoryItem,
         initialAmountMinor: Int64,
+        initialRolloverPolicy: BudgetRolloverPolicy,
         otherBudgetMinor: Int64,
         expectedIncomeMinor: Int64,
         spentMinor: Int64,
         currencyCode: String,
-        onSave: @escaping (Int64) -> Void
+        onSave: @escaping (Int64, BudgetRolloverPolicy) -> Void
     ) {
         self.category = category
         self.initialAmountMinor = initialAmountMinor
+        self.initialRolloverPolicy = initialRolloverPolicy
         self.otherBudgetMinor = otherBudgetMinor
         self.expectedIncomeMinor = expectedIncomeMinor
         self.spentMinor = spentMinor
@@ -486,6 +579,7 @@ private struct CategoryBudgetEditorSheet: View {
                 )
                 : ""
         )
+        _rolloverPolicy = State(initialValue: initialRolloverPolicy)
     }
 
     private var amountMinor: Int64 {
@@ -553,6 +647,15 @@ private struct CategoryBudgetEditorSheet: View {
                     Text("Enter the normal currency amount for this category.")
                 }
 
+                Section("Rollover policy") {
+                    Picker("Rollover policy", selection: $rolloverPolicy) {
+                        ForEach(BudgetRolloverPolicy.allCases) { policy in
+                            Text(policy.title)
+                                .tag(policy)
+                        }
+                    }
+                }
+
                 Section("Allocation share") {
                     AllocationShareGraph(
                         categoryName: category.name,
@@ -597,7 +700,7 @@ private struct CategoryBudgetEditorSheet: View {
                 if initialAmountMinor > 0 {
                     Section {
                         Button("Clear budget", role: .destructive) {
-                            onSave(0)
+                            onSave(0, rolloverPolicy)
                             dismiss()
                         }
                     }
@@ -612,7 +715,7 @@ private struct CategoryBudgetEditorSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        onSave(amountMinor)
+                        onSave(amountMinor, rolloverPolicy)
                         dismiss()
                     }
                 }

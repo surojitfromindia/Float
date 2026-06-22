@@ -7698,6 +7698,176 @@
           }
         }
       }
+    },
+    "%@ budget cleared." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ budget cleared."
+          }
+        }
+      }
+    },
+    "%@ budget saved." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ budget saved."
+          }
+        }
+      }
+    },
+    "Budget saved." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Budget saved."
+          }
+        }
+      }
+    },
+    "Carry leftover" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Carry leftover"
+          }
+        }
+      }
+    },
+    "Carry overspend" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Carry overspend"
+          }
+        }
+      }
+    },
+    "Closeout status" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Closeout status"
+          }
+        }
+      }
+    },
+    "Current cycle" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Current cycle"
+          }
+        }
+      }
+    },
+    "Cycle total" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Cycle total"
+          }
+        }
+      }
+    },
+    "Cycle window" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Cycle window"
+          }
+        }
+      }
+    },
+    "No rollover" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "No rollover"
+          }
+        }
+      }
+    },
+    "Open" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open"
+          }
+        }
+      }
+    },
+    "Pending review" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Pending review"
+          }
+        }
+      }
+    },
+    "Reviewed" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Reviewed"
+          }
+        }
+      }
+    },
+    "Rollover in" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rollover in"
+          }
+        }
+      }
+    },
+    "Rollover policy" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rollover policy"
+          }
+        }
+      }
+    },
+    "Rollover: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Rollover: %1$@"
+          }
+        }
+      }
+    },
+    "Save a budget to create the first cycle." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Save a budget to create the first cycle."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

@@ -66,6 +66,10 @@ struct AppRootView: View {
                     modelContext: modelContext,
                     profileID: ActiveProfileRegistry.profileID
                 )
+                BudgetCycleUseCase.syncCurrentCycle(
+                    modelContext: modelContext,
+                    profileID: ActiveProfileRegistry.profileID
+                )
                 publishWidgetSnapshot()
                 FloatSpotlightIndexer.scheduleReindex(
                     modelContext: modelContext,
@@ -134,6 +138,10 @@ struct AppRootView: View {
             currencyCode: appState.selectedCurrencyCode
         )
         MaterializeRecurringTransactionsUseCase.run(
+            modelContext: modelContext,
+            profileID: ActiveProfileRegistry.profileID
+        )
+        BudgetCycleUseCase.syncCurrentCycle(
             modelContext: modelContext,
             profileID: ActiveProfileRegistry.profileID
         )

@@ -16,6 +16,7 @@ struct ContentView: View {
                 TransactionTemplateGroupEntryItem.self, ReceiptCaptureItem.self,
                 ReceiptLineItem.self, AttachmentItem.self, RecurringRuleItem.self,
                 RecurringRulePersonTagItem.self, GoalItem.self, BudgetPeriodItem.self,
+                CategoryBudgetItem.self, BudgetCycleItem.self, BudgetCycleCategoryItem.self,
                 HouseholdMemberItem.self, HouseholdExpenseItem.self,
                 HouseholdExpenseSplitItem.self, HouseholdBillItem.self,
                 HouseholdAllowanceItem.self,

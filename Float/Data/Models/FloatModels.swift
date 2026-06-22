@@ -57,6 +57,44 @@ enum BudgetCadence: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum BudgetRolloverPolicy: String, Codable, CaseIterable, Identifiable {
+    case none
+    case carryRemaining
+    case carryOverspend
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .none:
+            String(localized: "No rollover")
+        case .carryRemaining:
+            String(localized: "Carry leftover")
+        case .carryOverspend:
+            String(localized: "Carry overspend")
+        }
+    }
+}
+
+enum BudgetCycleStatus: String, Codable, CaseIterable, Identifiable {
+    case open
+    case closedPendingReview
+    case reviewed
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .open:
+            String(localized: "Open")
+        case .closedPendingReview:
+            String(localized: "Pending review")
+        case .reviewed:
+            String(localized: "Reviewed")
+        }
+    }
+}
+
 enum TransactionStatus: String, Codable, CaseIterable, Identifiable {
     case posted
     case pending
@@ -1118,6 +1156,7 @@ final class CategoryBudgetItem {
     var profileID: UUID?
     var category: CategoryItem?
     var amountMinor: Int64 = 0
+    var rolloverPolicyRaw: String = BudgetRolloverPolicy.none.rawValue
     var currencyCode: String = "USD"
     var isActive: Bool = true
     var createdAt: Date = Date()
@@ -1128,6 +1167,7 @@ final class CategoryBudgetItem {
         profileID: UUID? = ActiveProfileRegistry.profileID,
         category: CategoryItem? = nil,
         amountMinor: Int64,
+        rolloverPolicy: BudgetRolloverPolicy = .none,
         currencyCode: String,
         isActive: Bool = true,
         createdAt: Date = Date(),
@@ -1137,6 +1177,7 @@ final class CategoryBudgetItem {
         self.profileID = profileID ?? category?.profileID
         self.category = category
         self.amountMinor = normalizedMinorUnits(amountMinor)
+        self.rolloverPolicyRaw = rolloverPolicy.rawValue
         self.currencyCode = currencyCode
         self.isActive = isActive
         self.createdAt = createdAt
@@ -1145,6 +1186,103 @@ final class CategoryBudgetItem {
 }
 
 extension CategoryBudgetItem: ProfileOwned {}
+
+@Model
+final class BudgetCycleItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var startDate: Date = Date()
+    var endDate: Date = Date()
+    var statusRaw: String = BudgetCycleStatus.open.rawValue
+    var closedAt: Date?
+    var reviewedAt: Date?
+    var expectedIncomeMinor: Int64 = 0
+    var currencyCode: String = "USD"
+    var sourceBudgetID: UUID?
+    @Relationship(deleteRule: .cascade, inverse: \BudgetCycleCategoryItem.cycle)
+    var categories: [BudgetCycleCategoryItem] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        startDate: Date,
+        endDate: Date,
+        status: BudgetCycleStatus = .open,
+        closedAt: Date? = nil,
+        reviewedAt: Date? = nil,
+        expectedIncomeMinor: Int64,
+        currencyCode: String,
+        sourceBudgetID: UUID? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID
+        self.startDate = startDate
+        self.endDate = endDate
+        self.statusRaw = status.rawValue
+        self.closedAt = closedAt
+        self.reviewedAt = reviewedAt
+        self.expectedIncomeMinor = normalizedMinorUnits(expectedIncomeMinor)
+        self.currencyCode = currencyCode
+        self.sourceBudgetID = sourceBudgetID
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension BudgetCycleItem: ProfileOwned {}
+
+@Model
+final class BudgetCycleCategoryItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var cycle: BudgetCycleItem?
+    var category: CategoryItem?
+    var plannedAmountMinor: Int64 = 0
+    var rolloverInMinor: Int64 = 0
+    var effectiveBudgetMinor: Int64 = 0
+    var spentMinorSnapshot: Int64 = 0
+    var remainingMinorSnapshot: Int64 = 0
+    var rolloverOutMinor: Int64 = 0
+    var rolloverPolicyRaw: String = BudgetRolloverPolicy.none.rawValue
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        cycle: BudgetCycleItem? = nil,
+        category: CategoryItem? = nil,
+        plannedAmountMinor: Int64,
+        rolloverInMinor: Int64 = 0,
+        effectiveBudgetMinor: Int64,
+        spentMinorSnapshot: Int64 = 0,
+        remainingMinorSnapshot: Int64 = 0,
+        rolloverOutMinor: Int64 = 0,
+        rolloverPolicy: BudgetRolloverPolicy = .none,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID ?? cycle?.profileID ?? category?.profileID
+        self.cycle = cycle
+        self.category = category
+        self.plannedAmountMinor = normalizedMinorUnits(plannedAmountMinor)
+        self.rolloverInMinor = rolloverInMinor
+        self.effectiveBudgetMinor = effectiveBudgetMinor
+        self.spentMinorSnapshot = normalizedMinorUnits(spentMinorSnapshot)
+        self.remainingMinorSnapshot = remainingMinorSnapshot
+        self.rolloverOutMinor = rolloverOutMinor
+        self.rolloverPolicyRaw = rolloverPolicy.rawValue
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension BudgetCycleCategoryItem: ProfileOwned {}
 
 @Model
 final class InsightSignalItem {
@@ -2247,6 +2385,27 @@ extension HouseholdBillItem {
 extension HouseholdAllowanceItem {
     var remainingMinor: Int64 {
         max(0, allowanceMinor - spentMinor)
+    }
+}
+
+extension CategoryBudgetItem {
+    var rolloverPolicy: BudgetRolloverPolicy {
+        get { BudgetRolloverPolicy(rawValue: rolloverPolicyRaw) ?? .none }
+        set { rolloverPolicyRaw = newValue.rawValue }
+    }
+}
+
+extension BudgetCycleItem {
+    var status: BudgetCycleStatus {
+        get { BudgetCycleStatus(rawValue: statusRaw) ?? .open }
+        set { statusRaw = newValue.rawValue }
+    }
+}
+
+extension BudgetCycleCategoryItem {
+    var rolloverPolicy: BudgetRolloverPolicy {
+        get { BudgetRolloverPolicy(rawValue: rolloverPolicyRaw) ?? .none }
+        set { rolloverPolicyRaw = newValue.rawValue }
     }
 }
 
