@@ -390,6 +390,8 @@ struct TransactionDTO: Codable {
     var note: String?
     var recurringRuleID: UUID?
     var receiptCaptureID: UUID?
+    var dismissedReviewKindsRaw: String?
+    var dismissedDuplicateGroupSignatureRaw: String?
     var createdAt: Date
     var updatedAt: Date
 
@@ -406,6 +408,8 @@ struct TransactionDTO: Codable {
         case note
         case recurringRuleID
         case receiptCaptureID
+        case dismissedReviewKindsRaw
+        case dismissedDuplicateGroupSignatureRaw
         case createdAt
         case updatedAt
     }
@@ -423,6 +427,8 @@ struct TransactionDTO: Codable {
         note: String?,
         recurringRuleID: UUID?,
         receiptCaptureID: UUID? = nil,
+        dismissedReviewKindsRaw: String? = nil,
+        dismissedDuplicateGroupSignatureRaw: String? = nil,
         createdAt: Date,
         updatedAt: Date
     ) {
@@ -438,6 +444,8 @@ struct TransactionDTO: Codable {
         self.note = note
         self.recurringRuleID = recurringRuleID
         self.receiptCaptureID = receiptCaptureID
+        self.dismissedReviewKindsRaw = dismissedReviewKindsRaw
+        self.dismissedDuplicateGroupSignatureRaw = dismissedDuplicateGroupSignatureRaw
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -457,6 +465,14 @@ struct TransactionDTO: Codable {
         note = try container.decodeIfPresent(String.self, forKey: .note)
         recurringRuleID = try container.decodeIfPresent(UUID.self, forKey: .recurringRuleID)
         receiptCaptureID = try container.decodeIfPresent(UUID.self, forKey: .receiptCaptureID)
+        dismissedReviewKindsRaw = try container.decodeIfPresent(
+            String.self,
+            forKey: .dismissedReviewKindsRaw
+        )
+        dismissedDuplicateGroupSignatureRaw = try container.decodeIfPresent(
+            String.self,
+            forKey: .dismissedDuplicateGroupSignatureRaw
+        )
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         updatedAt = try container.decode(Date.self, forKey: .updatedAt)
     }

@@ -562,6 +562,8 @@ final class TransactionItem {
     var note: String?
     var recurringRule: RecurringRuleItem?
     var receiptCapture: ReceiptCaptureItem?
+    var dismissedReviewKindsRaw: String?
+    var dismissedDuplicateGroupSignatureRaw: String?
     @Relationship(deleteRule: .cascade, inverse: \TransactionPersonTagItem.transaction)
     var personTags: [TransactionPersonTagItem] = []
     var createdAt: Date = Date()
@@ -581,6 +583,8 @@ final class TransactionItem {
         note: String? = nil,
         recurringRule: RecurringRuleItem? = nil,
         receiptCapture: ReceiptCaptureItem? = nil,
+        dismissedReviewKindsRaw: String? = nil,
+        dismissedDuplicateGroupSignatureRaw: String? = nil,
         personTags: [TransactionPersonTagItem] = [],
         createdAt: Date = Date(),
         updatedAt: Date = Date()
@@ -602,6 +606,8 @@ final class TransactionItem {
         self.note = note
         self.recurringRule = recurringRule
         self.receiptCapture = receiptCapture
+        self.dismissedReviewKindsRaw = dismissedReviewKindsRaw?.nilIfBlank
+        self.dismissedDuplicateGroupSignatureRaw = dismissedDuplicateGroupSignatureRaw?.nilIfBlank
         self.personTags = personTags
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -609,6 +615,13 @@ final class TransactionItem {
 }
 
 extension TransactionItem: ProfileOwned {}
+
+enum TransactionReviewIssueKind: String, CaseIterable, Hashable {
+    case missingCategory
+    case missingAccount
+    case likelyDuplicate
+    case highValue
+}
 
 @Model
 final class TransactionTemplateItem {
@@ -1940,6 +1953,27 @@ extension TransactionPersonTagItem: ProfileOwned {}
 extension RecurringRulePersonTagItem: ProfileOwned {}
 
 extension TransactionItem {
+    var dismissedReviewIssueKinds: Set<TransactionReviewIssueKind> {
+        get {
+            Set(
+                (dismissedReviewKindsRaw ?? "")
+                    .split(separator: ",")
+                    .compactMap { TransactionReviewIssueKind(rawValue: String($0)) }
+            )
+        }
+        set {
+            dismissedReviewKindsRaw = newValue
+                .map(\.rawValue)
+                .sorted()
+                .joined(separator: ",")
+                .nilIfBlank
+        }
+    }
+
+    var dismissedDuplicateGroupSignature: String? {
+        dismissedDuplicateGroupSignatureRaw?.nilIfBlank
+    }
+
     var status: TransactionStatus {
         get { TransactionStatus(rawValue: statusRaw) ?? .posted }
         set { statusRaw = newValue.rawValue }
@@ -2004,6 +2038,24 @@ extension TransactionItem {
 
     var hasPeople: Bool {
         personSummary != nil
+    }
+
+    func isReviewIssueDismissed(_ kind: TransactionReviewIssueKind) -> Bool {
+        dismissedReviewIssueKinds.contains(kind)
+    }
+
+    func dismissReviewIssue(_ kind: TransactionReviewIssueKind) {
+        var kinds = dismissedReviewIssueKinds
+        guard kinds.insert(kind).inserted else { return }
+        dismissedReviewIssueKinds = kinds
+        updatedAt = Date()
+    }
+
+    func dismissDuplicateGroup(signature: String) {
+        let normalized = signature.nilIfBlank
+        guard dismissedDuplicateGroupSignature != normalized else { return }
+        dismissedDuplicateGroupSignatureRaw = normalized
+        updatedAt = Date()
     }
 
     func apply(

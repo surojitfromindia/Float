@@ -667,6 +667,8 @@ private extension TransactionDTO {
             note: item.note,
             recurringRuleID: item.recurringRule?.id,
             receiptCaptureID: item.receiptCapture?.id,
+            dismissedReviewKindsRaw: item.dismissedReviewKindsRaw,
+            dismissedDuplicateGroupSignatureRaw: item.dismissedDuplicateGroupSignatureRaw,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt
         )
@@ -710,6 +712,8 @@ private extension TransactionItem {
             note: dto.note,
             recurringRule: recurringRule,
             receiptCapture: receiptCapture,
+            dismissedReviewKindsRaw: dto.dismissedReviewKindsRaw,
+            dismissedDuplicateGroupSignatureRaw: dto.dismissedDuplicateGroupSignatureRaw,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )

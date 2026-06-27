@@ -139,36 +139,36 @@ enum InsightSignalsUseCase {
         currencyCode: String,
         calendar: Calendar
     ) -> [InsightSignal] {
-        let grouped = Dictionary(grouping: transactions.filter(\.isPosted)) {
-            DuplicateTransactionKey(transaction: $0, calendar: calendar)
-        }
-        return grouped.compactMap { key, items in
-            guard items.count > 1, key.amountMinor > 0 else { return nil }
-            let first = items.sorted { $0.timestamp < $1.timestamp }.first
+        TransactionDuplicateDetector.groups(
+            in: transactions.filter(\.isPosted),
+            calendar: calendar
+        )
+        .compactMap { group in
+            guard let first = group.first, first.amountMinor > 0 else { return nil }
             let amount = MoneyFormatter.string(
-                minorUnits: key.amountMinor,
+                minorUnits: first.amountMinor,
                 currencyCode: currencyCode
             )
-            let date = key.day.formatted(
+            let date = calendar.startOfDay(for: first.timestamp).formatted(
                 Date.FormatStyle(date: .abbreviated, time: .omitted)
                     .locale(AppLocalization.locale)
             )
             return InsightSignal(
-                id: "duplicate-\(key.id)",
+                id: "duplicate-\(first.id.uuidString)",
                 kind: .duplicateCharge,
                 severity: .warning,
                 title: String(localized: "Possible duplicate"),
                 message: AppLocalization.format(
                     "%lld matching %@ transactions for %@ on %@.",
-                    Int64(items.count),
-                    first?.categoryName ?? String(localized: "uncategorized"),
+                    Int64(group.transactions.count),
+                    first.categoryName,
                     amount,
                     date
                 ),
                 icon: "doc.on.doc.fill",
                 colorHex: "#B4613B",
-                amountMinor: key.amountMinor,
-                referenceID: first?.id.uuidString
+                amountMinor: first.amountMinor,
+                referenceID: first.id.uuidString
             )
         }
     }
@@ -365,26 +365,6 @@ enum InsightSignalsUseCase {
     private static func percent(_ value: Int64, of total: Int64) -> String {
         guard total > 0 else { return "0%" }
         return "\(Int((Double(value) / Double(total) * 100).rounded()))%"
-    }
-}
-
-private struct DuplicateTransactionKey: Hashable {
-    let amountMinor: Int64
-    let isExpense: Bool
-    let day: Date
-    let categoryID: String
-    let accountID: String
-
-    init(transaction: TransactionItem, calendar: Calendar) {
-        amountMinor = transaction.amountMinor
-        isExpense = transaction.isExpense
-        day = calendar.startOfDay(for: transaction.timestamp)
-        categoryID = transaction.category?.id.uuidString ?? ""
-        accountID = transaction.account?.id.uuidString ?? ""
-    }
-
-    var id: String {
-        "\(amountMinor)-\(isExpense)-\(day.timeIntervalSince1970)-\(categoryID)-\(accountID)"
     }
 }
 

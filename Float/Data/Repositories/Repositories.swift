@@ -558,6 +558,22 @@ struct TransactionRepository {
         try save()
     }
 
+    func dismissReviewIssue(
+        _ kind: TransactionReviewIssueKind,
+        for transaction: TransactionItem
+    ) throws {
+        transaction.dismissReviewIssue(kind)
+        try save()
+    }
+
+    func dismissDuplicateGroup(
+        signature: String,
+        for transaction: TransactionItem
+    ) throws {
+        transaction.dismissDuplicateGroup(signature: signature)
+        try save()
+    }
+
     func fetchAll() throws -> [TransactionItem] {
         var descriptor = FetchDescriptor<TransactionItem>(
             sortBy: [SortDescriptor(\.timestamp, order: .reverse)]

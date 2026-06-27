@@ -84,35 +84,125 @@ struct ReviewQueueView: View {
                 .padding(12)
                 .floatGlassSurface(cornerRadius: FloatTheme.controlRadius)
 
+                actionSection(for: issue)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func actionSection(for issue: ReviewIssue) -> some View {
+        let showsTemplate = canCreateTemplate(from: issue.transaction)
+
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 8) {
+                reviewActionButton(
+                    title: "Edit",
+                    systemImage: "pencil",
+                    tint: appState.themePalette.accent
+                ) {
+                    editingTransaction = issue.transaction
+                }
+
+                if showsTemplate {
+                    reviewActionButton(
+                        title: "Template",
+                        systemImage: "square.text.square",
+                        tint: Color(hex: "#5A6B6B")
+                    ) {
+                        createTemplate(from: issue.transaction)
+                    }
+                }
+
+                reviewActionButton(
+                    title: issue.resolveLabel,
+                    systemImage: issue.resolveIcon,
+                    tint: issue.tint
+                ) {
+                    resolve(issue)
+                }
+
+                reviewDeleteButton {
+                    delete(issue.transaction)
+                }
+            }
+
+            VStack(spacing: 8) {
                 HStack(spacing: 8) {
-                    Button {
+                    reviewActionButton(
+                        title: "Edit",
+                        systemImage: "pencil",
+                        tint: appState.themePalette.accent
+                    ) {
                         editingTransaction = issue.transaction
-                    } label: {
-                        Label("Edit", systemImage: "pencil")
                     }
-                    .buttonStyle(.bordered)
 
-                    if canCreateTemplate(from: issue.transaction) {
-                        Button {
+                    if showsTemplate {
+                        reviewActionButton(
+                            title: "Template",
+                            systemImage: "square.text.square",
+                            tint: Color(hex: "#5A6B6B")
+                        ) {
                             createTemplate(from: issue.transaction)
-                        } label: {
-                            Label("Template", systemImage: "square.text.square")
                         }
-                        .buttonStyle(.bordered)
+                    }
+                }
+
+                HStack(spacing: 8) {
+                    reviewActionButton(
+                        title: issue.resolveLabel,
+                        systemImage: issue.resolveIcon,
+                        tint: issue.tint
+                    ) {
+                        resolve(issue)
                     }
 
-                    Spacer()
-
-                    Button(role: .destructive) {
+                    reviewDeleteButton {
                         delete(issue.transaction)
-                    } label: {
-                        Image(systemName: "trash")
                     }
-                    .buttonStyle(.bordered)
-                    .accessibilityLabel("Delete transaction")
                 }
             }
         }
+    }
+
+    private func reviewActionButton(
+        title: String,
+        systemImage: String,
+        tint: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.subheadline.weight(.semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.9)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .padding(.horizontal, 14)
+                .foregroundStyle(tint)
+                .floatGlassSurface(
+                    cornerRadius: FloatTheme.controlRadius,
+                    tint: tint,
+                    interactive: true,
+                    strokeOpacity: 0.05
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func reviewDeleteButton(action: @escaping () -> Void) -> some View {
+        Button(role: .destructive, action: action) {
+            Image(systemName: "trash")
+                .font(.system(size: 17, weight: .semibold))
+                .frame(width: 44, height: 44)
+                .foregroundStyle(Color(hex: "#B4613B"))
+                .floatGlassSurface(
+                    cornerRadius: FloatTheme.controlRadius,
+                    tint: Color(hex: "#B4613B"),
+                    interactive: true,
+                    strokeOpacity: 0.05
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Delete transaction")
     }
 
     private func canCreateTemplate(from transaction: TransactionItem) -> Bool {
@@ -158,6 +248,27 @@ struct ReviewQueueView: View {
         }
     }
 
+    private func resolve(_ issue: ReviewIssue) {
+        let repository = TransactionRepository(modelContext: modelContext)
+        do {
+            switch issue.kind {
+            case .likelyDuplicate:
+                guard let signature = issue.duplicateGroupSignature else { return }
+                try repository.dismissDuplicateGroup(
+                    signature: signature,
+                    for: issue.transaction
+                )
+                showMessage(String(localized: "Marked as not a duplicate."))
+            case .missingCategory, .missingAccount, .highValue:
+                try repository.dismissReviewIssue(issue.kind, for: issue.transaction)
+                showMessage(String(localized: "Marked resolved"))
+            }
+            Haptics.confirm()
+        } catch {
+            showMessage(error.localizedDescription)
+        }
+    }
+
     private func showMessage(_ text: String) {
         withAnimation(.easeInOut(duration: 0.18)) {
             message = text
@@ -176,16 +287,10 @@ struct ReviewQueueView: View {
 }
 
 private struct ReviewIssue: Identifiable {
-    enum Kind {
-        case missingCategory
-        case missingAccount
-        case likelyDuplicate
-        case highValue
-    }
-
     let id: String
-    let kind: Kind
+    let kind: TransactionReviewIssueKind
     let transaction: TransactionItem
+    let duplicateGroupSignature: String?
 
     var title: String {
         switch kind {
@@ -203,7 +308,7 @@ private struct ReviewIssue: Identifiable {
         case .missingAccount:
             "Assign an account so balances remain correct."
         case .likelyDuplicate:
-            "This looks similar to another transaction on the same day."
+            String(localized: "This looks similar to another transaction within a few minutes.")
         case .highValue:
             "Check this amount before it affects your safe-to-spend number."
         }
@@ -228,25 +333,53 @@ private struct ReviewIssue: Identifiable {
             Color(hex: "#0E7C7B")
         }
     }
+
+    var resolveLabel: String {
+        switch kind {
+        case .likelyDuplicate:
+            String(localized: "Not a duplicate")
+        case .missingCategory, .missingAccount, .highValue:
+            String(localized: "Mark resolved")
+        }
+    }
+
+    var resolveIcon: String {
+        switch kind {
+        case .likelyDuplicate:
+            "checkmark.shield"
+        case .missingCategory, .missingAccount, .highValue:
+            "checkmark.circle"
+        }
+    }
 }
 
 private enum ReviewIssueBuilder {
     static func issues(for transactions: [TransactionItem]) -> [ReviewIssue] {
         var issues: [ReviewIssue] = []
-        let duplicateIDs = duplicateTransactionIDs(in: transactions)
+        let duplicateGroupSignatures = TransactionDuplicateDetector
+            .duplicateGroupSignaturesByTransactionID(in: transactions)
         let highValueThreshold = highValueMinorThreshold(for: transactions)
 
         for transaction in transactions.prefix(250) {
-            if transaction.category == nil {
+            if transaction.category == nil,
+               !transaction.isReviewIssueDismissed(.missingCategory) {
                 issues.append(issue(.missingCategory, transaction: transaction))
             }
-            if transaction.account == nil {
+            if transaction.account == nil,
+               !transaction.isReviewIssueDismissed(.missingAccount) {
                 issues.append(issue(.missingAccount, transaction: transaction))
             }
-            if duplicateIDs.contains(transaction.id) {
-                issues.append(issue(.likelyDuplicate, transaction: transaction))
+            if let duplicateGroupSignature = duplicateGroupSignatures[transaction.id] {
+                issues.append(
+                    issue(
+                        .likelyDuplicate,
+                        transaction: transaction,
+                        duplicateGroupSignature: duplicateGroupSignature
+                    )
+                )
             }
-            if transaction.amountMinor >= highValueThreshold {
+            if transaction.amountMinor >= highValueThreshold,
+               !transaction.isReviewIssueDismissed(.highValue) {
                 issues.append(issue(.highValue, transaction: transaction))
             }
         }
@@ -255,38 +388,17 @@ private enum ReviewIssueBuilder {
     }
 
     private static func issue(
-        _ kind: ReviewIssue.Kind,
-        transaction: TransactionItem
+        _ kind: TransactionReviewIssueKind,
+        transaction: TransactionItem,
+        duplicateGroupSignature: String? = nil
     ) -> ReviewIssue {
         ReviewIssue(
             id: "\(transaction.id.uuidString)-\(kind)",
             kind: kind,
-            transaction: transaction
+            transaction: transaction,
+            duplicateGroupSignature: duplicateGroupSignature
         )
     }
-
-    private static func duplicateTransactionIDs(in transactions: [TransactionItem]) -> Set<UUID> {
-        var groups: [String: [TransactionItem]] = [:]
-        let calendar = Calendar.current
-        for transaction in transactions {
-            let day = calendar.startOfDay(for: transaction.timestamp).timeIntervalSince1970
-            let key = [
-                transaction.amountMinor.description,
-                transaction.isExpense.description,
-                transaction.category?.id.uuidString ?? "none",
-                transaction.account?.id.uuidString ?? "none",
-                transaction.note ?? "",
-                Int(day).description,
-            ].joined(separator: "|")
-            groups[key, default: []].append(transaction)
-        }
-
-        return groups.values.reduce(into: Set<UUID>()) { result, group in
-            guard group.count > 1 else { return }
-            group.dropFirst().forEach { result.insert($0.id) }
-        }
-    }
-
     private static func highValueMinorThreshold(for transactions: [TransactionItem]) -> Int64 {
         let expenses = transactions
             .filter(\.isPostedExpense)

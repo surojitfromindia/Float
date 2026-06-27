@@ -4335,6 +4335,9 @@
     "Mark resolved" : {
 
     },
+    "Marked as not a duplicate." : {
+
+    },
     "Marked resolved" : {
 
     },
@@ -4985,6 +4988,9 @@
           }
         }
       }
+    },
+    "Not a duplicate" : {
+
     },
     "Nothing to review" : {
       "localizations" : {
@@ -7090,6 +7096,9 @@
     "This month" : {
 
     },
+    "This looks similar to another transaction within a few minutes." : {
+
+    },
     "This period" : {
       "localizations" : {
         "bn" : {
@@ -7450,9 +7459,6 @@
           }
         }
       }
-    },
-    "uncategorized" : {
-
     },
     "Undo" : {
       "localizations" : {
