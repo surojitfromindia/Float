@@ -45,35 +45,21 @@ struct FlowConfigurationView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                SectionHeader(
-                    title: "Objects",
-                    actionTitle: "Add",
-                    action: {
-                        objectEditor = ObjectTypeEditorPresentation(
-                            flow: flow,
-                            objectType: nil
-                        )
-                    }
-                )
-
+        List {
+            Section {
                 if objectTypes.isEmpty {
-                    GlassCard {
-                        EmptyStateView(
-                            icon: "list.bullet.rectangle",
-                            title: "No objects",
-                            message: "Add an object type before creating records."
-                        )
-                    }
+                    ConfigurationEmptyRow(
+                        icon: "list.bullet.rectangle",
+                        title: "No objects",
+                        message: "Add an object type before creating records."
+                    )
                 } else {
                     ForEach(objectTypes) { objectType in
                         NavigationLink {
                             FlowObjectConfigurationView(objectType: objectType)
                         } label: {
-                            ObjectTypeCard(objectType: objectType)
+                            ConfigurationObjectRow(objectType: objectType)
                         }
-                        .buttonStyle(.plain)
                         .contextMenu {
                             Button {
                                 objectEditor = ObjectTypeEditorPresentation(
@@ -91,73 +77,53 @@ struct FlowConfigurationView: View {
                         }
                     }
                 }
+            } header: {
+                ConfigurationSectionHeader(title: "Objects") {
+                    objectEditor = ObjectTypeEditorPresentation(
+                        flow: flow,
+                        objectType: nil
+                    )
+                }
+            }
 
-                SectionHeader(
-                    title: "Relations",
-                    actionTitle: "Add",
-                    action: {
-                        relationEditor = RelationEditorPresentation(flow: flow)
-                    }
-                )
-
+            Section {
                 if relations.isEmpty {
-                    GlassCard {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("No relations")
-                                .font(.headline)
-                            Text("Create links between object types for generated relation fields.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+                    ConfigurationEmptyRow(
+                        icon: "link",
+                        title: "No relations",
+                        message: "Create links between object types for generated relation fields."
+                    )
                 } else {
                     ForEach(relations) { relation in
-                        GlassCard(padding: 14) {
-                            HStack(spacing: 12) {
-                                FloatIconBadge(
-                                    icon: relation.kind == .hasMany
-                                        ? "rectangle.stack.fill"
-                                        : "arrowshape.turn.up.left.fill",
-                                    tint: Color(hex: flow.colorHex),
-                                    size: 34
-                                )
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(relation.name)
-                                        .font(.subheadline.weight(.semibold))
-                                    Text(relationSummary(relation))
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                            }
-                        }
-                    }
-                }
-
-                SectionHeader(
-                    title: "Transaction actions",
-                    actionTitle: "Add",
-                    action: {
-                        actionEditor = TransactionActionEditorPresentation(
-                            flow: flow,
-                            action: nil
+                        ConfigurationRelationRow(
+                            relation: relation,
+                            summary: relationSummary(relation)
                         )
                     }
-                )
+                }
+            } header: {
+                ConfigurationSectionHeader(title: "Relations") {
+                    relationEditor = RelationEditorPresentation(flow: flow)
+                }
+            }
 
+            Section {
                 if transactionActions.isEmpty {
-                    GlassCard {
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("No transaction actions")
-                                .font(.headline)
-                            Text("Create a transaction automatically when a record is finalized.")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
+                    ConfigurationEmptyRow(
+                        icon: "arrow.triangle.2.circlepath",
+                        title: "No transaction actions",
+                        message: "Create a transaction automatically when a record is finalized."
+                    )
                 } else {
                     ForEach(transactionActions) { action in
-                        TransactionActionCard(action: action)
+                        ConfigurationTransactionActionRow(action: action)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                actionEditor = TransactionActionEditorPresentation(
+                                    flow: flow,
+                                    action: action
+                                )
+                            }
                             .contextMenu {
                                 Button {
                                     actionEditor = TransactionActionEditorPresentation(
@@ -175,11 +141,19 @@ struct FlowConfigurationView: View {
                             }
                     }
                 }
+            } header: {
+                ConfigurationSectionHeader(title: "Transaction actions") {
+                    actionEditor = TransactionActionEditorPresentation(
+                        flow: flow,
+                        action: nil
+                    )
+                }
             }
-            .padding(20)
-            .padding(.bottom, 120)
         }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
         .navigationTitle("Configuration")
+        .navigationBarTitleDisplayMode(.large)
         .floatBackground()
         .toolbar {
             Menu {
@@ -214,6 +188,7 @@ struct FlowConfigurationView: View {
                     showingDeleteAlert = true
                 } label: {
                     Label("Delete", systemImage: "trash")
+                        .foregroundStyle(.red)
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
@@ -269,35 +244,120 @@ struct FlowConfigurationView: View {
     }
 }
 
-private struct TransactionActionCard: View {
-    let action: CustomFlowTransactionActionItem
-
-    private var tint: Color {
-        Color(hex: action.flow?.colorHex ?? "#0E7C7B")
-    }
+private struct ConfigurationSectionHeader: View {
+    let title: LocalizedStringResource
+    let action: () -> Void
 
     var body: some View {
-        GlassCard(padding: 14) {
-            HStack(spacing: 12) {
-                FloatIconBadge(
-                    icon: "arrow.triangle.2.circlepath",
-                    tint: tint,
-                    size: 34
-                )
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(action.name)
-                        .font(.subheadline.weight(.semibold))
-                    Text(summary)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-                Spacer()
-                Text(action.isExpense ? "Expense" : "Income")
-                    .font(.caption2.weight(.semibold))
+        HStack {
+            Text(title)
+            Spacer()
+            Button("Add", action: action)
+                .font(.subheadline.weight(.semibold))
+                .textCase(nil)
+        }
+    }
+}
+
+private struct ConfigurationEmptyRow: View {
+    let icon: String
+    let title: LocalizedStringResource
+    let message: LocalizedStringResource
+
+    var body: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.primary)
+                Text(message)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
+        } icon: {
+            Image(systemName: icon)
+                .font(.body.weight(.medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 28)
         }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct ConfigurationObjectRow: View {
+    let objectType: CustomFlowObjectTypeItem
+
+    var body: some View {
+        Label {
+            Text(objectType.name)
+                .font(.body.weight(.medium))
+                .lineLimit(1)
+        } icon: {
+            Image(systemName: objectType.iconKey)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 28)
+        }
+        .padding(.vertical, 5)
+    }
+}
+
+private struct ConfigurationRelationRow: View {
+    let relation: CustomFlowRelationItem
+    let summary: String
+
+    var body: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(relation.name)
+                    .font(.body.weight(.medium))
+                    .lineLimit(1)
+                Text(summary)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+        } icon: {
+            Image(
+                systemName: relation.kind == .hasMany
+                    ? "rectangle.stack"
+                    : "arrowshape.turn.up.left"
+            )
+            .font(.body.weight(.medium))
+            .foregroundStyle(.secondary)
+            .frame(width: 28)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct ConfigurationTransactionActionRow: View {
+    let action: CustomFlowTransactionActionItem
+
+    var body: some View {
+        Label {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(action.name)
+                        .font(.body.weight(.medium))
+                        .lineLimit(1)
+                    Text(summary)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 8)
+                Text(action.isExpense ? "Expense" : "Income")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        } icon: {
+            Image(systemName: "arrow.triangle.2.circlepath")
+                .font(.body.weight(.medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 28)
+        }
+        .padding(.vertical, 4)
     }
 
     private var summary: String {
