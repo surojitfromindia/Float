@@ -161,6 +161,7 @@ struct SettingsView: View {
         Section("Manage") {
             settingsNavigationLink("Calendar") { CalendarView() }
             settingsNavigationLink("Planner") { ScenarioPlannerView() }
+            settingsNavigationLink("Flows") { FlowsView() }
             settingsNavigationLink("Budget") { BudgetSettingsView() }
             settingsNavigationLink("Goals") { GoalsView() }
             settingsNavigationLink("Recurring") { RecurringView() }
@@ -371,6 +372,14 @@ struct SettingsView: View {
                 transactionPersonTags: fetchAll(TransactionPersonTagItem.self),
                 transactionTemplates: fetchAll(TransactionTemplateItem.self),
                 transactionTemplateGroups: fetchAll(TransactionTemplateGroupItem.self),
+                customFlows: fetchAll(CustomFlowItem.self),
+                customFlowObjectTypes: fetchAll(CustomFlowObjectTypeItem.self),
+                customFlowFields: fetchAll(CustomFlowFieldItem.self),
+                customFlowRelations: fetchAll(CustomFlowRelationItem.self),
+                customFlowRecords: fetchAll(CustomFlowRecordItem.self),
+                customFlowFieldValues: fetchAll(CustomFlowFieldValueItem.self),
+                customFlowTransactionActions: fetchAll(CustomFlowTransactionActionItem.self),
+                customFlowTransactionLinks: fetchAll(CustomFlowTransactionLinkItem.self),
                 transfers: fetchAll(TransferItem.self),
                 goals: fetchAll(GoalItem.self),
                 recurringRules: fetchAll(RecurringRuleItem.self),
@@ -436,6 +445,14 @@ struct SettingsView: View {
     private func resetAllData(reseedDefaults: Bool = true) {
         for item in fetchAll(TransactionPersonTagItem.self) { modelContext.delete(item) }
         for item in fetchAll(RecurringRulePersonTagItem.self) { modelContext.delete(item) }
+        for item in fetchAll(CustomFlowTransactionLinkItem.self) { modelContext.delete(item) }
+        for item in fetchAll(CustomFlowFieldValueItem.self) { modelContext.delete(item) }
+        for item in fetchAll(CustomFlowRecordItem.self) { modelContext.delete(item) }
+        for item in fetchAll(CustomFlowTransactionActionItem.self) { modelContext.delete(item) }
+        for item in fetchAll(CustomFlowFieldItem.self) { modelContext.delete(item) }
+        for item in fetchAll(CustomFlowRelationItem.self) { modelContext.delete(item) }
+        for item in fetchAll(CustomFlowObjectTypeItem.self) { modelContext.delete(item) }
+        for item in fetchAll(CustomFlowItem.self) { modelContext.delete(item) }
         for item in fetchAll(SettlementMilestoneItem.self) { modelContext.delete(item) }
         for item in fetchAll(SettlementEntryItem.self) { modelContext.delete(item) }
         for item in fetchAll(SettlementCaseItem.self) { modelContext.delete(item) }

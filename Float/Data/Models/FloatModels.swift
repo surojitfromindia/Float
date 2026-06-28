@@ -344,6 +344,45 @@ enum HouseholdSplitMethod: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum CustomFlowFieldKind: String, Codable, CaseIterable, Identifiable {
+    case text
+    case number
+    case money
+    case dateTime
+    case checkbox
+    case choice
+    case relation
+    case formula
+    case notes
+    case category
+    case account
+    case person
+
+    var id: String { rawValue }
+}
+
+enum CustomFlowRelationKind: String, Codable, CaseIterable, Identifiable {
+    case belongsTo
+    case hasMany
+
+    var id: String { rawValue }
+}
+
+enum CustomFlowRecordStatus: String, Codable, CaseIterable, Identifiable {
+    case draft
+    case finalized
+    case archived
+
+    var id: String { rawValue }
+}
+
+enum CustomFlowTransactionActionTrigger: String, Codable, CaseIterable, Identifiable {
+    case manual
+    case finalize
+
+    var id: String { rawValue }
+}
+
 @Model
 final class UserProfileItem {
     var id: UUID = UUID()
@@ -725,6 +764,454 @@ final class TransactionTemplateGroupEntryItem {
 }
 
 extension TransactionTemplateGroupEntryItem: ProfileOwned {}
+
+@Model
+final class CustomFlowItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var name: String = ""
+    var iconKey: String = "rectangle.stack.fill"
+    var colorHex: String = "#0E7C7B"
+    var sortOrder: Int = 0
+    var archived: Bool = false
+    var starterIdentifier: String?
+    @Relationship(deleteRule: .cascade, inverse: \CustomFlowObjectTypeItem.flow)
+    var objectTypes: [CustomFlowObjectTypeItem] = []
+    @Relationship(deleteRule: .cascade, inverse: \CustomFlowRelationItem.flow)
+    var relations: [CustomFlowRelationItem] = []
+    @Relationship(deleteRule: .cascade, inverse: \CustomFlowTransactionActionItem.flow)
+    var transactionActions: [CustomFlowTransactionActionItem] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        name: String,
+        iconKey: String = "rectangle.stack.fill",
+        colorHex: String = "#0E7C7B",
+        sortOrder: Int = 0,
+        archived: Bool = false,
+        starterIdentifier: String? = nil,
+        objectTypes: [CustomFlowObjectTypeItem] = [],
+        relations: [CustomFlowRelationItem] = [],
+        transactionActions: [CustomFlowTransactionActionItem] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID
+        self.name = name.nilIfBlank ?? String(localized: "Flow")
+        self.iconKey = iconKey.nilIfBlank ?? "rectangle.stack.fill"
+        self.colorHex = colorHex.nilIfBlank ?? "#0E7C7B"
+        self.sortOrder = sortOrder
+        self.archived = archived
+        self.starterIdentifier = starterIdentifier?.nilIfBlank
+        self.objectTypes = objectTypes
+        self.relations = relations
+        self.transactionActions = transactionActions
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension CustomFlowItem: ProfileOwned {}
+
+@Model
+final class CustomFlowObjectTypeItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var name: String = ""
+    var singularName: String = ""
+    var iconKey: String = "list.bullet.rectangle"
+    var sortOrder: Int = 0
+    var archived: Bool = false
+    var flow: CustomFlowItem?
+    @Relationship(deleteRule: .cascade, inverse: \CustomFlowFieldItem.objectType)
+    var fields: [CustomFlowFieldItem] = []
+    @Relationship(deleteRule: .cascade, inverse: \CustomFlowRecordItem.objectType)
+    var records: [CustomFlowRecordItem] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        name: String,
+        singularName: String? = nil,
+        iconKey: String = "list.bullet.rectangle",
+        sortOrder: Int = 0,
+        archived: Bool = false,
+        flow: CustomFlowItem? = nil,
+        fields: [CustomFlowFieldItem] = [],
+        records: [CustomFlowRecordItem] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID ?? flow?.profileID
+        self.name = name.nilIfBlank ?? String(localized: "Records")
+        self.singularName = singularName?.nilIfBlank ?? self.name
+        self.iconKey = iconKey.nilIfBlank ?? "list.bullet.rectangle"
+        self.sortOrder = sortOrder
+        self.archived = archived
+        self.flow = flow
+        self.fields = fields
+        self.records = records
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension CustomFlowObjectTypeItem: ProfileOwned {}
+
+@Model
+final class CustomFlowFieldItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var name: String = ""
+    var key: String = ""
+    var kindRaw: String = CustomFlowFieldKind.text.rawValue
+    var sortOrder: Int = 0
+    var required: Bool = false
+    var archived: Bool = false
+    var choiceOptionsRaw: String?
+    var defaultValueRaw: String?
+    var formulaDefinitionRaw: String?
+    var objectType: CustomFlowObjectTypeItem?
+    var relation: CustomFlowRelationItem?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        name: String,
+        key: String? = nil,
+        kind: CustomFlowFieldKind = .text,
+        sortOrder: Int = 0,
+        required: Bool = false,
+        archived: Bool = false,
+        choiceOptionsRaw: String? = nil,
+        defaultValueRaw: String? = nil,
+        formulaDefinitionRaw: String? = nil,
+        objectType: CustomFlowObjectTypeItem? = nil,
+        relation: CustomFlowRelationItem? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID
+            ?? objectType?.profileID
+            ?? relation?.profileID
+        self.name = name.nilIfBlank ?? String(localized: "Field")
+        self.key = key?.nilIfBlank ?? Self.key(from: self.name)
+        self.kindRaw = kind.rawValue
+        self.sortOrder = sortOrder
+        self.required = required
+        self.archived = archived
+        self.choiceOptionsRaw = choiceOptionsRaw?.nilIfBlank
+        self.defaultValueRaw = defaultValueRaw?.nilIfBlank
+        self.formulaDefinitionRaw = formulaDefinitionRaw?.nilIfBlank
+        self.objectType = objectType
+        self.relation = relation
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+
+    private static func key(from name: String) -> String {
+        let normalized = name.lowercased().map { character in
+            character.isLetter || character.isNumber ? character : "_"
+        }
+        let key = String(normalized)
+            .split(separator: "_")
+            .joined(separator: "_")
+        return key.nilIfBlank ?? "field"
+    }
+}
+
+extension CustomFlowFieldItem: ProfileOwned {}
+
+@Model
+final class CustomFlowRelationItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var name: String = ""
+    var kindRaw: String = CustomFlowRelationKind.hasMany.rawValue
+    var sortOrder: Int = 0
+    var archived: Bool = false
+    var flow: CustomFlowItem?
+    var sourceObjectType: CustomFlowObjectTypeItem?
+    var targetObjectType: CustomFlowObjectTypeItem?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        name: String,
+        kind: CustomFlowRelationKind = .hasMany,
+        sortOrder: Int = 0,
+        archived: Bool = false,
+        flow: CustomFlowItem? = nil,
+        sourceObjectType: CustomFlowObjectTypeItem? = nil,
+        targetObjectType: CustomFlowObjectTypeItem? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID
+            ?? flow?.profileID
+            ?? sourceObjectType?.profileID
+            ?? targetObjectType?.profileID
+        self.name = name.nilIfBlank ?? String(localized: "Relation")
+        self.kindRaw = kind.rawValue
+        self.sortOrder = sortOrder
+        self.archived = archived
+        self.flow = flow
+        self.sourceObjectType = sourceObjectType
+        self.targetObjectType = targetObjectType
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension CustomFlowRelationItem: ProfileOwned {}
+
+@Model
+final class CustomFlowRecordItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var title: String = ""
+    var statusRaw: String = CustomFlowRecordStatus.draft.rawValue
+    var sortOrder: Int = 0
+    var objectType: CustomFlowObjectTypeItem?
+    var parentRecord: CustomFlowRecordItem?
+    var parentRelation: CustomFlowRelationItem?
+    @Relationship(deleteRule: .cascade, inverse: \CustomFlowFieldValueItem.record)
+    var values: [CustomFlowFieldValueItem] = []
+    @Relationship(deleteRule: .cascade, inverse: \CustomFlowTransactionLinkItem.record)
+    var transactionLinks: [CustomFlowTransactionLinkItem] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+    var finalizedAt: Date?
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        title: String,
+        status: CustomFlowRecordStatus = .draft,
+        sortOrder: Int = 0,
+        objectType: CustomFlowObjectTypeItem? = nil,
+        parentRecord: CustomFlowRecordItem? = nil,
+        parentRelation: CustomFlowRelationItem? = nil,
+        values: [CustomFlowFieldValueItem] = [],
+        transactionLinks: [CustomFlowTransactionLinkItem] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date(),
+        finalizedAt: Date? = nil
+    ) {
+        self.id = id
+        self.profileID = profileID
+            ?? objectType?.profileID
+            ?? parentRecord?.profileID
+            ?? parentRelation?.profileID
+        self.title = title.nilIfBlank ?? objectType?.singularName ?? String(localized: "Record")
+        self.statusRaw = status.rawValue
+        self.sortOrder = sortOrder
+        self.objectType = objectType
+        self.parentRecord = parentRecord
+        self.parentRelation = parentRelation
+        self.values = values
+        self.transactionLinks = transactionLinks
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.finalizedAt = finalizedAt
+    }
+}
+
+extension CustomFlowRecordItem: ProfileOwned {}
+
+@Model
+final class CustomFlowFieldValueItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var record: CustomFlowRecordItem?
+    var field: CustomFlowFieldItem?
+    var valueRaw: String?
+    var numberValue: Double?
+    var amountMinor: Int64?
+    var dateValue: Date?
+    var boolValue: Bool?
+    var relatedRecord: CustomFlowRecordItem?
+    var category: CategoryItem?
+    var account: AccountItem?
+    var person: PersonItem?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        record: CustomFlowRecordItem? = nil,
+        field: CustomFlowFieldItem? = nil,
+        valueRaw: String? = nil,
+        numberValue: Double? = nil,
+        amountMinor: Int64? = nil,
+        dateValue: Date? = nil,
+        boolValue: Bool? = nil,
+        relatedRecord: CustomFlowRecordItem? = nil,
+        category: CategoryItem? = nil,
+        account: AccountItem? = nil,
+        person: PersonItem? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID
+            ?? record?.profileID
+            ?? field?.profileID
+            ?? relatedRecord?.profileID
+            ?? category?.profileID
+            ?? account?.profileID
+            ?? person?.profileID
+        self.record = record
+        self.field = field
+        self.valueRaw = valueRaw?.nilIfBlank
+        self.numberValue = numberValue
+        self.amountMinor = amountMinor.map(normalizedMinorUnits)
+        self.dateValue = dateValue
+        self.boolValue = boolValue
+        self.relatedRecord = relatedRecord
+        self.category = category
+        self.account = account
+        self.person = person
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension CustomFlowFieldValueItem: ProfileOwned {}
+
+@Model
+final class CustomFlowTransactionActionItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var name: String = ""
+    var triggerRaw: String = CustomFlowTransactionActionTrigger.finalize.rawValue
+    var isExpense: Bool = true
+    var active: Bool = true
+    var flow: CustomFlowItem?
+    var sourceObjectType: CustomFlowObjectTypeItem?
+    var amountField: CustomFlowFieldItem?
+    var categoryField: CustomFlowFieldItem?
+    var accountField: CustomFlowFieldItem?
+    var dateField: CustomFlowFieldItem?
+    var noteField: CustomFlowFieldItem?
+    var fixedAmountMinor: Int64?
+    var fixedDate: Date?
+    var fixedCategory: CategoryItem?
+    var fixedAccount: AccountItem?
+    var fixedNote: String?
+    @Relationship(deleteRule: .cascade, inverse: \CustomFlowTransactionLinkItem.action)
+    var links: [CustomFlowTransactionLinkItem] = []
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        name: String,
+        trigger: CustomFlowTransactionActionTrigger = .finalize,
+        isExpense: Bool = true,
+        active: Bool = true,
+        flow: CustomFlowItem? = nil,
+        sourceObjectType: CustomFlowObjectTypeItem? = nil,
+        amountField: CustomFlowFieldItem? = nil,
+        categoryField: CustomFlowFieldItem? = nil,
+        accountField: CustomFlowFieldItem? = nil,
+        dateField: CustomFlowFieldItem? = nil,
+        noteField: CustomFlowFieldItem? = nil,
+        fixedAmountMinor: Int64? = nil,
+        fixedDate: Date? = nil,
+        fixedCategory: CategoryItem? = nil,
+        fixedAccount: AccountItem? = nil,
+        fixedNote: String? = nil,
+        links: [CustomFlowTransactionLinkItem] = [],
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID
+            ?? flow?.profileID
+            ?? sourceObjectType?.profileID
+            ?? amountField?.profileID
+            ?? categoryField?.profileID
+            ?? accountField?.profileID
+            ?? dateField?.profileID
+            ?? noteField?.profileID
+            ?? fixedCategory?.profileID
+            ?? fixedAccount?.profileID
+        self.name = name.nilIfBlank ?? String(localized: "Create transaction")
+        self.triggerRaw = trigger.rawValue
+        self.isExpense = isExpense
+        self.active = active
+        self.flow = flow
+        self.sourceObjectType = sourceObjectType
+        self.amountField = amountField
+        self.categoryField = categoryField
+        self.accountField = accountField
+        self.dateField = dateField
+        self.noteField = noteField
+        self.fixedAmountMinor = fixedAmountMinor.map(normalizedMinorUnits)
+        self.fixedDate = fixedDate
+        self.fixedCategory = fixedCategory
+        self.fixedAccount = fixedAccount
+        self.fixedNote = fixedNote?.nilIfBlank
+        self.links = links
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension CustomFlowTransactionActionItem: ProfileOwned {}
+
+@Model
+final class CustomFlowTransactionLinkItem {
+    var id: UUID = UUID()
+    var profileID: UUID?
+    var record: CustomFlowRecordItem?
+    var action: CustomFlowTransactionActionItem?
+    var transaction: TransactionItem?
+    var lastSyncedSnapshotRaw: String?
+    var createdAt: Date = Date()
+    var updatedAt: Date = Date()
+
+    init(
+        id: UUID = UUID(),
+        profileID: UUID? = ActiveProfileRegistry.profileID,
+        record: CustomFlowRecordItem? = nil,
+        action: CustomFlowTransactionActionItem? = nil,
+        transaction: TransactionItem? = nil,
+        lastSyncedSnapshotRaw: String? = nil,
+        createdAt: Date = Date(),
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.profileID = profileID
+            ?? record?.profileID
+            ?? action?.profileID
+            ?? transaction?.profileID
+        self.record = record
+        self.action = action
+        self.transaction = transaction
+        self.lastSyncedSnapshotRaw = lastSyncedSnapshotRaw?.nilIfBlank
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+    }
+}
+
+extension CustomFlowTransactionLinkItem: ProfileOwned {}
 
 @Model
 final class TransferItem {
@@ -2458,6 +2945,34 @@ extension BudgetCycleCategoryItem {
     var rolloverPolicy: BudgetRolloverPolicy {
         get { BudgetRolloverPolicy(rawValue: rolloverPolicyRaw) ?? .none }
         set { rolloverPolicyRaw = newValue.rawValue }
+    }
+}
+
+extension CustomFlowFieldItem {
+    var kind: CustomFlowFieldKind {
+        get { CustomFlowFieldKind(rawValue: kindRaw) ?? .text }
+        set { kindRaw = newValue.rawValue }
+    }
+}
+
+extension CustomFlowRelationItem {
+    var kind: CustomFlowRelationKind {
+        get { CustomFlowRelationKind(rawValue: kindRaw) ?? .hasMany }
+        set { kindRaw = newValue.rawValue }
+    }
+}
+
+extension CustomFlowRecordItem {
+    var status: CustomFlowRecordStatus {
+        get { CustomFlowRecordStatus(rawValue: statusRaw) ?? .draft }
+        set { statusRaw = newValue.rawValue }
+    }
+}
+
+extension CustomFlowTransactionActionItem {
+    var trigger: CustomFlowTransactionActionTrigger {
+        get { CustomFlowTransactionActionTrigger(rawValue: triggerRaw) ?? .finalize }
+        set { triggerRaw = newValue.rawValue }
     }
 }
 

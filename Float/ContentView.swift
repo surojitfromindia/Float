@@ -13,7 +13,11 @@ struct ContentView: View {
             for: [
                 AccountItem.self, CategoryItem.self, PersonItem.self, TransactionItem.self,
                 TransactionPersonTagItem.self, TransactionTemplateItem.self, TransactionTemplateGroupItem.self,
-                TransactionTemplateGroupEntryItem.self, ReceiptCaptureItem.self,
+                TransactionTemplateGroupEntryItem.self, CustomFlowItem.self,
+                CustomFlowObjectTypeItem.self, CustomFlowFieldItem.self,
+                CustomFlowRelationItem.self, CustomFlowRecordItem.self,
+                CustomFlowFieldValueItem.self, CustomFlowTransactionActionItem.self,
+                CustomFlowTransactionLinkItem.self, ReceiptCaptureItem.self,
                 ReceiptLineItem.self, AttachmentItem.self, RecurringRuleItem.self,
                 RecurringRulePersonTagItem.self, GoalItem.self, BudgetPeriodItem.self,
                 CategoryBudgetItem.self, BudgetCycleItem.self, BudgetCycleCategoryItem.self,

@@ -13,6 +13,14 @@ enum BackupService {
         transactionPersonTags: [TransactionPersonTagItem],
         transactionTemplates: [TransactionTemplateItem],
         transactionTemplateGroups: [TransactionTemplateGroupItem],
+        customFlows: [CustomFlowItem],
+        customFlowObjectTypes: [CustomFlowObjectTypeItem],
+        customFlowFields: [CustomFlowFieldItem],
+        customFlowRelations: [CustomFlowRelationItem],
+        customFlowRecords: [CustomFlowRecordItem],
+        customFlowFieldValues: [CustomFlowFieldValueItem],
+        customFlowTransactionActions: [CustomFlowTransactionActionItem],
+        customFlowTransactionLinks: [CustomFlowTransactionLinkItem],
         transfers: [TransferItem],
         goals: [GoalItem],
         recurringRules: [RecurringRuleItem],
@@ -43,6 +51,14 @@ enum BackupService {
             transactionPersonTags: transactionPersonTags.map(TransactionPersonTagDTO.init),
             transactionTemplates: transactionTemplates.map(TransactionTemplateDTO.init),
             transactionTemplateGroups: transactionTemplateGroups.map(TransactionTemplateGroupDTO.init),
+            customFlows: customFlows.map(CustomFlowDTO.init),
+            customFlowObjectTypes: customFlowObjectTypes.map(CustomFlowObjectTypeDTO.init),
+            customFlowFields: customFlowFields.map(CustomFlowFieldDTO.init),
+            customFlowRelations: customFlowRelations.map(CustomFlowRelationDTO.init),
+            customFlowRecords: customFlowRecords.map(CustomFlowRecordDTO.init),
+            customFlowFieldValues: customFlowFieldValues.map(CustomFlowFieldValueDTO.init),
+            customFlowTransactionActions: customFlowTransactionActions.map(CustomFlowTransactionActionDTO.init),
+            customFlowTransactionLinks: customFlowTransactionLinks.map(CustomFlowTransactionLinkDTO.init),
             transfers: transfers.map(TransferDTO.init),
             goals: goals.map(GoalDTO.init),
             recurringRules: recurringRules.map(RecurringRuleDTO.init),
@@ -159,6 +175,98 @@ enum BackupService {
             }
         }
 
+        var customFlowMap: [UUID: CustomFlowItem] = [:]
+        for item in dto.customFlows {
+            let flow = CustomFlowItem(dto: item)
+            customFlowMap[item.id] = flow
+            modelContext.insert(flow)
+        }
+
+        var customObjectMap: [UUID: CustomFlowObjectTypeItem] = [:]
+        for item in dto.customFlowObjectTypes {
+            let objectType = CustomFlowObjectTypeItem(
+                dto: item,
+                flow: item.flowID.flatMap { customFlowMap[$0] }
+            )
+            customObjectMap[item.id] = objectType
+            modelContext.insert(objectType)
+            objectType.flow?.objectTypes.append(objectType)
+        }
+
+        var customRelationMap: [UUID: CustomFlowRelationItem] = [:]
+        for item in dto.customFlowRelations {
+            let relation = CustomFlowRelationItem(
+                dto: item,
+                flow: item.flowID.flatMap { customFlowMap[$0] },
+                sourceObjectType: item.sourceObjectTypeID.flatMap { customObjectMap[$0] },
+                targetObjectType: item.targetObjectTypeID.flatMap { customObjectMap[$0] }
+            )
+            customRelationMap[item.id] = relation
+            modelContext.insert(relation)
+            relation.flow?.relations.append(relation)
+        }
+
+        var customFieldMap: [UUID: CustomFlowFieldItem] = [:]
+        for item in dto.customFlowFields {
+            let field = CustomFlowFieldItem(
+                dto: item,
+                objectType: item.objectTypeID.flatMap { customObjectMap[$0] },
+                relation: item.relationID.flatMap { customRelationMap[$0] }
+            )
+            customFieldMap[item.id] = field
+            modelContext.insert(field)
+            field.objectType?.fields.append(field)
+        }
+
+        var customRecordMap: [UUID: CustomFlowRecordItem] = [:]
+        for item in dto.customFlowRecords {
+            let record = CustomFlowRecordItem(
+                dto: item,
+                objectType: item.objectTypeID.flatMap { customObjectMap[$0] }
+            )
+            customRecordMap[item.id] = record
+            modelContext.insert(record)
+            record.objectType?.records.append(record)
+        }
+        for item in dto.customFlowRecords {
+            guard let record = customRecordMap[item.id] else { continue }
+            record.parentRecord = item.parentRecordID.flatMap { customRecordMap[$0] }
+            record.parentRelation = item.parentRelationID.flatMap { customRelationMap[$0] }
+        }
+
+        for item in dto.customFlowFieldValues {
+            let value = CustomFlowFieldValueItem(
+                dto: item,
+                record: item.recordID.flatMap { customRecordMap[$0] },
+                field: item.fieldID.flatMap { customFieldMap[$0] },
+                relatedRecord: item.relatedRecordID.flatMap { customRecordMap[$0] },
+                category: item.categoryID.flatMap { categoryMap[$0] },
+                account: item.accountID.flatMap { accountMap[$0] },
+                person: item.personID.flatMap { personMap[$0] }
+            )
+            modelContext.insert(value)
+            value.record?.values.append(value)
+        }
+
+        var customActionMap: [UUID: CustomFlowTransactionActionItem] = [:]
+        for item in dto.customFlowTransactionActions {
+            let action = CustomFlowTransactionActionItem(
+                dto: item,
+                flow: item.flowID.flatMap { customFlowMap[$0] },
+                sourceObjectType: item.sourceObjectTypeID.flatMap { customObjectMap[$0] },
+                amountField: item.amountFieldID.flatMap { customFieldMap[$0] },
+                categoryField: item.categoryFieldID.flatMap { customFieldMap[$0] },
+                accountField: item.accountFieldID.flatMap { customFieldMap[$0] },
+                dateField: item.dateFieldID.flatMap { customFieldMap[$0] },
+                noteField: item.noteFieldID.flatMap { customFieldMap[$0] },
+                fixedCategory: item.fixedCategoryID.flatMap { categoryMap[$0] },
+                fixedAccount: item.fixedAccountID.flatMap { accountMap[$0] }
+            )
+            customActionMap[item.id] = action
+            modelContext.insert(action)
+            action.flow?.transactionActions.append(action)
+        }
+
         for item in dto.transfers {
             modelContext.insert(
                 TransferItem(
@@ -220,6 +328,18 @@ enum BackupService {
             )
             transactionMap[item.id] = model
             modelContext.insert(model)
+        }
+
+        for item in dto.customFlowTransactionLinks {
+            let link = CustomFlowTransactionLinkItem(
+                dto: item,
+                record: item.recordID.flatMap { customRecordMap[$0] },
+                action: item.actionID.flatMap { customActionMap[$0] },
+                transaction: item.transactionID.flatMap { transactionMap[$0] }
+            )
+            modelContext.insert(link)
+            link.record?.transactionLinks.append(link)
+            link.action?.links.append(link)
         }
 
         var householdExpenseMap: [UUID: HouseholdExpenseItem] = [:]
@@ -384,6 +504,14 @@ enum BackupService {
         guard let profileID else {
             try modelContext.delete(model: TransactionPersonTagItem.self)
             try modelContext.delete(model: RecurringRulePersonTagItem.self)
+            try modelContext.delete(model: CustomFlowTransactionLinkItem.self)
+            try modelContext.delete(model: CustomFlowFieldValueItem.self)
+            try modelContext.delete(model: CustomFlowRecordItem.self)
+            try modelContext.delete(model: CustomFlowTransactionActionItem.self)
+            try modelContext.delete(model: CustomFlowFieldItem.self)
+            try modelContext.delete(model: CustomFlowRelationItem.self)
+            try modelContext.delete(model: CustomFlowObjectTypeItem.self)
+            try modelContext.delete(model: CustomFlowItem.self)
             try modelContext.delete(model: SettlementMilestoneItem.self)
             try modelContext.delete(model: SettlementEntryItem.self)
             try modelContext.delete(model: SettlementCaseItem.self)
@@ -1073,6 +1201,154 @@ private extension TransactionTemplateGroupEntryDTO {
     }
 }
 
+private extension CustomFlowDTO {
+    init(_ item: CustomFlowItem) {
+        self.init(
+            id: item.id,
+            name: item.name,
+            iconKey: item.iconKey,
+            colorHex: item.colorHex,
+            sortOrder: item.sortOrder,
+            archived: item.archived,
+            starterIdentifier: item.starterIdentifier,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension CustomFlowObjectTypeDTO {
+    init(_ item: CustomFlowObjectTypeItem) {
+        self.init(
+            id: item.id,
+            flowID: item.flow?.id,
+            name: item.name,
+            singularName: item.singularName,
+            iconKey: item.iconKey,
+            sortOrder: item.sortOrder,
+            archived: item.archived,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension CustomFlowFieldDTO {
+    init(_ item: CustomFlowFieldItem) {
+        self.init(
+            id: item.id,
+            objectTypeID: item.objectType?.id,
+            relationID: item.relation?.id,
+            name: item.name,
+            key: item.key,
+            kindRaw: item.kindRaw,
+            sortOrder: item.sortOrder,
+            required: item.required,
+            archived: item.archived,
+            choiceOptionsRaw: item.choiceOptionsRaw,
+            defaultValueRaw: item.defaultValueRaw,
+            formulaDefinitionRaw: item.formulaDefinitionRaw,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension CustomFlowRelationDTO {
+    init(_ item: CustomFlowRelationItem) {
+        self.init(
+            id: item.id,
+            flowID: item.flow?.id,
+            sourceObjectTypeID: item.sourceObjectType?.id,
+            targetObjectTypeID: item.targetObjectType?.id,
+            name: item.name,
+            kindRaw: item.kindRaw,
+            sortOrder: item.sortOrder,
+            archived: item.archived,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension CustomFlowRecordDTO {
+    init(_ item: CustomFlowRecordItem) {
+        self.init(
+            id: item.id,
+            objectTypeID: item.objectType?.id,
+            parentRecordID: item.parentRecord?.id,
+            parentRelationID: item.parentRelation?.id,
+            title: item.title,
+            statusRaw: item.statusRaw,
+            sortOrder: item.sortOrder,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+            finalizedAt: item.finalizedAt
+        )
+    }
+}
+
+private extension CustomFlowFieldValueDTO {
+    init(_ item: CustomFlowFieldValueItem) {
+        self.init(
+            id: item.id,
+            recordID: item.record?.id,
+            fieldID: item.field?.id,
+            relatedRecordID: item.relatedRecord?.id,
+            categoryID: item.category?.id,
+            accountID: item.account?.id,
+            personID: item.person?.id,
+            valueRaw: item.valueRaw,
+            numberValue: item.numberValue,
+            amountMinor: item.amountMinor,
+            dateValue: item.dateValue,
+            boolValue: item.boolValue,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension CustomFlowTransactionActionDTO {
+    init(_ item: CustomFlowTransactionActionItem) {
+        self.init(
+            id: item.id,
+            flowID: item.flow?.id,
+            sourceObjectTypeID: item.sourceObjectType?.id,
+            amountFieldID: item.amountField?.id,
+            categoryFieldID: item.categoryField?.id,
+            accountFieldID: item.accountField?.id,
+            dateFieldID: item.dateField?.id,
+            noteFieldID: item.noteField?.id,
+            fixedCategoryID: item.fixedCategory?.id,
+            fixedAccountID: item.fixedAccount?.id,
+            fixedAmountMinor: item.fixedAmountMinor,
+            fixedDate: item.fixedDate,
+            name: item.name,
+            triggerRaw: item.triggerRaw,
+            isExpense: item.isExpense,
+            active: item.active,
+            fixedNote: item.fixedNote,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
+private extension CustomFlowTransactionLinkDTO {
+    init(_ item: CustomFlowTransactionLinkItem) {
+        self.init(
+            id: item.id,
+            recordID: item.record?.id,
+            actionID: item.action?.id,
+            transactionID: item.transaction?.id,
+            lastSyncedSnapshotRaw: item.lastSyncedSnapshotRaw,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt
+        )
+    }
+}
+
 private extension TransferDTO {
     init(_ item: TransferItem) {
         self.init(
@@ -1432,6 +1708,191 @@ private extension TransactionTemplateGroupEntryItem {
             sortOrder: dto.sortOrder,
             group: group,
             template: template,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension CustomFlowItem {
+    convenience init(dto: CustomFlowDTO) {
+        self.init(
+            id: dto.id,
+            name: dto.name,
+            iconKey: dto.iconKey,
+            colorHex: dto.colorHex,
+            sortOrder: dto.sortOrder,
+            archived: dto.archived,
+            starterIdentifier: dto.starterIdentifier,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension CustomFlowObjectTypeItem {
+    convenience init(
+        dto: CustomFlowObjectTypeDTO,
+        flow: CustomFlowItem?
+    ) {
+        self.init(
+            id: dto.id,
+            name: dto.name,
+            singularName: dto.singularName,
+            iconKey: dto.iconKey,
+            sortOrder: dto.sortOrder,
+            archived: dto.archived,
+            flow: flow,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension CustomFlowRelationItem {
+    convenience init(
+        dto: CustomFlowRelationDTO,
+        flow: CustomFlowItem?,
+        sourceObjectType: CustomFlowObjectTypeItem?,
+        targetObjectType: CustomFlowObjectTypeItem?
+    ) {
+        self.init(
+            id: dto.id,
+            name: dto.name,
+            kind: CustomFlowRelationKind(rawValue: dto.kindRaw) ?? .hasMany,
+            sortOrder: dto.sortOrder,
+            archived: dto.archived,
+            flow: flow,
+            sourceObjectType: sourceObjectType,
+            targetObjectType: targetObjectType,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension CustomFlowFieldItem {
+    convenience init(
+        dto: CustomFlowFieldDTO,
+        objectType: CustomFlowObjectTypeItem?,
+        relation: CustomFlowRelationItem?
+    ) {
+        self.init(
+            id: dto.id,
+            name: dto.name,
+            key: dto.key,
+            kind: CustomFlowFieldKind(rawValue: dto.kindRaw) ?? .text,
+            sortOrder: dto.sortOrder,
+            required: dto.required,
+            archived: dto.archived,
+            choiceOptionsRaw: dto.choiceOptionsRaw,
+            defaultValueRaw: dto.defaultValueRaw,
+            formulaDefinitionRaw: dto.formulaDefinitionRaw,
+            objectType: objectType,
+            relation: relation,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension CustomFlowRecordItem {
+    convenience init(
+        dto: CustomFlowRecordDTO,
+        objectType: CustomFlowObjectTypeItem?
+    ) {
+        self.init(
+            id: dto.id,
+            title: dto.title,
+            status: CustomFlowRecordStatus(rawValue: dto.statusRaw) ?? .draft,
+            sortOrder: dto.sortOrder,
+            objectType: objectType,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt,
+            finalizedAt: dto.finalizedAt
+        )
+    }
+}
+
+private extension CustomFlowFieldValueItem {
+    convenience init(
+        dto: CustomFlowFieldValueDTO,
+        record: CustomFlowRecordItem?,
+        field: CustomFlowFieldItem?,
+        relatedRecord: CustomFlowRecordItem?,
+        category: CategoryItem?,
+        account: AccountItem?,
+        person: PersonItem?
+    ) {
+        self.init(
+            id: dto.id,
+            record: record,
+            field: field,
+            valueRaw: dto.valueRaw,
+            numberValue: dto.numberValue,
+            amountMinor: dto.amountMinor,
+            dateValue: dto.dateValue,
+            boolValue: dto.boolValue,
+            relatedRecord: relatedRecord,
+            category: category,
+            account: account,
+            person: person,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension CustomFlowTransactionActionItem {
+    convenience init(
+        dto: CustomFlowTransactionActionDTO,
+        flow: CustomFlowItem?,
+        sourceObjectType: CustomFlowObjectTypeItem?,
+        amountField: CustomFlowFieldItem?,
+        categoryField: CustomFlowFieldItem?,
+        accountField: CustomFlowFieldItem?,
+        dateField: CustomFlowFieldItem?,
+        noteField: CustomFlowFieldItem?,
+        fixedCategory: CategoryItem?,
+        fixedAccount: AccountItem?
+    ) {
+        self.init(
+            id: dto.id,
+            name: dto.name,
+            trigger: CustomFlowTransactionActionTrigger(rawValue: dto.triggerRaw) ?? .finalize,
+            isExpense: dto.isExpense,
+            active: dto.active,
+            flow: flow,
+            sourceObjectType: sourceObjectType,
+            amountField: amountField,
+            categoryField: categoryField,
+            accountField: accountField,
+            dateField: dateField,
+            noteField: noteField,
+            fixedAmountMinor: dto.fixedAmountMinor,
+            fixedDate: dto.fixedDate,
+            fixedCategory: fixedCategory,
+            fixedAccount: fixedAccount,
+            fixedNote: dto.fixedNote,
+            createdAt: dto.createdAt,
+            updatedAt: dto.updatedAt
+        )
+    }
+}
+
+private extension CustomFlowTransactionLinkItem {
+    convenience init(
+        dto: CustomFlowTransactionLinkDTO,
+        record: CustomFlowRecordItem?,
+        action: CustomFlowTransactionActionItem?,
+        transaction: TransactionItem?
+    ) {
+        self.init(
+            id: dto.id,
+            record: record,
+            action: action,
+            transaction: transaction,
+            lastSyncedSnapshotRaw: dto.lastSyncedSnapshotRaw,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt
         )

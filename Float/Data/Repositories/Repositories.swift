@@ -13,10 +13,12 @@ struct ProfileDataCounts {
     var budgets = 0
     var settlements = 0
     var household = 0
+    var customFlows = 0
 
     var total: Int {
         accounts + categories + people + events + transactions + transfers
             + recurringRules + goals + budgets + settlements + household
+            + customFlows
     }
 }
 
@@ -110,7 +112,15 @@ enum ProfileDataService {
             settlements: count(SettlementCaseItem.self, profileID: id, modelContext: modelContext),
             household: count(HouseholdMemberItem.self, profileID: id, modelContext: modelContext)
                 + count(HouseholdExpenseItem.self, profileID: id, modelContext: modelContext)
-                + count(HouseholdBillItem.self, profileID: id, modelContext: modelContext)
+                + count(HouseholdBillItem.self, profileID: id, modelContext: modelContext),
+            customFlows: count(CustomFlowItem.self, profileID: id, modelContext: modelContext)
+                + count(CustomFlowObjectTypeItem.self, profileID: id, modelContext: modelContext)
+                + count(CustomFlowFieldItem.self, profileID: id, modelContext: modelContext)
+                + count(CustomFlowRelationItem.self, profileID: id, modelContext: modelContext)
+                + count(CustomFlowRecordItem.self, profileID: id, modelContext: modelContext)
+                + count(CustomFlowFieldValueItem.self, profileID: id, modelContext: modelContext)
+                + count(CustomFlowTransactionActionItem.self, profileID: id, modelContext: modelContext)
+                + count(CustomFlowTransactionLinkItem.self, profileID: id, modelContext: modelContext)
         )
     }
 
@@ -135,6 +145,14 @@ enum ProfileDataService {
     ) throws {
         deleteMatching(TransactionPersonTagItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(RecurringRulePersonTagItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(CustomFlowTransactionLinkItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(CustomFlowFieldValueItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(CustomFlowRecordItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(CustomFlowTransactionActionItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(CustomFlowFieldItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(CustomFlowRelationItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(CustomFlowObjectTypeItem.self, profileID: profileID, modelContext: modelContext)
+        deleteMatching(CustomFlowItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(SettlementMilestoneItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(SettlementEntryItem.self, profileID: profileID, modelContext: modelContext)
         deleteMatching(SettlementCaseItem.self, profileID: profileID, modelContext: modelContext)
@@ -222,6 +240,14 @@ enum ProfileDataService {
         assign(TransactionTemplateItem.self, profileID: profileID, modelContext: modelContext)
         assign(TransactionTemplateGroupItem.self, profileID: profileID, modelContext: modelContext)
         assign(TransactionTemplateGroupEntryItem.self, profileID: profileID, modelContext: modelContext)
+        assign(CustomFlowItem.self, profileID: profileID, modelContext: modelContext)
+        assign(CustomFlowObjectTypeItem.self, profileID: profileID, modelContext: modelContext)
+        assign(CustomFlowFieldItem.self, profileID: profileID, modelContext: modelContext)
+        assign(CustomFlowRelationItem.self, profileID: profileID, modelContext: modelContext)
+        assign(CustomFlowRecordItem.self, profileID: profileID, modelContext: modelContext)
+        assign(CustomFlowFieldValueItem.self, profileID: profileID, modelContext: modelContext)
+        assign(CustomFlowTransactionActionItem.self, profileID: profileID, modelContext: modelContext)
+        assign(CustomFlowTransactionLinkItem.self, profileID: profileID, modelContext: modelContext)
         assign(TransferItem.self, profileID: profileID, modelContext: modelContext)
         assign(RecurringRuleItem.self, profileID: profileID, modelContext: modelContext)
         assign(RecurringRulePersonTagItem.self, profileID: profileID, modelContext: modelContext)
@@ -324,6 +350,30 @@ enum TransactionCreationDraft {
         case .pending(let draft):
             return draft.amountMinor
         }
+    }
+}
+
+struct CustomFlowFieldValueDraft {
+    var valueRaw: String?
+    var numberValue: Double?
+    var amountMinor: Int64?
+    var dateValue: Date?
+    var boolValue: Bool?
+    var relatedRecord: CustomFlowRecordItem?
+    var category: CategoryItem?
+    var account: AccountItem?
+    var person: PersonItem?
+}
+
+private extension CustomFlowFieldValueItem {
+    var displayText: String? {
+        valueRaw?.trimmedNilIfBlank
+            ?? numberValue.map { String($0) }
+            ?? dateValue?.formatted(date: .abbreviated, time: .shortened)
+            ?? relatedRecord?.title
+            ?? category?.name
+            ?? account?.name
+            ?? person?.name
     }
 }
 
@@ -920,6 +970,576 @@ struct TransactionTemplateGroupRepository {
         do {
             try modelContext.save()
             FloatSpotlightIndexer.scheduleReindex(modelContext: modelContext)
+        } catch {
+            throw DataIntegrityError.saveFailed
+        }
+    }
+}
+
+@MainActor
+struct CustomFlowRepository {
+    let modelContext: ModelContext
+
+    func createFlow(
+        name: String,
+        iconKey: String = "rectangle.stack.fill",
+        colorHex: String = "#0E7C7B",
+        sortOrder: Int = 0,
+        starterIdentifier: String? = nil
+    ) throws -> CustomFlowItem {
+        let flow = CustomFlowItem(
+            name: name.trimmedNilIfBlank ?? String(localized: "Flow"),
+            iconKey: iconKey.trimmedNilIfBlank ?? "rectangle.stack.fill",
+            colorHex: colorHex.trimmedNilIfBlank ?? "#0E7C7B",
+            sortOrder: sortOrder,
+            starterIdentifier: starterIdentifier?.trimmedNilIfBlank
+        )
+        modelContext.insert(flow)
+        try save()
+        return flow
+    }
+
+    func updateFlow(
+        _ flow: CustomFlowItem,
+        name: String,
+        iconKey: String,
+        colorHex: String,
+        sortOrder: Int,
+        archived: Bool
+    ) throws {
+        flow.name = name.trimmedNilIfBlank ?? String(localized: "Flow")
+        flow.iconKey = iconKey.trimmedNilIfBlank ?? "rectangle.stack.fill"
+        flow.colorHex = colorHex.trimmedNilIfBlank ?? "#0E7C7B"
+        flow.sortOrder = sortOrder
+        flow.archived = archived
+        flow.updatedAt = Date()
+        try save()
+    }
+
+    func createObjectType(
+        in flow: CustomFlowItem,
+        name: String,
+        singularName: String? = nil,
+        iconKey: String = "list.bullet.rectangle",
+        sortOrder: Int = 0
+    ) throws -> CustomFlowObjectTypeItem {
+        let objectType = CustomFlowObjectTypeItem(
+            name: name.trimmedNilIfBlank ?? String(localized: "Records"),
+            singularName: singularName?.trimmedNilIfBlank,
+            iconKey: iconKey.trimmedNilIfBlank ?? "list.bullet.rectangle",
+            sortOrder: sortOrder,
+            flow: flow
+        )
+        modelContext.insert(objectType)
+        flow.objectTypes.append(objectType)
+        flow.updatedAt = Date()
+        try save()
+        return objectType
+    }
+
+    func updateObjectType(
+        _ objectType: CustomFlowObjectTypeItem,
+        name: String,
+        singularName: String?,
+        iconKey: String,
+        sortOrder: Int,
+        archived: Bool
+    ) throws {
+        objectType.name = name.trimmedNilIfBlank ?? String(localized: "Records")
+        objectType.singularName = singularName?.trimmedNilIfBlank ?? objectType.name
+        objectType.iconKey = iconKey.trimmedNilIfBlank ?? "list.bullet.rectangle"
+        objectType.sortOrder = sortOrder
+        objectType.archived = archived
+        touch(objectType.flow)
+        objectType.updatedAt = Date()
+        try save()
+    }
+
+    func createRelation(
+        in flow: CustomFlowItem,
+        name: String,
+        kind: CustomFlowRelationKind,
+        sourceObjectType: CustomFlowObjectTypeItem,
+        targetObjectType: CustomFlowObjectTypeItem,
+        sortOrder: Int = 0
+    ) throws -> CustomFlowRelationItem {
+        let relation = CustomFlowRelationItem(
+            name: name.trimmedNilIfBlank ?? String(localized: "Relation"),
+            kind: kind,
+            sortOrder: sortOrder,
+            flow: flow,
+            sourceObjectType: sourceObjectType,
+            targetObjectType: targetObjectType
+        )
+        modelContext.insert(relation)
+        flow.relations.append(relation)
+        flow.updatedAt = Date()
+        try save()
+        return relation
+    }
+
+    func createField(
+        in objectType: CustomFlowObjectTypeItem,
+        name: String,
+        key: String? = nil,
+        kind: CustomFlowFieldKind,
+        sortOrder: Int = 0,
+        required: Bool = false,
+        choiceOptionsRaw: String? = nil,
+        defaultValueRaw: String? = nil,
+        formulaDefinitionRaw: String? = nil,
+        relation: CustomFlowRelationItem? = nil
+    ) throws -> CustomFlowFieldItem {
+        let field = CustomFlowFieldItem(
+            name: name.trimmedNilIfBlank ?? String(localized: "Field"),
+            key: key?.trimmedNilIfBlank,
+            kind: kind,
+            sortOrder: sortOrder,
+            required: required,
+            choiceOptionsRaw: choiceOptionsRaw?.trimmedNilIfBlank,
+            defaultValueRaw: defaultValueRaw?.trimmedNilIfBlank,
+            formulaDefinitionRaw: formulaDefinitionRaw?.trimmedNilIfBlank,
+            objectType: objectType,
+            relation: relation
+        )
+        modelContext.insert(field)
+        objectType.fields.append(field)
+        objectType.updatedAt = Date()
+        touch(objectType.flow)
+        try save()
+        return field
+    }
+
+    func updateField(
+        _ field: CustomFlowFieldItem,
+        name: String,
+        key: String?,
+        kind: CustomFlowFieldKind,
+        sortOrder: Int,
+        required: Bool,
+        archived: Bool,
+        choiceOptionsRaw: String?,
+        defaultValueRaw: String?,
+        formulaDefinitionRaw: String?,
+        relation: CustomFlowRelationItem?
+    ) throws {
+        field.name = name.trimmedNilIfBlank ?? String(localized: "Field")
+        if let key = key?.trimmedNilIfBlank {
+            field.key = key
+        }
+        field.kind = kind
+        field.sortOrder = sortOrder
+        field.required = required
+        field.archived = archived
+        field.choiceOptionsRaw = choiceOptionsRaw?.trimmedNilIfBlank
+        field.defaultValueRaw = defaultValueRaw?.trimmedNilIfBlank
+        field.formulaDefinitionRaw = formulaDefinitionRaw?.trimmedNilIfBlank
+        field.relation = relation
+        field.updatedAt = Date()
+        touch(field.objectType)
+        touch(field.objectType?.flow)
+        try save()
+    }
+
+    func createTransactionAction(
+        in flow: CustomFlowItem,
+        name: String,
+        sourceObjectType: CustomFlowObjectTypeItem,
+        trigger: CustomFlowTransactionActionTrigger = .finalize,
+        isExpense: Bool = true,
+        amountField: CustomFlowFieldItem?,
+        categoryField: CustomFlowFieldItem?,
+        accountField: CustomFlowFieldItem?,
+        dateField: CustomFlowFieldItem?,
+        noteField: CustomFlowFieldItem?,
+        fixedAmountMinor: Int64? = nil,
+        fixedDate: Date? = nil,
+        fixedCategory: CategoryItem?,
+        fixedAccount: AccountItem?,
+        fixedNote: String?
+    ) throws -> CustomFlowTransactionActionItem {
+        let action = CustomFlowTransactionActionItem(
+            name: name.trimmedNilIfBlank ?? String(localized: "Create transaction"),
+            trigger: trigger,
+            isExpense: isExpense,
+            flow: flow,
+            sourceObjectType: sourceObjectType,
+            amountField: amountField,
+            categoryField: categoryField,
+            accountField: accountField,
+            dateField: dateField,
+            noteField: noteField,
+            fixedAmountMinor: fixedAmountMinor,
+            fixedDate: fixedDate,
+            fixedCategory: fixedCategory,
+            fixedAccount: fixedAccount,
+            fixedNote: fixedNote?.trimmedNilIfBlank
+        )
+        modelContext.insert(action)
+        flow.transactionActions.append(action)
+        flow.updatedAt = Date()
+        try save()
+        return action
+    }
+
+    func updateTransactionAction(
+        _ action: CustomFlowTransactionActionItem,
+        name: String,
+        sourceObjectType: CustomFlowObjectTypeItem,
+        trigger: CustomFlowTransactionActionTrigger,
+        isExpense: Bool,
+        active: Bool,
+        amountField: CustomFlowFieldItem?,
+        categoryField: CustomFlowFieldItem?,
+        accountField: CustomFlowFieldItem?,
+        dateField: CustomFlowFieldItem?,
+        noteField: CustomFlowFieldItem?,
+        fixedAmountMinor: Int64?,
+        fixedDate: Date?,
+        fixedCategory: CategoryItem?,
+        fixedAccount: AccountItem?,
+        fixedNote: String?
+    ) throws {
+        action.name = name.trimmedNilIfBlank ?? String(localized: "Create transaction")
+        action.sourceObjectType = sourceObjectType
+        action.trigger = trigger
+        action.isExpense = isExpense
+        action.active = active
+        action.amountField = amountField
+        action.categoryField = categoryField
+        action.accountField = accountField
+        action.dateField = dateField
+        action.noteField = noteField
+        action.fixedAmountMinor = fixedAmountMinor.map(Self.normalizedMinorUnits)
+        action.fixedDate = fixedDate
+        action.fixedCategory = fixedCategory
+        action.fixedAccount = fixedAccount
+        action.fixedNote = fixedNote?.trimmedNilIfBlank
+        action.updatedAt = Date()
+        action.flow?.updatedAt = Date()
+        try save()
+    }
+
+    func archiveTransactionAction(_ action: CustomFlowTransactionActionItem) throws {
+        action.active = false
+        action.updatedAt = Date()
+        action.flow?.updatedAt = Date()
+        try save()
+    }
+
+    func materializeFinalizeActions(
+        for record: CustomFlowRecordItem,
+        updateExistingLinkedTransactions: Bool = true
+    ) throws {
+        guard record.status == .finalized,
+              let objectType = record.objectType,
+              let flow = objectType.flow
+        else { return }
+
+        let actions = flow.transactionActions.filter {
+            $0.active
+                && $0.trigger == .finalize
+                && $0.sourceObjectType?.id == objectType.id
+        }
+        for action in actions {
+            try materializeTransaction(
+                for: record,
+                action: action,
+                updateExistingLinkedTransaction: updateExistingLinkedTransactions
+            )
+        }
+    }
+
+    @discardableResult
+    func materializeTransaction(
+        for record: CustomFlowRecordItem,
+        action: CustomFlowTransactionActionItem,
+        updateExistingLinkedTransaction: Bool = true
+    ) throws -> TransactionItem {
+        guard action.active else { throw DataIntegrityError.invalidInput }
+        let flowRecords = record.objectType?.flow?.objectTypes.flatMap(\.records) ?? [record]
+        let amountMinor: Int64
+        if let fixedAmountMinor = action.fixedAmountMinor {
+            amountMinor = fixedAmountMinor
+        } else if let amountField = action.amountField,
+           amountField.kind == .formula {
+            amountMinor = (try? CustomFlowFormulaEngine.value(
+                for: amountField,
+                record: record,
+                records: flowRecords
+            ).amountMinor) ?? 0
+        } else {
+            amountMinor = action.amountField.flatMap {
+                record.value(for: $0)?.amountMinor
+            } ?? 0
+        }
+        guard amountMinor > 0 else { throw DataIntegrityError.invalidInput }
+
+        guard let category = action.fixedCategory
+            ?? action.categoryField.flatMap({ record.value(for: $0)?.category })
+        else { throw DataIntegrityError.missingRequiredCategory }
+
+        guard let account = action.fixedAccount
+            ?? action.accountField.flatMap({ record.value(for: $0)?.account })
+        else { throw DataIntegrityError.missingRequiredAccount }
+
+        let timestamp = action.fixedDate ?? action.dateField.flatMap {
+            record.value(for: $0)?.dateValue
+        } ?? record.finalizedAt ?? record.updatedAt
+        let note = transactionNote(for: record, action: action)
+        let snapshot = transactionSnapshot(
+            amountMinor: amountMinor,
+            isExpense: action.isExpense,
+            timestamp: timestamp,
+            category: category,
+            account: account,
+            note: note
+        )
+
+        if let link = record.transactionLinks.first(where: {
+            $0.action?.id == action.id
+        }) {
+            if let transaction = link.transaction {
+                guard updateExistingLinkedTransaction else { return transaction }
+                try TransactionRepository(modelContext: modelContext).update(
+                    transaction,
+                    amountMinor: amountMinor,
+                    isExpense: action.isExpense,
+                    timestamp: timestamp,
+                    category: category,
+                    account: account,
+                    note: note
+                )
+                link.lastSyncedSnapshotRaw = snapshot
+                link.updatedAt = Date()
+                try save()
+                return transaction
+            }
+
+            let transaction = try createLinkedTransaction(
+                amountMinor: amountMinor,
+                action: action,
+                timestamp: timestamp,
+                category: category,
+                account: account,
+                note: note
+            )
+            link.transaction = transaction
+            link.lastSyncedSnapshotRaw = snapshot
+            link.updatedAt = Date()
+            try save()
+            return transaction
+        }
+
+        let transaction = try createLinkedTransaction(
+            amountMinor: amountMinor,
+            action: action,
+            timestamp: timestamp,
+            category: category,
+            account: account,
+            note: note
+        )
+        let link = CustomFlowTransactionLinkItem(
+            record: record,
+            action: action,
+            transaction: transaction,
+            lastSyncedSnapshotRaw: snapshot
+        )
+        modelContext.insert(link)
+        record.transactionLinks.append(link)
+        action.links.append(link)
+        try save()
+        return transaction
+    }
+
+    func delete(_ flow: CustomFlowItem) throws {
+        modelContext.delete(flow)
+        try save()
+    }
+
+    private func touch(_ objectType: CustomFlowObjectTypeItem?) {
+        objectType?.updatedAt = Date()
+    }
+
+    private func touch(_ flow: CustomFlowItem?) {
+        flow?.updatedAt = Date()
+    }
+
+    private func createLinkedTransaction(
+        amountMinor: Int64,
+        action: CustomFlowTransactionActionItem,
+        timestamp: Date,
+        category: CategoryItem,
+        account: AccountItem,
+        note: String?
+    ) throws -> TransactionItem {
+        try TransactionRepository(modelContext: modelContext).create(
+            amountMinor: amountMinor,
+            isExpense: action.isExpense,
+            timestamp: timestamp,
+            category: category,
+            account: account,
+            note: note
+        )
+    }
+
+    private func transactionNote(
+        for record: CustomFlowRecordItem,
+        action: CustomFlowTransactionActionItem
+    ) -> String? {
+        if let fixedNote = action.fixedNote?.trimmedNilIfBlank {
+            return fixedNote
+        }
+        if let noteField = action.noteField,
+           let note = record.value(for: noteField)?.displayText?.trimmedNilIfBlank {
+            return note
+        }
+        return record.title.trimmedNilIfBlank
+    }
+
+    private func transactionSnapshot(
+        amountMinor: Int64,
+        isExpense: Bool,
+        timestamp: Date,
+        category: CategoryItem,
+        account: AccountItem,
+        note: String?
+    ) -> String {
+        [
+            "\(amountMinor)",
+            "\(isExpense)",
+            "\(timestamp.timeIntervalSince1970)",
+            category.id.uuidString,
+            account.id.uuidString,
+            note ?? ""
+        ].joined(separator: "|")
+    }
+
+    private static func normalizedMinorUnits(_ value: Int64) -> Int64 {
+        if value == Int64.min { return Int64.max }
+        return abs(value)
+    }
+
+    private func save() throws {
+        do {
+            try modelContext.save()
+        } catch {
+            throw DataIntegrityError.saveFailed
+        }
+    }
+}
+
+@MainActor
+struct CustomFlowRecordRepository {
+    let modelContext: ModelContext
+
+    func createRecord(
+        objectType: CustomFlowObjectTypeItem,
+        title: String,
+        status: CustomFlowRecordStatus = .draft,
+        sortOrder: Int = 0,
+        parentRecord: CustomFlowRecordItem? = nil,
+        parentRelation: CustomFlowRelationItem? = nil
+    ) throws -> CustomFlowRecordItem {
+        let record = CustomFlowRecordItem(
+            title: title.trimmedNilIfBlank ?? objectType.singularName,
+            status: status,
+            sortOrder: sortOrder,
+            objectType: objectType,
+            parentRecord: parentRecord,
+            parentRelation: parentRelation,
+            finalizedAt: status == .finalized ? Date() : nil
+        )
+        modelContext.insert(record)
+        objectType.records.append(record)
+        objectType.updatedAt = Date()
+        try save()
+        return record
+    }
+
+    func updateRecord(
+        _ record: CustomFlowRecordItem,
+        title: String,
+        sortOrder: Int,
+        parentRecord: CustomFlowRecordItem?,
+        parentRelation: CustomFlowRelationItem?
+    ) throws {
+        record.title = title.trimmedNilIfBlank
+            ?? record.objectType?.singularName
+            ?? String(localized: "Record")
+        record.sortOrder = sortOrder
+        record.parentRecord = parentRecord
+        record.parentRelation = parentRelation
+        record.updatedAt = Date()
+        try save()
+    }
+
+    func setStatus(
+        _ record: CustomFlowRecordItem,
+        status: CustomFlowRecordStatus
+    ) throws {
+        record.status = status
+        record.finalizedAt = status == .finalized ? Date() : nil
+        record.updatedAt = Date()
+        try save()
+    }
+
+    func upsertValue(
+        for record: CustomFlowRecordItem,
+        field: CustomFlowFieldItem,
+        draft: CustomFlowFieldValueDraft
+    ) throws -> CustomFlowFieldValueItem {
+        if let existing = record.values.first(where: { $0.field?.id == field.id }) {
+            apply(draft, to: existing)
+            existing.updatedAt = Date()
+            record.updatedAt = Date()
+            try save()
+            return existing
+        }
+
+        let value = CustomFlowFieldValueItem(
+            record: record,
+            field: field,
+            valueRaw: draft.valueRaw,
+            numberValue: draft.numberValue,
+            amountMinor: draft.amountMinor,
+            dateValue: draft.dateValue,
+            boolValue: draft.boolValue,
+            relatedRecord: draft.relatedRecord,
+            category: draft.category,
+            account: draft.account,
+            person: draft.person
+        )
+        modelContext.insert(value)
+        record.values.append(value)
+        record.updatedAt = Date()
+        try save()
+        return value
+    }
+
+    func delete(_ record: CustomFlowRecordItem) throws {
+        modelContext.delete(record)
+        try save()
+    }
+
+    private func apply(
+        _ draft: CustomFlowFieldValueDraft,
+        to value: CustomFlowFieldValueItem
+    ) {
+        value.valueRaw = draft.valueRaw?.trimmedNilIfBlank
+        value.numberValue = draft.numberValue
+        value.amountMinor = draft.amountMinor.map { max(0, $0) }
+        value.dateValue = draft.dateValue
+        value.boolValue = draft.boolValue
+        value.relatedRecord = draft.relatedRecord
+        value.category = draft.category
+        value.account = draft.account
+        value.person = draft.person
+    }
+
+    private func save() throws {
+        do {
+            try modelContext.save()
         } catch {
             throw DataIntegrityError.saveFailed
         }

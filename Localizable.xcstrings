@@ -531,6 +531,16 @@
         }
       }
     },
+    "%lld fields · %lld records" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld fields · %2$lld records"
+          }
+        }
+      }
+    },
     "%lld income tx" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -538,6 +548,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld আয় লেনদেন"
+          }
+        }
+      }
+    },
+    "%lld objects · %lld records" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld objects · %2$lld records"
           }
         }
       }
@@ -724,6 +744,9 @@
         }
       }
     },
+    "A transaction action can create or update one linked Float transaction from a finalized record using field values or fixed defaults." : {
+
+    },
     "About" : {
       "localizations" : {
         "bn" : {
@@ -778,6 +801,9 @@
         }
       }
     },
+    "Account field" : {
+
+    },
     "Accounts" : {
       "localizations" : {
         "bn" : {
@@ -809,6 +835,9 @@
           }
         }
       }
+    },
+    "Action" : {
+
     },
     "Action center" : {
       "localizations" : {
@@ -937,6 +966,9 @@
     "Add Amount Transaction" : {
 
     },
+    "Add an object type before creating records." : {
+
+    },
     "Add bill" : {
 
     },
@@ -974,6 +1006,15 @@
           }
         }
       }
+    },
+    "Add days" : {
+
+    },
+    "Add days needs a date field." : {
+
+    },
+    "Add days needs a number of days." : {
+
     },
     "Add event" : {
       "localizations" : {
@@ -1025,6 +1066,15 @@
         }
       }
     },
+    "Add Field" : {
+
+    },
+    "Add fields before editing records." : {
+
+    },
+    "Add fields to generate the record form." : {
+
+    },
     "Add first member" : {
 
     },
@@ -1063,6 +1113,12 @@
     "Add milestones when this settlement will be paid over time." : {
 
     },
+    "Add Object" : {
+
+    },
+    "Add object types" : {
+
+    },
     "Add pending row" : {
       "localizations" : {
         "bn" : {
@@ -1088,6 +1144,12 @@
           }
         }
       }
+    },
+    "Add Record" : {
+
+    },
+    "Add Relation" : {
+
     },
     "Add rent, utilities, school fees, or subscriptions that the household reviews together." : {
 
@@ -1176,6 +1238,9 @@
         }
       }
     },
+    "Add Transaction Action" : {
+
+    },
     "Add transactions to build event-level charts and metrics." : {
       "localizations" : {
         "bn" : {
@@ -1235,6 +1300,9 @@
     "Added charge" : {
 
     },
+    "Adds a number of days to a date." : {
+
+    },
     "Adds realistic expenses, income, and transfers for pagination testing." : {
       "localizations" : {
         "bn" : {
@@ -1244,6 +1312,9 @@
           }
         }
       }
+    },
+    "Adds values from related child rows." : {
+
     },
     "Adult" : {
 
@@ -1401,6 +1472,12 @@
         }
       }
     },
+    "Amount borrowed - Repaid" : {
+
+    },
+    "Amount field" : {
+
+    },
     "Amount in minor units" : {
       "localizations" : {
         "bn" : {
@@ -1509,6 +1586,27 @@
         }
       }
     },
+    "Arithmetic" : {
+
+    },
+    "Arithmetic adds, subtracts, multiplies, or divides two values." : {
+
+    },
+    "Arithmetic formulas need number or money fields." : {
+
+    },
+    "Asset" : {
+
+    },
+    "Assets" : {
+
+    },
+    "Assets and maintenance" : {
+
+    },
+    "Assets, warranties, and maintenance entries." : {
+
+    },
     "Authentication was not completed." : {
       "localizations" : {
         "bn" : {
@@ -1528,6 +1626,9 @@
           }
         }
       }
+    },
+    "Available formula types" : {
+
     },
     "Available now" : {
       "localizations" : {
@@ -1569,6 +1670,9 @@
         }
       }
     },
+    "Belongs to" : {
+
+    },
     "Bengali" : {
       "localizations" : {
         "bn" : {
@@ -1605,10 +1709,19 @@
     "Bill" : {
 
     },
+    "Billing date" : {
+
+    },
     "Bills" : {
 
     },
     "Bills due" : {
+
+    },
+    "Borrowing tracker" : {
+
+    },
+    "Bought" : {
 
     },
     "Budget" : {
@@ -1727,6 +1840,12 @@
         }
       }
     },
+    "Build a calculated field" : {
+
+    },
+    "Build path" : {
+
+    },
     "Bulk Add" : {
       "localizations" : {
         "bn" : {
@@ -1777,6 +1896,9 @@
           }
         }
       }
+    },
+    "Calculate values" : {
+
     },
     "Calendar" : {
       "localizations" : {
@@ -1962,6 +2084,9 @@
         }
       }
     },
+    "Category field" : {
+
+    },
     "Category mix" : {
       "localizations" : {
         "en" : {
@@ -2004,6 +2129,9 @@
         }
       }
     },
+    "Change any type menu to replace that part of the formula without writing code." : {
+
+    },
     "Chart metrics" : {
       "localizations" : {
         "bn" : {
@@ -2024,7 +2152,52 @@
         }
       }
     },
+    "Checkbox" : {
+
+    },
+    "Checks whether two values match %@." : {
+
+    },
     "Child" : {
+
+    },
+    "Child field" : {
+
+    },
+    "Child relation" : {
+
+    },
+    "Child sum needs number or money fields." : {
+
+    },
+    "Child sum references a broken relation." : {
+
+    },
+    "Child sum references a missing child field." : {
+
+    },
+    "Child sum relation is not connected to this object." : {
+
+    },
+    "Child-row sum" : {
+
+    },
+    "Child-row sum totals values from related child records." : {
+
+    },
+    "Choice" : {
+
+    },
+    "Choices" : {
+
+    },
+    "Choose" : {
+
+    },
+    "Choose a category field or fixed category." : {
+
+    },
+    "Choose a field" : {
 
     },
     "Choose a report range to build the spend activity map." : {
@@ -2036,6 +2209,21 @@
           }
         }
       }
+    },
+    "Choose a result type, then fill in the inputs it needs." : {
+
+    },
+    "Choose a source object." : {
+
+    },
+    "Choose an account field or fixed account." : {
+
+    },
+    "Choose an amount field or fixed amount." : {
+
+    },
+    "Choose source and target objects." : {
+
     },
     "Clear" : {
       "localizations" : {
@@ -2102,6 +2290,9 @@
         }
       }
     },
+    "Combines two values with %@." : {
+
+    },
     "Commitments and goals" : {
       "localizations" : {
         "en" : {
@@ -2122,6 +2313,9 @@
         }
       }
     },
+    "Comparison" : {
+
+    },
     "Completed goals are hidden for now." : {
       "localizations" : {
         "bn" : {
@@ -2133,6 +2327,21 @@
       }
     },
     "Completion" : {
+
+    },
+    "Condition" : {
+
+    },
+    "Condition formulas need a true or false test." : {
+
+    },
+    "Condition returns one value when a comparison is true and another when it is false." : {
+
+    },
+    "Condition test" : {
+
+    },
+    "Connect records" : {
 
     },
     "Continue" : {
@@ -2239,7 +2448,16 @@
     "Correction up" : {
 
     },
+    "Cost" : {
+
+    },
+    "Counts the days between two dates." : {
+
+    },
     "Create a case when a bill or payment will settle over time." : {
+
+    },
+    "Create a custom flow for lists, drafts, and records." : {
 
     },
     "Create a daily set from your transaction templates." : {
@@ -2272,6 +2490,12 @@
           }
         }
       }
+    },
+    "Create a record from this generated form." : {
+
+    },
+    "Create a transaction automatically when a record is finalized." : {
+
     },
     "Create an event to group transactions, metrics, and charts." : {
       "localizations" : {
@@ -2308,10 +2532,22 @@
         }
       }
     },
+    "Create fields" : {
+
+    },
+    "Create grocery transaction" : {
+
+    },
     "Create linked transaction" : {
 
     },
+    "Create links between object types for generated relation fields." : {
+
+    },
     "Create one member for each person you split household money with." : {
+
+    },
+    "Create Products and Shopping Trips, relate trip items back to the trip, calculate line totals and the trip total, then finalize the trip to create one linked transaction." : {
 
     },
     "Create reusable entries for coffee, groceries, bills, salary, or transfers." : {
@@ -2346,6 +2582,9 @@
           }
         }
       }
+    },
+    "Create the structure first, then add records and automation." : {
+
     },
     "Create transaction" : {
 
@@ -2542,6 +2781,15 @@
         }
       }
     },
+    "Date and Time" : {
+
+    },
+    "Date field" : {
+
+    },
+    "Date helpers can use today, add days, or count days between dates." : {
+
+    },
     "Date range" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2584,6 +2832,15 @@
         }
       }
     },
+    "Days" : {
+
+    },
+    "Days between" : {
+
+    },
+    "Days between needs date fields." : {
+
+    },
     "days left" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2594,6 +2851,12 @@
           }
         }
       }
+    },
+    "Days to add" : {
+
+    },
+    "Days until billing" : {
+
     },
     "Deactivate" : {
       "localizations" : {
@@ -2617,6 +2880,9 @@
           }
         }
       }
+    },
+    "Default value" : {
+
     },
     "Delete" : {
       "localizations" : {
@@ -2843,6 +3109,9 @@
     "Discount" : {
 
     },
+    "Divide" : {
+
+    },
     "Done" : {
       "localizations" : {
         "bn" : {
@@ -2862,6 +3131,9 @@
           }
         }
       }
+    },
+    "Draft" : {
+
     },
     "Due date" : {
 
@@ -2931,6 +3203,12 @@
         }
       }
     },
+    "Edit Field" : {
+
+    },
+    "Edit Flow" : {
+
+    },
     "Edit Goal" : {
       "localizations" : {
         "bn" : {
@@ -2967,6 +3245,9 @@
         }
       }
     },
+    "Edit Object" : {
+
+    },
     "Edit pending transaction" : {
       "localizations" : {
         "bn" : {
@@ -2981,6 +3262,9 @@
 
     },
     "Edit Profile" : {
+
+    },
+    "Edit Record" : {
 
     },
     "Edit Rule" : {
@@ -3009,6 +3293,9 @@
         }
       }
     },
+    "Edit Transaction Action" : {
+
+    },
     "Edit Transfer" : {
       "localizations" : {
         "bn" : {
@@ -3029,6 +3316,9 @@
         }
       }
     },
+    "Editing finalized records" : {
+
+    },
     "elapsed" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3039,6 +3329,9 @@
           }
         }
       }
+    },
+    "End" : {
+
     },
     "End date" : {
       "localizations" : {
@@ -3079,6 +3372,9 @@
           }
         }
       }
+    },
+    "Enter a name." : {
+
     },
     "Enter a person name." : {
 
@@ -3432,6 +3728,21 @@
         }
       }
     },
+    "Field" : {
+
+    },
+    "Field value" : {
+
+    },
+    "Field value reads another field from the same record." : {
+
+    },
+    "Fields" : {
+
+    },
+    "Fields define what each record captures: text, money, numbers, dates, checkboxes, choices, accounts, categories, people, relations, and formulas." : {
+
+    },
     "Filters" : {
       "localizations" : {
         "bn" : {
@@ -3452,6 +3763,33 @@
         }
       }
     },
+    "Finalize into transactions" : {
+
+    },
+    "Finalized" : {
+
+    },
+    "Finalized records stay editable. If your edits affect a linked transaction, Float asks whether to update that transaction or only save the record." : {
+
+    },
+    "Fixed account" : {
+
+    },
+    "Fixed amount" : {
+
+    },
+    "Fixed category" : {
+
+    },
+    "Fixed date" : {
+
+    },
+    "Fixed note" : {
+
+    },
+    "Fixed number" : {
+
+    },
     "Fixed outflow and target funding" : {
       "localizations" : {
         "en" : {
@@ -3461,6 +3799,9 @@
           }
         }
       }
+    },
+    "Fixed text" : {
+
     },
     "Flat" : {
       "localizations" : {
@@ -3521,6 +3862,18 @@
     "Float Object" : {
 
     },
+    "Flow" : {
+
+    },
+    "Flow Help" : {
+
+    },
+    "Flows" : {
+
+    },
+    "Flows are low-code trackers built from the same core pieces: objects, fields, relations, formulas, records, and optional transaction actions." : {
+
+    },
     "Forecast" : {
       "localizations" : {
         "bn" : {
@@ -3540,6 +3893,57 @@
           }
         }
       }
+    },
+    "Formula" : {
+
+    },
+    "Formula builder" : {
+
+    },
+    "Formula cannot reference itself." : {
+
+    },
+    "Formula fields can add totals, line amounts, remaining balances, status summaries, date differences, relation lookups, and child-row sums." : {
+
+    },
+    "Formula has a circular reference: %@" : {
+
+    },
+    "Formula has a circular reference." : {
+
+    },
+    "Formula has an invalid operation: %@" : {
+
+    },
+    "Formula help" : {
+
+    },
+    "Formula Help" : {
+
+    },
+    "Formula is not configured." : {
+
+    },
+    "Formula references a broken relation: %@" : {
+
+    },
+    "Formula references a missing field: %@" : {
+
+    },
+    "Formula references a missing field." : {
+
+    },
+    "Formula type" : {
+
+    },
+    "Formula uses the wrong field type: %@" : {
+
+    },
+    "Formulas calculate a field from fixed values, other fields, dates, related records, or child rows. Pick the result type first, then fill each required input." : {
+
+    },
+    "Frequency" : {
+
     },
     "From" : {
       "localizations" : {
@@ -3686,6 +4090,18 @@
         }
       }
     },
+    "Greater than" : {
+
+    },
+    "Greater than or equal" : {
+
+    },
+    "Grocery example" : {
+
+    },
+    "Grocery shopping" : {
+
+    },
     "Group" : {
       "localizations" : {
         "bn" : {
@@ -3717,6 +4133,9 @@
       }
     },
     "Guest" : {
+
+    },
+    "Has many" : {
 
     },
     "Hex color" : {
@@ -3858,6 +4277,9 @@
     "Household OS" : {
 
     },
+    "How flows work" : {
+
+    },
     "How money moved across this range" : {
       "localizations" : {
         "en" : {
@@ -3867,6 +4289,12 @@
           }
         }
       }
+    },
+    "How to read the builder" : {
+
+    },
+    "I owe" : {
+
     },
     "Icon" : {
       "localizations" : {
@@ -3879,6 +4307,15 @@
       }
     },
     "Identifier" : {
+
+    },
+    "If false" : {
+
+    },
+    "If Remaining balance is 0, show Repaid." : {
+
+    },
+    "If true" : {
 
     },
     "Import this line" : {
@@ -4006,6 +4443,9 @@
         }
       }
     },
+    "Install a starter flow or create a blank one for your own list, tracker, or workflow." : {
+
+    },
     "Intensity across the selected days" : {
       "localizations" : {
         "en" : {
@@ -4029,6 +4469,9 @@
     "Item" : {
 
     },
+    "Items to buy later with price, priority, and notes." : {
+
+    },
     "Jump to month" : {
       "localizations" : {
         "bn" : {
@@ -4038,6 +4481,12 @@
           }
         }
       }
+    },
+    "Key" : {
+
+    },
+    "Kind" : {
+
     },
     "Known commitments" : {
       "localizations" : {
@@ -4135,6 +4584,9 @@
         }
       }
     },
+    "Left value" : {
+
+    },
     "Less" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4145,6 +4597,12 @@
           }
         }
       }
+    },
+    "Less than" : {
+
+    },
+    "Less than or equal" : {
+
     },
     "Light" : {
       "localizations" : {
@@ -4179,10 +4637,19 @@
         }
       }
     },
+    "Line total" : {
+
+    },
+    "Link" : {
+
+    },
     "Link existing transaction" : {
 
     },
     "Link transaction" : {
+
+    },
+    "Linked" : {
 
     },
     "Linked payment" : {
@@ -4284,7 +4751,16 @@
         }
       }
     },
+    "Loan" : {
+
+    },
+    "Loans" : {
+
+    },
     "Local signals from this report range" : {
+
+    },
+    "Location" : {
 
     },
     "Low" : {
@@ -4298,6 +4774,18 @@
       }
     },
     "lower" : {
+
+    },
+    "Maintenance asset" : {
+
+    },
+    "Maintenance entries" : {
+
+    },
+    "Maintenance entry" : {
+
+    },
+    "Maintenance total" : {
 
     },
     "Manage" : {
@@ -4322,6 +4810,9 @@
         }
       }
     },
+    "Manual" : {
+
+    },
     "Mark paid" : {
       "localizations" : {
         "bn" : {
@@ -4345,6 +4836,9 @@
 
     },
     "Matches" : {
+
+    },
+    "Medium" : {
 
     },
     "Merchant" : {
@@ -4383,6 +4877,9 @@
           }
         }
       }
+    },
+    "Money" : {
+
     },
     "Month" : {
       "localizations" : {
@@ -4449,6 +4946,9 @@
         }
       }
     },
+    "Multiply" : {
+
+    },
     "Name" : {
 
     },
@@ -4465,6 +4965,9 @@
     "Need review" : {
 
     },
+    "Needed" : {
+
+    },
     "Needs attention" : {
 
     },
@@ -4477,6 +4980,9 @@
           }
         }
       }
+    },
+    "Nested inputs show the parts used to build that result, such as left and right values." : {
+
     },
     "Net" : {
       "localizations" : {
@@ -4533,6 +5039,12 @@
     "New entry" : {
 
     },
+    "New Field" : {
+
+    },
+    "New Flow" : {
+
+    },
     "New Goal" : {
       "localizations" : {
         "bn" : {
@@ -4556,10 +5068,19 @@
     "New milestone" : {
 
     },
+    "New Object" : {
+
+    },
     "New Person" : {
 
     },
     "New Profile" : {
+
+    },
+    "New Record" : {
+
+    },
+    "New Relation" : {
 
     },
     "New Rule" : {
@@ -4584,6 +5105,9 @@
           }
         }
       }
+    },
+    "New Transaction Action" : {
+
     },
     "Next 7 days" : {
 
@@ -4617,6 +5141,9 @@
           }
         }
       }
+    },
+    "No" : {
+
     },
     "No active recurring expenses" : {
       "extractionState" : "stale",
@@ -4737,6 +5264,12 @@
         }
       }
     },
+    "No fields" : {
+
+    },
+    "No flows" : {
+
+    },
     "No forecast yet" : {
       "localizations" : {
         "bn" : {
@@ -4793,6 +5326,9 @@
     "No members" : {
 
     },
+    "No objects" : {
+
+    },
     "No payer" : {
 
     },
@@ -4828,6 +5364,9 @@
         }
       }
     },
+    "No records" : {
+
+    },
     "No recurring rules" : {
       "localizations" : {
         "bn" : {
@@ -4837,6 +5376,9 @@
           }
         }
       }
+    },
+    "No relations" : {
+
     },
     "No rollover" : {
       "localizations" : {
@@ -4897,6 +5439,9 @@
         }
       }
     },
+    "No transaction actions" : {
+
+    },
     "No transactions" : {
       "localizations" : {
         "bn" : {
@@ -4937,6 +5482,9 @@
         }
       }
     },
+    "No value" : {
+
+    },
     "No visible goals" : {
       "localizations" : {
         "bn" : {
@@ -4956,6 +5504,12 @@
           }
         }
       }
+    },
+    "Not a duplicate" : {
+
+    },
+    "Not equal" : {
+
     },
     "Not posted" : {
       "localizations" : {
@@ -4989,7 +5543,10 @@
         }
       }
     },
-    "Not a duplicate" : {
+    "Note field" : {
+
+    },
+    "Notes" : {
 
     },
     "Nothing to review" : {
@@ -5005,7 +5562,16 @@
     "Notice" : {
 
     },
+    "Number" : {
+
+    },
     "Object Type" : {
+
+    },
+    "Object types are the record lists inside a flow, such as Products, Shopping Trips, Line Items, Subscriptions, or Loans." : {
+
+    },
+    "Objects" : {
 
     },
     "Of this report" : {
@@ -5028,6 +5594,9 @@
           }
         }
       }
+    },
+    "On finalize" : {
+
     },
     "On track" : {
       "localizations" : {
@@ -5231,6 +5800,9 @@
     "Opening the selected Float item." : {
 
     },
+    "Operation" : {
+
+    },
     "Optional amount" : {
 
     },
@@ -5238,6 +5810,9 @@
 
     },
     "Original" : {
+
+    },
+    "Otherwise" : {
 
     },
     "Outstanding" : {
@@ -5527,7 +6102,13 @@
     "Plan" : {
 
     },
+    "Planned" : {
+
+    },
     "Planner" : {
+
+    },
+    "Plural name" : {
 
     },
     "Portable data" : {
@@ -5628,6 +6209,12 @@
         }
       }
     },
+    "Price" : {
+
+    },
+    "Priority" : {
+
+    },
     "Privacy" : {
       "localizations" : {
         "bn" : {
@@ -5660,6 +6247,15 @@
         }
       }
     },
+    "Product" : {
+
+    },
+    "Products" : {
+
+    },
+    "Products, trips, and line items for grocery runs." : {
+
+    },
     "Profile deleted." : {
 
     },
@@ -5676,6 +6272,12 @@
         }
       }
     },
+    "Purchase date" : {
+
+    },
+    "Purchase price" : {
+
+    },
     "Qty" : {
 
     },
@@ -5688,6 +6290,15 @@
           }
         }
       }
+    },
+    "Quantity" : {
+
+    },
+    "Quantity x Price" : {
+
+    },
+    "Quarterly" : {
+
     },
     "Range" : {
       "localizations" : {
@@ -5741,6 +6352,9 @@
     "Reading receipt" : {
 
     },
+    "Reads a field from a related record." : {
+
+    },
     "Rebuilding your report for the selected range." : {
       "localizations" : {
         "en" : {
@@ -5779,7 +6393,13 @@
         }
       }
     },
+    "Record" : {
+
+    },
     "Record payment" : {
+
+    },
+    "Records" : {
 
     },
     "Recurring" : {
@@ -5878,6 +6498,9 @@
     "Recurring rules" : {
 
     },
+    "Recurring services with amount, billing, and account fields." : {
+
+    },
     "Recurring time" : {
       "localizations" : {
         "bn" : {
@@ -5923,6 +6546,33 @@
     "Rejected" : {
 
     },
+    "Relation" : {
+
+    },
+    "Relation field" : {
+
+    },
+    "Relation lookup" : {
+
+    },
+    "Relation lookup needs a valid relation field." : {
+
+    },
+    "Relation lookup reads a value from a connected record." : {
+
+    },
+    "Relation lookup references a broken relation." : {
+
+    },
+    "Relation lookup references a missing target field." : {
+
+    },
+    "Relations" : {
+
+    },
+    "Relations let one record point to another, or let a parent record hold many child rows, like a shopping trip with multiple grocery items." : {
+
+    },
     "Reload transactions" : {
       "localizations" : {
         "bn" : {
@@ -5953,6 +6603,12 @@
         }
       }
     },
+    "Remaining balance" : {
+
+    },
+    "Remaining budget" : {
+
+    },
     "Remaining pace" : {
       "localizations" : {
         "en" : {
@@ -5974,6 +6630,9 @@
       }
     },
     "Rename" : {
+
+    },
+    "Repaid" : {
 
     },
     "Repeat" : {
@@ -6024,6 +6683,9 @@
           }
         }
       }
+    },
+    "Required" : {
+
     },
     "Reset all data" : {
       "localizations" : {
@@ -6079,6 +6741,12 @@
         }
       }
     },
+    "Result" : {
+
+    },
+    "Result is the final value saved for this formula field." : {
+
+    },
     "Retry" : {
       "localizations" : {
         "bn" : {
@@ -6088,6 +6756,9 @@
           }
         }
       }
+    },
+    "Returns one value when a rule is true and another when it is false." : {
+
     },
     "Review before saving" : {
 
@@ -6125,6 +6796,12 @@
         }
       }
     },
+    "Right" : {
+
+    },
+    "Right value" : {
+
+    },
     "Role" : {
 
     },
@@ -6137,6 +6814,9 @@
           }
         }
       }
+    },
+    "Rule" : {
+
     },
     "Rules running" : {
       "localizations" : {
@@ -6284,6 +6964,9 @@
           }
         }
       }
+    },
+    "Save Only" : {
+
     },
     "Save Split Template" : {
       "localizations" : {
@@ -6512,6 +7195,27 @@
     "Shared expense" : {
 
     },
+    "Shelf price" : {
+
+    },
+    "Shopping item" : {
+
+    },
+    "Shopping item product" : {
+
+    },
+    "Shopping items" : {
+
+    },
+    "Shopping trip" : {
+
+    },
+    "Shopping trip item" : {
+
+    },
+    "Shopping trips" : {
+
+    },
     "Show completed" : {
       "localizations" : {
         "bn" : {
@@ -6531,6 +7235,9 @@
           }
         }
       }
+    },
+    "Singular name" : {
+
     },
     "Skipped" : {
 
@@ -6565,6 +7272,12 @@
           }
         }
       }
+    },
+    "Source" : {
+
+    },
+    "Source object" : {
+
     },
     "Spanish" : {
       "localizations" : {
@@ -6790,6 +7503,9 @@
         }
       }
     },
+    "Start" : {
+
+    },
     "Start date" : {
       "localizations" : {
         "bn" : {
@@ -6810,7 +7526,13 @@
         }
       }
     },
+    "Start with a flow" : {
+
+    },
     "Start with people" : {
+
+    },
+    "Starter flows" : {
 
     },
     "Starting amount" : {
@@ -6868,6 +7590,9 @@
         }
       }
     },
+    "Status summary" : {
+
+    },
     "Still to fund" : {
       "localizations" : {
         "en" : {
@@ -6877,6 +7602,21 @@
           }
         }
       }
+    },
+    "Store" : {
+
+    },
+    "Subscription" : {
+
+    },
+    "Subscriptions" : {
+
+    },
+    "Subtract" : {
+
+    },
+    "Sum all child expense rows" : {
+
     },
     "Swap" : {
       "localizations" : {
@@ -6921,6 +7661,9 @@
         }
       }
     },
+    "Target" : {
+
+    },
     "Target %@" : {
       "localizations" : {
         "bn" : {
@@ -6940,6 +7683,9 @@
           }
         }
       }
+    },
+    "Target field" : {
+
     },
     "Target funding" : {
       "localizations" : {
@@ -7004,7 +7750,13 @@
     "Test future spending or income without saving real transactions." : {
 
     },
+    "Text" : {
+
+    },
     "Text recognition is running on device." : {
+
+    },
+    "The current date when the formula runs." : {
 
     },
     "Theme" : {
@@ -7040,6 +7792,9 @@
         }
       }
     },
+    "Then" : {
+
+    },
     "There is no comparable prior spending yet." : {
       "localizations" : {
         "bn" : {
@@ -7049,6 +7804,9 @@
           }
         }
       }
+    },
+    "They owe" : {
+
     },
     "They owe you" : {
 
@@ -7093,10 +7851,13 @@
         }
       }
     },
-    "This month" : {
+    "This finalized record is linked to a Float transaction. Update the linked transaction with these edits?" : {
 
     },
     "This looks similar to another transaction within a few minutes." : {
+
+    },
+    "This month" : {
 
     },
     "This period" : {
@@ -7310,7 +8071,13 @@
     "Track reimbursement" : {
 
     },
+    "Track who owes what, due dates, and settlement status." : {
+
+    },
     "Transaction" : {
+
+    },
+    "Transaction actions" : {
 
     },
     "Transaction deleted" : {
@@ -7324,6 +8091,12 @@
       }
     },
     "Transaction Direction" : {
+
+    },
+    "Transaction linked." : {
+
+    },
+    "Transaction mapping" : {
 
     },
     "Transactions" : {
@@ -7388,6 +8161,39 @@
           }
         }
       }
+    },
+    "Travel plan" : {
+
+    },
+    "Trigger" : {
+
+    },
+    "Trip" : {
+
+    },
+    "Trip expense" : {
+
+    },
+    "Trip expense trip" : {
+
+    },
+    "Trip expenses" : {
+
+    },
+    "Trip total" : {
+
+    },
+    "Trips" : {
+
+    },
+    "Trips and expenses linked together for planning." : {
+
+    },
+    "True or false" : {
+
+    },
+    "True or false value" : {
+
     },
     "Try \"coffee 870 last sunday\"" : {
 
@@ -7481,6 +8287,12 @@
           }
         }
       }
+    },
+    "Unit" : {
+
+    },
+    "Unknown" : {
+
     },
     "Unknown Account" : {
       "localizations" : {
@@ -7604,6 +8416,27 @@
         }
       }
     },
+    "Update linked transaction" : {
+
+    },
+    "Update linked transaction?" : {
+
+    },
+    "Update Transaction" : {
+
+    },
+    "Use Arithmetic when one calculated value depends on two fields." : {
+
+    },
+    "Use Arithmetic with money fields to calculate what is still due." : {
+
+    },
+    "Use Child-row sum when a parent record needs totals from related rows." : {
+
+    },
+    "Use Condition when the value should change based on a rule." : {
+
+    },
     "Use device language" : {
       "localizations" : {
         "bn" : {
@@ -7636,6 +8469,9 @@
         }
       }
     },
+    "Use fixed date" : {
+
+    },
     "Use natural language for amount, category, account, people, and date." : {
 
     },
@@ -7649,6 +8485,15 @@
           }
         }
       }
+    },
+    "Useful examples" : {
+
+    },
+    "Uses today's date." : {
+
+    },
+    "Value" : {
+
     },
     "View" : {
       "localizations" : {
@@ -7689,6 +8534,9 @@
     "Warning" : {
 
     },
+    "Warranty until" : {
+
+    },
     "Week pulse" : {
       "localizations" : {
         "en" : {
@@ -7723,6 +8571,9 @@
     "What was paid?" : {
 
     },
+    "When" : {
+
+    },
     "Where expenses concentrate" : {
       "localizations" : {
         "en" : {
@@ -7746,6 +8597,15 @@
         }
       }
     },
+    "Wishlist" : {
+
+    },
+    "Wishlist item" : {
+
+    },
+    "Wishlist items" : {
+
+    },
     "Within plan" : {
       "localizations" : {
         "en" : {
@@ -7768,6 +8628,12 @@
           }
         }
       }
+    },
+    "Yearly" : {
+
+    },
+    "Yes" : {
+
     },
     "You can spend" : {
       "extractionState" : "stale",

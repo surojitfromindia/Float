@@ -30,6 +30,14 @@ struct FloatBackupDTO: Codable {
     var transactionPersonTags: [TransactionPersonTagDTO]
     var transactionTemplates: [TransactionTemplateDTO]
     var transactionTemplateGroups: [TransactionTemplateGroupDTO]
+    var customFlows: [CustomFlowDTO]
+    var customFlowObjectTypes: [CustomFlowObjectTypeDTO]
+    var customFlowFields: [CustomFlowFieldDTO]
+    var customFlowRelations: [CustomFlowRelationDTO]
+    var customFlowRecords: [CustomFlowRecordDTO]
+    var customFlowFieldValues: [CustomFlowFieldValueDTO]
+    var customFlowTransactionActions: [CustomFlowTransactionActionDTO]
+    var customFlowTransactionLinks: [CustomFlowTransactionLinkDTO]
     var transfers: [TransferDTO]
     var goals: [GoalDTO]
     var recurringRules: [RecurringRuleDTO]
@@ -60,6 +68,14 @@ struct FloatBackupDTO: Codable {
         case transactionPersonTags
         case transactionTemplates
         case transactionTemplateGroups
+        case customFlows
+        case customFlowObjectTypes
+        case customFlowFields
+        case customFlowRelations
+        case customFlowRecords
+        case customFlowFieldValues
+        case customFlowTransactionActions
+        case customFlowTransactionLinks
         case transfers
         case goals
         case recurringRules
@@ -91,6 +107,14 @@ struct FloatBackupDTO: Codable {
         transactionPersonTags: [TransactionPersonTagDTO] = [],
         transactionTemplates: [TransactionTemplateDTO] = [],
         transactionTemplateGroups: [TransactionTemplateGroupDTO] = [],
+        customFlows: [CustomFlowDTO] = [],
+        customFlowObjectTypes: [CustomFlowObjectTypeDTO] = [],
+        customFlowFields: [CustomFlowFieldDTO] = [],
+        customFlowRelations: [CustomFlowRelationDTO] = [],
+        customFlowRecords: [CustomFlowRecordDTO] = [],
+        customFlowFieldValues: [CustomFlowFieldValueDTO] = [],
+        customFlowTransactionActions: [CustomFlowTransactionActionDTO] = [],
+        customFlowTransactionLinks: [CustomFlowTransactionLinkDTO] = [],
         transfers: [TransferDTO] = [],
         goals: [GoalDTO],
         recurringRules: [RecurringRuleDTO],
@@ -120,6 +144,14 @@ struct FloatBackupDTO: Codable {
         self.transactionPersonTags = transactionPersonTags
         self.transactionTemplates = transactionTemplates
         self.transactionTemplateGroups = transactionTemplateGroups
+        self.customFlows = customFlows
+        self.customFlowObjectTypes = customFlowObjectTypes
+        self.customFlowFields = customFlowFields
+        self.customFlowRelations = customFlowRelations
+        self.customFlowRecords = customFlowRecords
+        self.customFlowFieldValues = customFlowFieldValues
+        self.customFlowTransactionActions = customFlowTransactionActions
+        self.customFlowTransactionLinks = customFlowTransactionLinks
         self.transfers = transfers
         self.goals = goals
         self.recurringRules = recurringRules
@@ -152,6 +184,14 @@ struct FloatBackupDTO: Codable {
         transactionPersonTags = try container.decodeIfPresent([TransactionPersonTagDTO].self, forKey: .transactionPersonTags) ?? []
         transactionTemplates = try container.decodeIfPresent([TransactionTemplateDTO].self, forKey: .transactionTemplates) ?? []
         transactionTemplateGroups = try container.decodeIfPresent([TransactionTemplateGroupDTO].self, forKey: .transactionTemplateGroups) ?? []
+        customFlows = try container.decodeIfPresent([CustomFlowDTO].self, forKey: .customFlows) ?? []
+        customFlowObjectTypes = try container.decodeIfPresent([CustomFlowObjectTypeDTO].self, forKey: .customFlowObjectTypes) ?? []
+        customFlowFields = try container.decodeIfPresent([CustomFlowFieldDTO].self, forKey: .customFlowFields) ?? []
+        customFlowRelations = try container.decodeIfPresent([CustomFlowRelationDTO].self, forKey: .customFlowRelations) ?? []
+        customFlowRecords = try container.decodeIfPresent([CustomFlowRecordDTO].self, forKey: .customFlowRecords) ?? []
+        customFlowFieldValues = try container.decodeIfPresent([CustomFlowFieldValueDTO].self, forKey: .customFlowFieldValues) ?? []
+        customFlowTransactionActions = try container.decodeIfPresent([CustomFlowTransactionActionDTO].self, forKey: .customFlowTransactionActions) ?? []
+        customFlowTransactionLinks = try container.decodeIfPresent([CustomFlowTransactionLinkDTO].self, forKey: .customFlowTransactionLinks) ?? []
         transfers = try container.decodeIfPresent([TransferDTO].self, forKey: .transfers) ?? []
         goals = try container.decode([GoalDTO].self, forKey: .goals)
         recurringRules = try container.decode([RecurringRuleDTO].self, forKey: .recurringRules)
@@ -509,6 +549,114 @@ struct TransactionTemplateGroupEntryDTO: Codable {
     var id: UUID
     var templateID: UUID?
     var sortOrder: Int
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct CustomFlowDTO: Codable {
+    var id: UUID
+    var name: String
+    var iconKey: String
+    var colorHex: String
+    var sortOrder: Int
+    var archived: Bool
+    var starterIdentifier: String?
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct CustomFlowObjectTypeDTO: Codable {
+    var id: UUID
+    var flowID: UUID?
+    var name: String
+    var singularName: String
+    var iconKey: String
+    var sortOrder: Int
+    var archived: Bool
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct CustomFlowFieldDTO: Codable {
+    var id: UUID
+    var objectTypeID: UUID?
+    var relationID: UUID?
+    var name: String
+    var key: String
+    var kindRaw: String
+    var sortOrder: Int
+    var required: Bool
+    var archived: Bool
+    var choiceOptionsRaw: String?
+    var defaultValueRaw: String?
+    var formulaDefinitionRaw: String?
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct CustomFlowRelationDTO: Codable {
+    var id: UUID
+    var flowID: UUID?
+    var sourceObjectTypeID: UUID?
+    var targetObjectTypeID: UUID?
+    var name: String
+    var kindRaw: String
+    var sortOrder: Int
+    var archived: Bool
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct CustomFlowRecordDTO: Codable {
+    var id: UUID
+    var objectTypeID: UUID?
+    var parentRecordID: UUID?
+    var parentRelationID: UUID?
+    var title: String
+    var statusRaw: String
+    var sortOrder: Int
+    var createdAt: Date
+    var updatedAt: Date
+    var finalizedAt: Date?
+}
+struct CustomFlowFieldValueDTO: Codable {
+    var id: UUID
+    var recordID: UUID?
+    var fieldID: UUID?
+    var relatedRecordID: UUID?
+    var categoryID: UUID?
+    var accountID: UUID?
+    var personID: UUID?
+    var valueRaw: String?
+    var numberValue: Double?
+    var amountMinor: Int64?
+    var dateValue: Date?
+    var boolValue: Bool?
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct CustomFlowTransactionActionDTO: Codable {
+    var id: UUID
+    var flowID: UUID?
+    var sourceObjectTypeID: UUID?
+    var amountFieldID: UUID?
+    var categoryFieldID: UUID?
+    var accountFieldID: UUID?
+    var dateFieldID: UUID?
+    var noteFieldID: UUID?
+    var fixedCategoryID: UUID?
+    var fixedAccountID: UUID?
+    var fixedAmountMinor: Int64?
+    var fixedDate: Date?
+    var name: String
+    var triggerRaw: String
+    var isExpense: Bool
+    var active: Bool
+    var fixedNote: String?
+    var createdAt: Date
+    var updatedAt: Date
+}
+struct CustomFlowTransactionLinkDTO: Codable {
+    var id: UUID
+    var recordID: UUID?
+    var actionID: UUID?
+    var transactionID: UUID?
+    var lastSyncedSnapshotRaw: String?
     var createdAt: Date
     var updatedAt: Date
 }
