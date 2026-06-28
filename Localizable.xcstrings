@@ -1145,9 +1145,6 @@
         }
       }
     },
-    "Add Record" : {
-
-    },
     "Add Relation" : {
 
     },
@@ -2340,6 +2337,16 @@
     },
     "Condition test" : {
 
+    },
+    "Configuration" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Configuration"
+          }
+        }
+      }
     },
     "Connect records" : {
 
@@ -5565,6 +5572,9 @@
     "Number" : {
 
     },
+    "Object" : {
+
+    },
     "Object Type" : {
 
     },
@@ -5648,6 +5658,16 @@
     },
     "Open cases" : {
 
+    },
+    "Open Configuration" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Open Configuration"
+          }
+        }
+      }
     },
     "Open Float" : {
       "localizations" : {

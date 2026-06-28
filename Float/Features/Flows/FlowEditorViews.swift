@@ -1212,8 +1212,7 @@ struct FlowRecordEditorView: View {
     private func formulaDisplay(for field: CustomFlowFieldItem) -> (text: String, isError: Bool) {
         let targetRecord = record ?? CustomFlowRecordItem(
             title: title.flowNilIfBlank ?? objectType.singularName,
-            status: status,
-            objectType: objectType
+            status: status
         )
         let draftFormulaValues = Dictionary(
             uniqueKeysWithValues: objectType.activeFields
