@@ -770,17 +770,23 @@ struct FlowRecordEditorView: View {
     private var records: [CustomFlowRecordItem] {
         filterActiveProfile(allRecords).filter { $0.status != .archived }
     }
+    private var editableStatuses: [CustomFlowRecordStatus] {
+        CustomFlowRecordStatus.allCases.filter { $0 != .archived }
+    }
+    private var palette: FloatThemePalette { appState.themePalette }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("Record") {
                     TextField("Title", text: $title)
+
                     Picker("Status", selection: $status) {
-                        ForEach(CustomFlowRecordStatus.allCases.filter { $0 != .archived }) { status in
+                        ForEach(editableStatuses) { status in
                             Text(status.title).tag(status)
                         }
                     }
+                    .pickerStyle(.segmented)
                 }
 
                 Section("Fields") {
@@ -798,14 +804,17 @@ struct FlowRecordEditorView: View {
                     Section {
                         Text(validationMessage)
                             .font(.footnote)
-                            .foregroundStyle(Color(hex: "#B4613B"))
+                            .foregroundStyle(palette.caution)
                     }
                 }
             }
             .navigationTitle(record == nil ? "New Record" : "Edit Record")
+            .navigationBarTitleDisplayMode(.inline)
             .keyboardDismissControls()
+            .formStyle(.grouped)
             .scrollContentBackground(.hidden)
             .floatBackground()
+            .tint(palette.accent)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -832,76 +841,147 @@ struct FlowRecordEditorView: View {
     private func fieldInput(_ field: CustomFlowFieldItem) -> some View {
         switch field.kind {
         case .text:
-            TextField(field.name, text: textBinding(for: field))
+            HStack(spacing: 12) {
+                fieldRowLabel(field)
+                Spacer(minLength: 16)
+                TextField(field.name, text: textBinding(for: field))
+                    .textFieldStyle(.plain)
+                    .multilineTextAlignment(.trailing)
+            }
         case .notes:
-            TextField(field.name, text: textBinding(for: field), axis: .vertical)
-                .lineLimit(2...5)
+            VStack(alignment: .leading, spacing: 8) {
+                fieldRowLabel(field)
+                TextField(field.name, text: textBinding(for: field), axis: .vertical)
+                    .textFieldStyle(.plain)
+                    .lineLimit(2...5)
+            }
         case .number:
-            TextField(field.name, text: numberBinding(for: field))
-                .keyboardType(.decimalPad)
-        case .money:
-            HStack {
-                TextField(field.name, text: amountBinding(for: field))
+            HStack(spacing: 12) {
+                fieldRowLabel(field)
+                Spacer(minLength: 16)
+                TextField(field.name, text: numberBinding(for: field))
+                    .textFieldStyle(.plain)
                     .keyboardType(.decimalPad)
-                CurrencyAmountPreview(
-                    minorUnits: MoneyParser.parseDisplayAmountMinor(
-                        from: draft(for: field).amountText,
+                    .monospacedDigit()
+                    .multilineTextAlignment(.trailing)
+            }
+        case .money:
+            HStack(spacing: 12) {
+                fieldRowLabel(field)
+                Spacer(minLength: 16)
+                VStack(alignment: .trailing, spacing: 3) {
+                    TextField(field.name, text: amountBinding(for: field))
+                        .textFieldStyle(.plain)
+                        .keyboardType(.decimalPad)
+                        .monospacedDigit()
+                        .multilineTextAlignment(.trailing)
+
+                    CurrencyAmountPreview(
+                        minorUnits: MoneyParser.parseDisplayAmountMinor(
+                            from: draft(for: field).amountText,
+                            currencyCode: appState.selectedCurrencyCode
+                        ),
                         currencyCode: appState.selectedCurrencyCode
-                    ),
-                    currencyCode: appState.selectedCurrencyCode
-                )
+                    )
+                }
             }
         case .dateTime:
             DatePicker(
-                field.name,
                 selection: dateBinding(for: field),
                 displayedComponents: [.date, .hourAndMinute]
-            )
+            ) {
+                fieldRowLabel(field)
+            }
+            .datePickerStyle(.compact)
         case .checkbox:
-            Toggle(field.name, isOn: boolBinding(for: field))
+            Toggle(isOn: boolBinding(for: field)) {
+                fieldRowLabel(field)
+            }
         case .choice:
-            Picker(field.name, selection: textBinding(for: field)) {
+            Picker(selection: textBinding(for: field)) {
                 Text("Choose").tag("")
                 ForEach(field.choiceOptions, id: \.self) { option in
                     Text(option).tag(option)
                 }
+            } label: {
+                fieldRowLabel(field)
             }
+            .pickerStyle(.menu)
         case .relation:
-            Picker(field.name, selection: relatedRecordBinding(for: field)) {
+            Picker(selection: relatedRecordBinding(for: field)) {
                 Text("Choose").tag(Optional<UUID>.none)
                 ForEach(relatedRecords(for: field)) { record in
                     Text(record.title).tag(Optional(record.id))
                 }
+            } label: {
+                fieldRowLabel(field)
             }
+            .pickerStyle(.menu)
         case .category:
-            Picker(field.name, selection: categoryBinding(for: field)) {
+            Picker(selection: categoryBinding(for: field)) {
                 Text("Choose").tag(Optional<UUID>.none)
                 ForEach(categories) { category in
                     Label(category.name, systemImage: category.iconKey)
                         .tag(Optional(category.id))
                 }
+            } label: {
+                fieldRowLabel(field)
             }
+            .pickerStyle(.menu)
         case .account:
-            Picker(field.name, selection: accountBinding(for: field)) {
+            Picker(selection: accountBinding(for: field)) {
                 Text("Choose").tag(Optional<UUID>.none)
                 ForEach(accounts) { account in
                     Label(account.name, systemImage: account.type.icon)
                         .tag(Optional(account.id))
                 }
+            } label: {
+                fieldRowLabel(field)
             }
+            .pickerStyle(.menu)
         case .person:
-            Picker(field.name, selection: personBinding(for: field)) {
+            Picker(selection: personBinding(for: field)) {
                 Text("Choose").tag(Optional<UUID>.none)
                 ForEach(people) { person in
                     Text(person.name).tag(Optional(person.id))
                 }
+            } label: {
+                fieldRowLabel(field)
             }
+            .pickerStyle(.menu)
         case .formula:
-            LabeledContent(field.name) {
-                let result = formulaDisplay(for: field)
-                Text(result.text)
-                    .foregroundStyle(result.isError ? Color(hex: "#B4613B") : .secondary)
+            let result = formulaDisplay(for: field)
+            VStack(alignment: .leading, spacing: 8) {
+                fieldRowLabel(field)
+
+                HStack {
+                    Text("Result")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    Text(result.text)
+                        .monospacedDigit()
+                        .foregroundStyle(result.isError ? palette.caution : .primary)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                        .multilineTextAlignment(.trailing)
+
+                    Image(systemName: "equal")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(palette.positive)
+                }
             }
+        }
+    }
+
+    private func fieldRowLabel(_ field: CustomFlowFieldItem) -> some View {
+        Label {
+            Text(field.name)
+                .foregroundStyle(.secondary)
+        } icon: {
+            Image(systemName: field.kind.icon)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .frame(width: 18)
         }
     }
 

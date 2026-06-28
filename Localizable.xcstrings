@@ -2956,6 +2956,9 @@
         }
       }
     },
+    "Delete flow?" : {
+
+    },
     "Delete milestone" : {
 
     },
@@ -7913,6 +7916,9 @@
       }
     },
     "This permanently deletes the case and its full entry history." : {
+
+    },
+    "This permanently deletes the flow, its configuration, and all records. Linked transactions stay in your ledger." : {
 
     },
     "This permanently deletes your accounts, categories, budgets, goals, recurring rules, and transactions. This action cannot be undone." : {

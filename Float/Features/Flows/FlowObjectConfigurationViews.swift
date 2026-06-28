@@ -12,68 +12,84 @@ struct FlowObjectConfigurationView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text("Object")
-                        .font(.headline)
-                    Spacer()
-                    if objectType.flow != nil {
-                        Button("Edit", action: editObject)
-                            .font(.subheadline.weight(.medium))
-                    }
-                }
-
-                ObjectConfigurationCard(
+        Form {
+            Section {
+                ObjectConfigurationSummaryRow(
                     objectType: objectType,
                     recordCount: recordCount
                 )
+            } header: {
+                HStack {
+                    Text("Object")
+                    Spacer()
+                    if objectType.flow != nil {
+                        Button("Edit", action: editObject)
+                            .font(.caption.weight(.semibold))
+                            .textCase(nil)
+                    }
+                }
+                .textCase(nil)
+            }
 
-                SectionHeader(
-                    title: "Fields",
-                    actionTitle: "Add",
-                    action: {
+            Section {
+                if objectType.activeFields.isEmpty {
+                    Label {
+                        Text("Add fields to generate the record form.")
+                            .foregroundStyle(.secondary)
+                    } icon: {
+                        Image(systemName: "text.badge.plus")
+                            .foregroundStyle(.tertiary)
+                    }
+                } else {
+                    ForEach(objectType.activeFields) { field in
+                        Button {
+                            fieldEditor = FieldEditorPresentation(
+                                objectType: objectType,
+                                field: field
+                            )
+                        } label: {
+                            ObjectConfigurationFieldRow(field: field)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button {
+                                fieldEditor = FieldEditorPresentation(
+                                    objectType: objectType,
+                                    field: field
+                                )
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            Button(role: .destructive) {
+                                archive(field)
+                            } label: {
+                                Label("Archive", systemImage: "archivebox")
+                            }
+                        }
+                    }
+                }
+            } header: {
+                HStack {
+                    Text("Fields")
+                    Spacer()
+                    Button("Add") {
                         fieldEditor = FieldEditorPresentation(
                             objectType: objectType,
                             field: nil
                         )
                     }
-                )
-
-                if objectType.activeFields.isEmpty {
-                    GlassCard {
-                        EmptyStateView(
-                            icon: "text.badge.plus",
-                            title: "No fields",
-                            message: "Add fields to generate the record form."
-                        )
-                    }
-                } else {
-                    ForEach(objectType.activeFields) { field in
-                        FieldRow(field: field)
-                            .contextMenu {
-                                Button {
-                                    fieldEditor = FieldEditorPresentation(
-                                        objectType: objectType,
-                                        field: field
-                                    )
-                                } label: {
-                                    Label("Edit", systemImage: "pencil")
-                                }
-                                Button(role: .destructive) {
-                                    archive(field)
-                                } label: {
-                                    Label("Archive", systemImage: "archivebox")
-                                }
-                            }
-                    }
+                    .font(.caption.weight(.semibold))
+                    .textCase(nil)
                 }
+                .textCase(nil)
             }
-            .padding(20)
-            .padding(.bottom, 120)
         }
         .navigationTitle("Configuration")
+        .navigationBarTitleDisplayMode(.inline)
+        .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .floatBackground()
+        .tint(tint)
         .toolbar {
             Menu {
                 Button {
@@ -122,9 +138,13 @@ struct FlowObjectConfigurationView: View {
         objectType.flow?.updatedAt = Date()
         try? modelContext.save()
     }
+
+    private var tint: Color {
+        Color(hex: objectType.flow?.colorHex ?? "#0E7C7B")
+    }
 }
 
-private struct ObjectConfigurationCard: View {
+private struct ObjectConfigurationSummaryRow: View {
     let objectType: CustomFlowObjectTypeItem
     let recordCount: Int
 
@@ -133,64 +153,87 @@ private struct ObjectConfigurationCard: View {
     }
 
     var body: some View {
-        GlassCard {
-            HStack(spacing: 14) {
-                FloatIconBadge(icon: objectType.iconKey, tint: tint, size: 42)
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(objectType.name)
-                        .font(.headline)
-                        .lineLimit(1)
-                    Text(objectType.singularName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                    Text(
-                        String(
-                            localized: "\(objectType.activeFields.count) fields · \(recordCount) records"
-                        )
-                    )
-                    .font(.caption)
+        HStack(spacing: 12) {
+            Image(systemName: objectType.iconKey)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(tint)
+                .frame(width: 32, height: 32)
+                .background(tint.opacity(0.12), in: Circle())
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(objectType.name)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                Text(objectType.singularName)
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                }
-                Spacer(minLength: 8)
+
+                Text(metadata)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
             }
+
+            Spacer(minLength: 8)
         }
+        .padding(.vertical, 4)
+    }
+
+    private var metadata: String {
+        String(localized: "\(objectType.activeFields.count) fields · \(recordCount) records")
     }
 }
 
-private struct FieldRow: View {
+private struct ObjectConfigurationFieldRow: View {
     let field: CustomFlowFieldItem
 
     var body: some View {
-        GlassCard(padding: 14) {
-            HStack(spacing: 12) {
-                FloatIconBadge(
-                    icon: field.kind.icon,
-                    tint: Color(hex: field.objectType?.flow?.colorHex ?? "#0E7C7B"),
-                    size: 34
-                )
-                VStack(alignment: .leading, spacing: 3) {
+        HStack(spacing: 12) {
+            Image(systemName: field.kind.icon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 24)
+
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 8) {
                     Text(field.name)
-                        .font(.subheadline.weight(.semibold))
-                    Text(field.kind.title)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    if let formulaIssue {
-                        Text(formulaIssue.message)
-                            .font(.caption2)
-                            .foregroundStyle(Color(hex: "#B4613B"))
-                            .lineLimit(2)
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+
+                    if field.required {
+                        Text("Required")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(.tertiary.opacity(0.18), in: Capsule())
                     }
                 }
-                Spacer()
-                if field.required {
-                    Text("Required")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(.secondary)
+
+                Text(field.kind.title)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                if let formulaIssue {
+                    Text(formulaIssue.message)
+                        .font(.caption)
+                        .foregroundStyle(Color(hex: "#B4613B"))
+                        .lineLimit(2)
                 }
             }
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
         }
+        .padding(.vertical, 4)
     }
 
     private var formulaIssue: CustomFlowFormulaValidationIssue? {

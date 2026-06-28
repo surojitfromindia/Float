@@ -2,12 +2,14 @@ import SwiftData
 import SwiftUI
 
 struct FlowConfigurationView: View {
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     let flow: CustomFlowItem
     @State private var flowEditor: FlowEditorPresentation?
     @State private var objectEditor: ObjectTypeEditorPresentation?
     @State private var relationEditor: RelationEditorPresentation?
     @State private var actionEditor: TransactionActionEditorPresentation?
+    @State private var showingDeleteAlert = false
 
     private var objectTypes: [CustomFlowObjectTypeItem] {
         flow.objectTypes
@@ -207,9 +209,21 @@ struct FlowConfigurationView: View {
                 } label: {
                     Label("Add Transaction Action", systemImage: "arrow.triangle.2.circlepath")
                 }
+                Divider()
+                Button(role: .destructive) {
+                    showingDeleteAlert = true
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
+        }
+        .alert("Delete flow?", isPresented: $showingDeleteAlert) {
+            Button("Delete", role: .destructive, action: deleteFlow)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes the flow, its configuration, and all records. Linked transactions stay in your ledger.")
         }
         .sheet(item: $flowEditor) { presentation in
             FlowEditorSheet(flow: presentation.flow)
@@ -241,6 +255,11 @@ struct FlowConfigurationView: View {
     private func archive(_ action: CustomFlowTransactionActionItem) {
         try? CustomFlowRepository(modelContext: modelContext)
             .archiveTransactionAction(action)
+    }
+
+    private func deleteFlow() {
+        try? CustomFlowRepository(modelContext: modelContext).delete(flow)
+        dismiss()
     }
 
     private func relationSummary(_ relation: CustomFlowRelationItem) -> String {
