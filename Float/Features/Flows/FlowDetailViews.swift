@@ -7,7 +7,7 @@ struct FlowDetailView: View {
 
     private var objectTypes: [CustomFlowObjectTypeItem] {
         flow.objectTypes
-            .filter { !$0.archived }
+            .filter { !$0.archived && !$0.hiddenInFlow }
             .sorted { lhs, rhs in
                 if lhs.sortOrder == rhs.sortOrder {
                     return lhs.createdAt < rhs.createdAt
@@ -17,39 +17,25 @@ struct FlowDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                SectionHeader(title: "Objects")
-
+        List {
+            Section("Objects") {
                 if objectTypes.isEmpty {
-                    GlassCard {
-                        VStack(alignment: .leading, spacing: 14) {
-                            EmptyStateView(
-                                icon: "list.bullet.rectangle",
-                                title: "No objects",
-                                message: "Add an object type before creating records."
-                            )
-
-                            Button("Open Configuration") {
-                                showingConfiguration = true
-                            }
-                            .font(.subheadline.weight(.medium))
-                        }
+                    FlowDetailEmptyObjectsRow {
+                        showingConfiguration = true
                     }
                 } else {
                     ForEach(objectTypes) { objectType in
                         NavigationLink {
                             FlowObjectTypeView(objectType: objectType)
                         } label: {
-                            ObjectTypeCard(objectType: objectType)
+                            FlowDetailObjectRow(objectType: objectType)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
-            .padding(20)
-            .padding(.bottom, 120)
         }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
         .navigationTitle(flow.name)
         .floatBackground()
         .toolbar {
@@ -74,5 +60,51 @@ struct FlowDetailView: View {
         .sheet(isPresented: $showingHelp) {
             FlowHelpSheet()
         }
+    }
+}
+
+private struct FlowDetailObjectRow: View {
+    let objectType: CustomFlowObjectTypeItem
+
+    var body: some View {
+        Label {
+            Text(objectType.name)
+                .font(.body.weight(.medium))
+                .lineLimit(1)
+        } icon: {
+            Image(systemName: objectType.iconKey)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 28)
+        }
+        .padding(.vertical, 5)
+    }
+}
+
+private struct FlowDetailEmptyObjectsRow: View {
+    let openConfiguration: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("No objects")
+                        .font(.body.weight(.medium))
+                        .foregroundStyle(.primary)
+                    Text("Add an object type before creating records.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+            } icon: {
+                Image(systemName: "list.bullet.rectangle")
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28)
+            }
+
+            Button("Open Configuration", action: openConfiguration)
+                .font(.subheadline.weight(.semibold))
+        }
+        .padding(.vertical, 4)
     }
 }

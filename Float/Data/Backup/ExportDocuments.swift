@@ -571,6 +571,7 @@ struct CustomFlowObjectTypeDTO: Codable {
     var iconKey: String
     var sortOrder: Int
     var archived: Bool
+    var hiddenInFlow: Bool?
     var createdAt: Date
     var updatedAt: Date
 }

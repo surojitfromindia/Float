@@ -107,6 +107,8 @@ struct CustomFlowFormulaEvaluationContext {
     var objectType: CustomFlowObjectTypeItem
     var records: [CustomFlowRecordItem]
     var draftValues: [UUID: CustomFlowFormulaValue]
+    var draftRecords: [CustomFlowFormulaDraftRecord]
+    var deletedRecordIDs: Set<UUID>
     var calendar: Calendar = .current
 
     init(
@@ -114,14 +116,28 @@ struct CustomFlowFormulaEvaluationContext {
         objectType: CustomFlowObjectTypeItem? = nil,
         records: [CustomFlowRecordItem],
         draftValues: [UUID: CustomFlowFormulaValue] = [:],
+        draftRecords: [CustomFlowFormulaDraftRecord] = [],
+        deletedRecordIDs: Set<UUID> = [],
         calendar: Calendar = .current
     ) {
         self.record = record
         self.objectType = objectType ?? record.objectType ?? CustomFlowObjectTypeItem(name: "")
         self.records = records
         self.draftValues = draftValues
+        self.draftRecords = draftRecords
+        self.deletedRecordIDs = deletedRecordIDs
         self.calendar = calendar
     }
+}
+
+struct CustomFlowFormulaDraftRecord {
+    var id: UUID
+    var sourceRecordID: UUID?
+    var objectType: CustomFlowObjectTypeItem
+    var parentRecordID: UUID?
+    var parentRelationID: UUID?
+    var status: CustomFlowRecordStatus
+    var values: [UUID: CustomFlowFormulaValue]
 }
 
 struct CustomFlowFormulaValidationIssue: Identifiable, Equatable {
@@ -360,6 +376,8 @@ private extension CustomFlowFormulaEngine {
                 return .date
             case .relation:
                 return .record
+            case .lineItem:
+                return .empty
             case .category, .account, .person:
                 return .text
             case .formula:
@@ -509,6 +527,37 @@ private extension CustomFlowFormulaEngine {
                         throw CustomFlowFormulaEvaluationError.wrongFieldType(sumField.name)
                     }
                 }
+                for draftRecord in draftChildRecords(
+                    for: relation,
+                    parentRecord: record,
+                    childObjectType: childObjectType
+                ) {
+                    let draftShell = CustomFlowRecordItem(
+                        id: draftRecord.id,
+                        title: childObjectType.singularName,
+                        status: draftRecord.status,
+                        objectType: childObjectType,
+                        parentRecord: record,
+                        parentRelation: relation
+                    )
+                    let value = try value(
+                        for: sumField,
+                        record: draftShell,
+                        objectType: childObjectType,
+                        visitedFieldIDs: visitedFieldIDs
+                    )
+                    switch value {
+                    case .moneyMinor(let minor):
+                        usesMoney = true
+                        moneyTotal += minor
+                    case .number(let number):
+                        numberTotal += number
+                    case .empty:
+                        continue
+                    default:
+                        throw CustomFlowFormulaEvaluationError.wrongFieldType(sumField.name)
+                    }
+                }
                 return usesMoney ? .moneyMinor(moneyTotal + Int64(numberTotal.rounded())) : .number(numberTotal)
             }
         }
@@ -535,6 +584,12 @@ private extension CustomFlowFormulaEngine {
             }
             if record.id == context.record.id,
                let draftValue = context.draftValues[field.id] {
+                return draftValue
+            }
+            if let draftRecord = context.draftRecords.first(where: {
+                $0.id == record.id || $0.sourceRecordID == record.id
+            }),
+               let draftValue = draftRecord.values[field.id] {
                 return draftValue
             }
             return record.value(for: field).formulaValue(for: field)
@@ -659,12 +714,35 @@ private extension CustomFlowFormulaEngine {
             let relationFields = childObjectType.activeFormulaFields.filter {
                 $0.kind == .relation && $0.relation?.id == relation.id
             }
+            let overriddenRecordIDs = Set(context.draftRecords.compactMap(\.sourceRecordID))
             return context.records.filter { candidate in
-                candidate.objectType?.id == childObjectType.id
+                guard candidate.objectType?.id == childObjectType.id,
+                      candidate.status != .archived,
+                      !context.deletedRecordIDs.contains(candidate.id),
+                      !overriddenRecordIDs.contains(candidate.id)
+                else { return false }
+
+                if candidate.parentRecord?.id == parentRecord.id,
+                   candidate.parentRelation?.id == relation.id {
+                    return true
+                }
+
+                return relationFields.contains { field in
+                    candidate.value(for: field)?.relatedRecord?.id == parentRecord.id
+                }
+            }
+        }
+
+        private func draftChildRecords(
+            for relation: CustomFlowRelationItem,
+            parentRecord: CustomFlowRecordItem,
+            childObjectType: CustomFlowObjectTypeItem
+        ) -> [CustomFlowFormulaDraftRecord] {
+            context.draftRecords.filter { candidate in
+                candidate.objectType.id == childObjectType.id
                     && candidate.status != .archived
-                    && relationFields.contains { field in
-                        candidate.value(for: field)?.relatedRecord?.id == parentRecord.id
-                    }
+                    && candidate.parentRecordID == parentRecord.id
+                    && candidate.parentRelationID == relation.id
             }
         }
     }
@@ -698,6 +776,8 @@ private extension Optional where Wrapped == CustomFlowFieldValueItem {
             return value.dateValue.map(CustomFlowFormulaValue.date) ?? .empty
         case .relation:
             return value.relatedRecord.map(CustomFlowFormulaValue.record) ?? .empty
+        case .lineItem:
+            return .empty
         case .category:
             return value.category.map { .text($0.name) } ?? .empty
         case .account:

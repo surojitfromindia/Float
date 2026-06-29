@@ -374,7 +374,9 @@ private struct FormulaNodeEditor: View {
     }
 
     private var availableFields: [CustomFlowFieldItem] {
-        objectType.activeFields.filter { $0.id != editingFieldID }
+        objectType.activeFields.filter {
+            $0.id != editingFieldID && $0.kind != .lineItem
+        }
     }
 
     private var relationFields: [CustomFlowFieldItem] {
@@ -437,7 +439,7 @@ private struct FormulaNodeEditor: View {
         let target = relation.targetObjectType?.id == objectType.id
             ? relation.sourceObjectType
             : relation.targetObjectType
-        return target?.activeFields ?? []
+        return target?.activeFields.filter { $0.kind != .lineItem } ?? []
     }
 
     private func childFields(for relationID: UUID) -> [CustomFlowFieldItem] {

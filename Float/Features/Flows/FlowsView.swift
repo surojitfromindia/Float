@@ -21,34 +21,24 @@ struct FlowsView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 14) {
+        List {
+            Section {
                 if flows.isEmpty {
-                    GlassCard {
-                        EmptyStateView(
-                            icon: "rectangle.stack.badge.plus",
-                            title: "No flows",
-                            message: "Create a custom flow for lists, drafts, and records."
-                        )
-                    }
-                    StarterTemplatesList(action: installStarter)
+                    FlowsEmptyRow()
                 }
 
                 if let starterMessage {
-                    GlassCard(padding: 12) {
-                        Text(starterMessage)
-                            .font(.footnote)
-                            .foregroundStyle(Color(hex: "#B4613B"))
-                    }
+                    Text(starterMessage)
+                        .font(.footnote)
+                        .foregroundStyle(appState.themePalette.caution)
                 }
 
                 ForEach(flows) { flow in
                     NavigationLink {
                         FlowDetailView(flow: flow)
                     } label: {
-                        FlowCard(flow: flow)
+                        FlowRow(flow: flow)
                     }
-                    .buttonStyle(.plain)
                     .contextMenu {
                         Button {
                             editor = FlowEditorPresentation(flow: flow)
@@ -62,10 +52,25 @@ struct FlowsView: View {
                         }
                     }
                 }
+            } header: {
+                Text("Flows")
             }
-            .padding(20)
-            .padding(.bottom, 120)
+
+            if flows.isEmpty {
+                Section("Starter flows") {
+                    ForEach(FlowStarterTemplate.allCases) { template in
+                        Button {
+                            installStarter(template)
+                        } label: {
+                            StarterTemplateRow(template: template)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
         }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
         .navigationTitle("Flows")
         .floatBackground()
         .toolbar {
@@ -117,42 +122,70 @@ struct FlowsView: View {
     }
 }
 
-private struct FlowCard: View {
+private struct FlowRow: View {
     let flow: CustomFlowItem
 
     private var tint: Color { Color(hex: flow.colorHex) }
-    private var activeObjectTypes: [CustomFlowObjectTypeItem] {
-        flow.objectTypes.filter { !$0.archived }
-    }
-    private var activeRecordCount: Int {
-        activeObjectTypes.flatMap(\.records).filter { $0.status != .archived }.count
-    }
 
     var body: some View {
-        GlassCard {
-            HStack(spacing: 14) {
-                FloatIconBadge(icon: flow.iconKey, tint: tint, size: 44)
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(flow.name)
-                        .font(.headline)
-                        .lineLimit(1)
-                    Text(flowDetail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-                Spacer(minLength: 8)
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
-            }
+        Label {
+            Text(flow.name)
+                .font(.body.weight(.medium))
+                .lineLimit(1)
+        } icon: {
+            Image(systemName: flow.iconKey)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(tint)
+                .frame(width: 28)
         }
+        .padding(.vertical, 5)
     }
+}
 
-    private var flowDetail: String {
-        String(
-            localized: "\(activeObjectTypes.count) objects · \(activeRecordCount) records"
-        )
+private struct FlowsEmptyRow: View {
+    var body: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("No flows")
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.primary)
+                Text("Create a custom flow for lists, drafts, and records.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+        } icon: {
+            Image(systemName: "rectangle.stack.badge.plus")
+                .font(.body.weight(.medium))
+                .foregroundStyle(.secondary)
+                .frame(width: 28)
+        }
+        .padding(.vertical, 4)
+        .contentShape(Rectangle())
+    }
+}
+
+private struct StarterTemplateRow: View {
+    let template: FlowStarterTemplate
+
+    var body: some View {
+        Label {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(template.title)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                Text(template.subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+            }
+        } icon: {
+            Image(systemName: template.iconKey)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(Color(hex: template.colorHex))
+                .frame(width: 28)
+        }
+        .padding(.vertical, 4)
     }
 }
 
@@ -367,44 +400,4 @@ private struct FlowHelpStep: Identifiable {
     let icon: String
     let title: String
     let message: String
-}
-
-private struct StarterTemplatesList: View {
-    let action: (FlowStarterTemplate) -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Starter flows")
-                .font(.headline)
-                .padding(.horizontal, 2)
-
-            ForEach(FlowStarterTemplate.allCases) { template in
-                Button {
-                    action(template)
-                } label: {
-                    GlassCard(padding: 14) {
-                        HStack(spacing: 12) {
-                            FloatIconBadge(
-                                icon: template.iconKey,
-                                tint: Color(hex: template.colorHex),
-                                size: 36
-                            )
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(template.title)
-                                    .font(.subheadline.weight(.semibold))
-                                Text(template.subtitle)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(2)
-                            }
-                            Spacer()
-                            Image(systemName: "plus.circle.fill")
-                                .foregroundStyle(Color(hex: template.colorHex))
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-            }
-        }
-    }
 }

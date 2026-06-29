@@ -1227,6 +1227,7 @@ private extension CustomFlowObjectTypeDTO {
             iconKey: item.iconKey,
             sortOrder: item.sortOrder,
             archived: item.archived,
+            hiddenInFlow: item.hiddenInFlow,
             createdAt: item.createdAt,
             updatedAt: item.updatedAt
         )
@@ -1742,6 +1743,7 @@ private extension CustomFlowObjectTypeItem {
             iconKey: dto.iconKey,
             sortOrder: dto.sortOrder,
             archived: dto.archived,
+            hiddenInFlow: dto.hiddenInFlow ?? false,
             flow: flow,
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt

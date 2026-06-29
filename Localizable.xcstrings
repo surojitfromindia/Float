@@ -127,20 +127,7 @@
       }
     },
     "%@ %@" : {
-      "localizations" : {
-        "bn" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@ %2$@"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$@ %2$@"
-          }
-        }
-      }
+
     },
     "%@ %@ yesterday" : {
       "extractionState" : "stale",
@@ -155,6 +142,16 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ %2$@ yesterday"
+          }
+        }
+      }
+    },
+    "%@ %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$lld"
           }
         }
       }
@@ -331,6 +328,9 @@
           }
         }
       }
+    },
+    "%@ Item" : {
+
     },
     "%@ leads expenses. %@" : {
       "extractionState" : "stale",
@@ -548,16 +548,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld আয় লেনদেন"
-          }
-        }
-      }
-    },
-    "%lld objects · %lld records" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld objects · %2$lld records"
           }
         }
       }
@@ -2197,6 +2187,9 @@
     "Choose a field" : {
 
     },
+    "Choose a line item object." : {
+
+    },
     "Choose a report range to build the spend activity map." : {
       "localizations" : {
         "en" : {
@@ -2347,6 +2340,12 @@
           }
         }
       }
+    },
+    "Configure line item fields" : {
+
+    },
+    "Configure this line item field before editing rows." : {
+
     },
     "Connect records" : {
 
@@ -2689,6 +2688,9 @@
     "Current safe" : {
 
     },
+    "Custom design" : {
+
+    },
     "Custom person" : {
 
     },
@@ -2960,6 +2962,9 @@
 
     },
     "Delete milestone" : {
+
+    },
+    "Delete object?" : {
 
     },
     "Delete pending row" : {
@@ -3546,6 +3551,9 @@
           }
         }
       }
+    },
+    "Existing object" : {
+
     },
     "Expected due date" : {
       "localizations" : {
@@ -4479,6 +4487,9 @@
     "Item" : {
 
     },
+    "Items" : {
+
+    },
     "Items to buy later with price, priority, and notes." : {
 
     },
@@ -4646,6 +4657,15 @@
           }
         }
       }
+    },
+    "Line Item" : {
+
+    },
+    "Line items" : {
+
+    },
+    "Line Items" : {
+
     },
     "Line total" : {
 
@@ -4994,6 +5014,9 @@
     "Nested inputs show the parts used to build that result, such as left and right values." : {
 
     },
+    "Nested line items are not supported in line item rows." : {
+
+    },
     "Net" : {
       "localizations" : {
         "bn" : {
@@ -5309,6 +5332,9 @@
           }
         }
       }
+    },
+    "No line items yet." : {
+
     },
     "No matching cases" : {
 
@@ -6652,6 +6678,9 @@
         }
       }
     },
+    "Remove line item" : {
+
+    },
     "Rename" : {
 
     },
@@ -7000,6 +7029,9 @@
           }
         }
       }
+    },
+    "Save this line item field, then reopen it to add custom fields and formulas." : {
+
     },
     "Saved" : {
       "localizations" : {
@@ -7919,6 +7951,9 @@
 
     },
     "This permanently deletes the flow, its configuration, and all records. Linked transactions stay in your ledger." : {
+
+    },
+    "This permanently deletes the object, its fields, and all records." : {
 
     },
     "This permanently deletes your accounts, categories, budgets, goals, recurring rules, and transactions. This action cannot be undone." : {

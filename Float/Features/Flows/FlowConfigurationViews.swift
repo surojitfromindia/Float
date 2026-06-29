@@ -13,7 +13,7 @@ struct FlowConfigurationView: View {
 
     private var objectTypes: [CustomFlowObjectTypeItem] {
         flow.objectTypes
-            .filter { !$0.archived }
+            .filter { !$0.archived && !$0.hiddenInFlow }
             .sorted { lhs, rhs in
                 if lhs.sortOrder == rhs.sortOrder {
                     return lhs.createdAt < rhs.createdAt
@@ -187,8 +187,12 @@ struct FlowConfigurationView: View {
                 Button(role: .destructive) {
                     showingDeleteAlert = true
                 } label: {
-                    Label("Delete", systemImage: "trash")
-                        .foregroundStyle(.red)
+                    Label {
+                        Text("Delete")
+                    } icon: {
+                        Image(systemName: "trash")
+                            .foregroundStyle(.red)
+                    }
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")

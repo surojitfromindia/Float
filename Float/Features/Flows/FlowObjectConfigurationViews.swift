@@ -2,10 +2,12 @@ import SwiftData
 import SwiftUI
 
 struct FlowObjectConfigurationView: View {
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     let objectType: CustomFlowObjectTypeItem
     @State private var fieldEditor: FieldEditorPresentation?
     @State private var objectEditor: ObjectTypeEditorPresentation?
+    @State private var showingDeleteAlert = false
 
     private var recordCount: Int {
         objectType.records.filter { $0.status != .archived }.count
@@ -104,10 +106,27 @@ struct FlowObjectConfigurationView: View {
                     Button(action: editObject) {
                         Label("Edit Object", systemImage: "pencil")
                     }
+                    Divider()
+                    Button(role: .destructive) {
+                        showingDeleteAlert = true
+                    } label: {
+                        Label {
+                            Text("Delete")
+                        } icon: {
+                            Image(systemName: "trash")
+                                .foregroundStyle(.red)
+                        }
+                    }
                 }
             } label: {
                 Image(systemName: "ellipsis.circle")
             }
+        }
+        .alert("Delete object?", isPresented: $showingDeleteAlert) {
+            Button("Delete", role: .destructive, action: deleteObject)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes the object, its fields, and all records.")
         }
         .sheet(item: $fieldEditor) { presentation in
             FieldEditorSheet(
@@ -137,6 +156,33 @@ struct FlowObjectConfigurationView: View {
         objectType.updatedAt = Date()
         objectType.flow?.updatedAt = Date()
         try? modelContext.save()
+    }
+
+    private func deleteObject() {
+        guard let flow = objectType.flow else { return }
+        let objectID = objectType.id
+        let fieldIDs = Set(objectType.fields.map(\.id))
+
+        for relation in flow.relations where
+            relation.sourceObjectType?.id == objectID
+                || relation.targetObjectType?.id == objectID {
+            modelContext.delete(relation)
+        }
+
+        for action in flow.transactionActions where
+            action.sourceObjectType?.id == objectID
+                || action.amountField.map({ fieldIDs.contains($0.id) }) == true
+                || action.categoryField.map({ fieldIDs.contains($0.id) }) == true
+                || action.accountField.map({ fieldIDs.contains($0.id) }) == true
+                || action.dateField.map({ fieldIDs.contains($0.id) }) == true
+                || action.noteField.map({ fieldIDs.contains($0.id) }) == true {
+            modelContext.delete(action)
+        }
+
+        flow.updatedAt = Date()
+        modelContext.delete(objectType)
+        try? modelContext.save()
+        dismiss()
     }
 
     private var tint: Color {

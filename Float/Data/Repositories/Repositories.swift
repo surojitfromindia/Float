@@ -1021,13 +1021,15 @@ struct CustomFlowRepository {
         name: String,
         singularName: String? = nil,
         iconKey: String = "list.bullet.rectangle",
-        sortOrder: Int = 0
+        sortOrder: Int = 0,
+        hiddenInFlow: Bool = false
     ) throws -> CustomFlowObjectTypeItem {
         let objectType = CustomFlowObjectTypeItem(
             name: name.trimmedNilIfBlank ?? String(localized: "Records"),
             singularName: singularName?.trimmedNilIfBlank,
             iconKey: iconKey.trimmedNilIfBlank ?? "list.bullet.rectangle",
             sortOrder: sortOrder,
+            hiddenInFlow: hiddenInFlow,
             flow: flow
         )
         modelContext.insert(objectType)
@@ -1043,13 +1045,17 @@ struct CustomFlowRepository {
         singularName: String?,
         iconKey: String,
         sortOrder: Int,
-        archived: Bool
+        archived: Bool,
+        hiddenInFlow: Bool? = nil
     ) throws {
         objectType.name = name.trimmedNilIfBlank ?? String(localized: "Records")
         objectType.singularName = singularName?.trimmedNilIfBlank ?? objectType.name
         objectType.iconKey = iconKey.trimmedNilIfBlank ?? "list.bullet.rectangle"
         objectType.sortOrder = sortOrder
         objectType.archived = archived
+        if let hiddenInFlow {
+            objectType.hiddenInFlow = hiddenInFlow
+        }
         touch(objectType.flow)
         objectType.updatedAt = Date()
         try save()

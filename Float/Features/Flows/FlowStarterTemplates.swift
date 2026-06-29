@@ -123,6 +123,7 @@ enum FlowStarterTemplate: String, CaseIterable, Identifiable {
         )
         try addField(repository, to: items, name: String(localized: "Product"), key: "product", kind: .relation, relation: productRelation)
         try addField(repository, to: items, name: String(localized: "Trip"), key: "trip", kind: .relation, relation: tripRelation)
+        try addField(repository, to: trips, name: String(localized: "Items"), key: "items", kind: .lineItem, relation: tripRelation)
         let itemQuantity = try addField(repository, to: items, name: String(localized: "Quantity"), key: "quantity", kind: .number)
         let itemPrice = try addField(repository, to: items, name: String(localized: "Price"), key: "price", kind: .money)
         let itemLineTotal = try addField(

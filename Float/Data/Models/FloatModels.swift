@@ -352,6 +352,7 @@ enum CustomFlowFieldKind: String, Codable, CaseIterable, Identifiable {
     case checkbox
     case choice
     case relation
+    case lineItem
     case formula
     case notes
     case category
@@ -826,6 +827,7 @@ final class CustomFlowObjectTypeItem {
     var iconKey: String = "list.bullet.rectangle"
     var sortOrder: Int = 0
     var archived: Bool = false
+    var hiddenInFlow: Bool = false
     var flow: CustomFlowItem?
     @Relationship(deleteRule: .cascade, inverse: \CustomFlowFieldItem.objectType)
     var fields: [CustomFlowFieldItem] = []
@@ -842,6 +844,7 @@ final class CustomFlowObjectTypeItem {
         iconKey: String = "list.bullet.rectangle",
         sortOrder: Int = 0,
         archived: Bool = false,
+        hiddenInFlow: Bool = false,
         flow: CustomFlowItem? = nil,
         fields: [CustomFlowFieldItem] = [],
         records: [CustomFlowRecordItem] = [],
@@ -855,6 +858,7 @@ final class CustomFlowObjectTypeItem {
         self.iconKey = iconKey.nilIfBlank ?? "list.bullet.rectangle"
         self.sortOrder = sortOrder
         self.archived = archived
+        self.hiddenInFlow = hiddenInFlow
         self.flow = flow
         self.fields = fields
         self.records = records
