@@ -911,6 +911,8 @@ struct FlowRecordEditorView: View {
     @State private var status = CustomFlowRecordStatus.draft
     @State private var draftValues: [UUID: CustomFlowDraftValue] = [:]
     @State private var lineItemDrafts: [UUID: [CustomFlowLineItemDraft]] = [:]
+    @State private var viewingLineItem: CustomFlowLineItemSelection?
+    @State private var editingLineItem: CustomFlowLineItemSelection?
     @State private var validationMessage: String?
     @State private var showLinkedTransactionUpdatePrompt = false
 
@@ -988,6 +990,12 @@ struct FlowRecordEditorView: View {
                 }
             } message: {
                 Text("This finalized record is linked to a Float transaction. Update the linked transaction with these edits?")
+            }
+            .sheet(item: $viewingLineItem) { selection in
+                lineItemViewSheet(selection)
+            }
+            .sheet(item: $editingLineItem) { selection in
+                lineItemEditorSheet(selection)
             }
             .onAppear(perform: configure)
         }
@@ -1142,6 +1150,7 @@ struct FlowRecordEditorView: View {
                     Label("Add", systemImage: "plus.circle.fill")
                 }
                 .font(.subheadline.weight(.semibold))
+                .buttonStyle(.borderless)
                 .disabled(lineItemChildObject(for: field) == nil)
             }
 
@@ -1156,7 +1165,7 @@ struct FlowRecordEditorView: View {
                         lineItemRow(
                             parentField: field,
                             childObject: childObject,
-                            draftID: draft.id
+                            draft: draft
                         )
                     }
                 }
@@ -1172,47 +1181,378 @@ struct FlowRecordEditorView: View {
     private func lineItemRow(
         parentField: CustomFlowFieldItem,
         childObject: CustomFlowObjectTypeItem,
-        draftID: UUID
+        draft: CustomFlowLineItemDraft
     ) -> some View {
-        DisclosureGroup {
-            VStack(alignment: .leading, spacing: 12) {
-                TextField("Title", text: lineItemTitleBinding(parentField: parentField, draftID: draftID))
-                    .textFieldStyle(.plain)
+        HStack(spacing: 10) {
+            Button {
+                editingLineItem = CustomFlowLineItemSelection(
+                    parentFieldID: parentField.id,
+                    draftID: draft.id
+                )
+            } label: {
+                lineItemRowSummary(
+                    parentField: parentField,
+                    childObject: childObject,
+                    draft: draft
+                )
+            }
+            .buttonStyle(.plain)
 
-                ForEach(childObject.activeFields.filter { !isParentRelationField($0, for: parentField) }) { childField in
-                    lineItemFieldInput(
+            Button(role: .destructive) {
+                removeLineItem(parentField: parentField, draftID: draft.id)
+            } label: {
+                Image(systemName: "trash")
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(palette.caution)
+                    .frame(width: 34, height: 34)
+            }
+            .buttonStyle(.borderless)
+            .accessibilityLabel("Remove line item")
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(.tertiary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func lineItemRowSummary(
+        parentField: CustomFlowFieldItem,
+        childObject: CustomFlowObjectTypeItem,
+        draft: CustomFlowLineItemDraft
+    ) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: childObject.iconKey)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(parentField.kind.tint)
+                .frame(width: 20)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(draft.title.flowNilIfBlank ?? childObject.singularName)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+
+                let summary = lineItemSummaryText(
+                    parentField: parentField,
+                    childObject: childObject,
+                    draft: draft
+                )
+                if !summary.isEmpty {
+                    Text(summary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.tertiary)
+        }
+        .contentShape(Rectangle())
+    }
+
+    private func lineItemViewSheet(_ selection: CustomFlowLineItemSelection) -> some View {
+        NavigationStack {
+            Form {
+                if let parentField = objectType.activeFields.first(where: { $0.id == selection.parentFieldID }),
+                   let childObject = lineItemChildObject(for: parentField),
+                   let draft = lineItemDraft(parentField: parentField, draftID: selection.draftID) {
+                    Section("Line item") {
+                        HStack(spacing: 12) {
+                            Label {
+                                Text("Title")
+                                    .foregroundStyle(.secondary)
+                            } icon: {
+                                Image(systemName: childObject.iconKey)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(parentField.kind.tint)
+                                    .frame(width: 18)
+                            }
+
+                            Spacer(minLength: 16)
+
+                            Text(draft.title.flowNilIfBlank ?? childObject.singularName)
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+
+                    Section("Fields") {
+                        let displayFields = childObject.activeFields.filter {
+                            !isParentRelationField($0, for: parentField)
+                        }
+                        if displayFields.isEmpty {
+                            Text("No fields configured.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(displayFields) { childField in
+                                lineItemFieldDisplay(
+                                    parentField: parentField,
+                                    childObject: childObject,
+                                    childField: childField,
+                                    draft: draft
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Text("This line item is no longer available.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Line Item")
+            .navigationBarTitleDisplayMode(.inline)
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+            .floatBackground()
+            .tint(palette.accent)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        viewingLineItem = nil
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Edit") {
+                        viewingLineItem = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                            editingLineItem = selection
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func lineItemEditorSheet(_ selection: CustomFlowLineItemSelection) -> some View {
+        NavigationStack {
+            Form {
+                if let parentField = objectType.activeFields.first(where: { $0.id == selection.parentFieldID }),
+                   let childObject = lineItemChildObject(for: parentField),
+                   lineItemDraft(parentField: parentField, draftID: selection.draftID) != nil {
+                    Section("Line item") {
+                        TextField(
+                            "Title",
+                            text: lineItemTitleBinding(
+                                parentField: parentField,
+                                draftID: selection.draftID
+                            )
+                        )
+                    }
+
+                    Section("Fields") {
+                        let editableFields = childObject.activeFields.filter {
+                            !isParentRelationField($0, for: parentField)
+                        }
+                        if editableFields.isEmpty {
+                            Text("No fields configured.")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            ForEach(editableFields) { childField in
+                                lineItemFieldInput(
+                                    parentField: parentField,
+                                    childObject: childObject,
+                                    childField: childField,
+                                    draftID: selection.draftID
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Text("This line item is no longer available.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .navigationTitle("Edit Line Item")
+            .navigationBarTitleDisplayMode(.inline)
+            .keyboardDismissControls()
+            .formStyle(.grouped)
+            .scrollContentBackground(.hidden)
+            .floatBackground()
+            .tint(palette.accent)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        editingLineItem = nil
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        editingLineItem = nil
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func lineItemFieldDisplay(
+        parentField: CustomFlowFieldItem,
+        childObject: CustomFlowObjectTypeItem,
+        childField: CustomFlowFieldItem,
+        draft: CustomFlowLineItemDraft
+    ) -> some View {
+        if childField.kind == .notes {
+            VStack(alignment: .leading, spacing: 8) {
+                fieldRowLabel(childField)
+                Text(
+                    lineItemDisplayValue(
                         parentField: parentField,
                         childObject: childObject,
                         childField: childField,
-                        draftID: draftID
+                        draft: draft
                     )
-                }
+                )
+                .foregroundStyle(lineItemHasDisplayValue(childField: childField, draft: draft) ? .primary : .secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.top, 8)
-        } label: {
-            HStack(spacing: 10) {
-                Image(systemName: childObject.iconKey)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .frame(width: 20)
-
-                Text(lineItemDraft(parentField: parentField, draftID: draftID)?.title ?? childObject.singularName)
-                    .font(.subheadline.weight(.medium))
-                    .lineLimit(1)
-
-                Spacer(minLength: 8)
-
-                Button(role: .destructive) {
-                    removeLineItem(parentField: parentField, draftID: draftID)
-                } label: {
-                    Image(systemName: "trash")
-                }
-                .buttonStyle(.borderless)
-                .accessibilityLabel("Remove line item")
+        } else {
+            HStack(spacing: 12) {
+                fieldRowLabel(childField)
+                Spacer(minLength: 16)
+                Text(
+                    lineItemDisplayValue(
+                        parentField: parentField,
+                        childObject: childObject,
+                        childField: childField,
+                        draft: draft
+                    )
+                )
+                .multilineTextAlignment(.trailing)
+                .foregroundStyle(lineItemHasDisplayValue(childField: childField, draft: draft) ? .primary : .secondary)
             }
         }
-        .padding(10)
-        .background(.tertiary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func lineItemDisplayValue(
+        parentField: CustomFlowFieldItem,
+        childObject: CustomFlowObjectTypeItem,
+        childField: CustomFlowFieldItem,
+        draft: CustomFlowLineItemDraft
+    ) -> String {
+        if childField.kind == .checkbox {
+            let value = draft.values[childField.id] ?? CustomFlowDraftValue()
+            return value.bool ? String(localized: "Yes") : String(localized: "No")
+        }
+
+        if childField.kind == .formula {
+            let result = lineItemFormulaDisplay(
+                parentField: parentField,
+                childObject: childObject,
+                childField: childField,
+                draftID: draft.id
+            )
+            return result.text.flowNilIfBlank ?? String(localized: "No value")
+        }
+
+        return lineItemSummaryValue(
+            parentField: parentField,
+            childObject: childObject,
+            childField: childField,
+            draft: draft
+        ) ?? String(localized: "No value")
+    }
+
+    private func lineItemHasDisplayValue(
+        childField: CustomFlowFieldItem,
+        draft: CustomFlowLineItemDraft
+    ) -> Bool {
+        let value = draft.values[childField.id] ?? CustomFlowDraftValue()
+        switch childField.kind {
+        case .text, .notes, .choice:
+            return value.text.flowNilIfBlank != nil
+        case .number:
+            return value.numberText.flowNilIfBlank != nil
+        case .money:
+            return value.amountText.flowNilIfBlank != nil
+        case .dateTime:
+            return true
+        case .checkbox:
+            return value.bool
+        case .relation:
+            return value.relatedRecordID != nil
+        case .lineItem:
+            return false
+        case .category:
+            return value.categoryID != nil
+        case .account:
+            return value.accountID != nil
+        case .person:
+            return value.personID != nil
+        case .formula:
+            return true
+        }
+    }
+
+    private func lineItemSummaryText(
+        parentField: CustomFlowFieldItem,
+        childObject: CustomFlowObjectTypeItem,
+        draft: CustomFlowLineItemDraft
+    ) -> String {
+        childObject.activeFields
+            .filter { !isParentRelationField($0, for: parentField) }
+            .compactMap { childField in
+                lineItemSummaryValue(
+                    parentField: parentField,
+                    childObject: childObject,
+                    childField: childField,
+                    draft: draft
+                ).map { "\(childField.name): \($0)" }
+            }
+            .prefix(2)
+            .joined(separator: " · ")
+    }
+
+    private func lineItemSummaryValue(
+        parentField: CustomFlowFieldItem,
+        childObject: CustomFlowObjectTypeItem,
+        childField: CustomFlowFieldItem,
+        draft: CustomFlowLineItemDraft
+    ) -> String? {
+        let value = draft.values[childField.id] ?? CustomFlowDraftValue()
+        switch childField.kind {
+        case .text, .notes, .choice:
+            return value.text.flowNilIfBlank
+        case .number:
+            return value.numberText.flowNilIfBlank
+        case .money:
+            let amountMinor = MoneyParser.parseDisplayAmountMinor(
+                from: value.amountText,
+                currencyCode: appState.selectedCurrencyCode
+            )
+            guard amountMinor != 0 || !value.amountText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                return nil
+            }
+            return MoneyFormatter.string(
+                minorUnits: amountMinor,
+                currencyCode: appState.selectedCurrencyCode
+            )
+        case .dateTime:
+            return value.date.formatted(date: .abbreviated, time: .shortened)
+        case .checkbox:
+            return value.bool ? String(localized: "Yes") : nil
+        case .relation:
+            return value.relatedRecordID.flatMap(recordForID)?.title
+        case .lineItem:
+            return nil
+        case .category:
+            return value.categoryID.flatMap(categoryForID)?.name
+        case .account:
+            return value.accountID.flatMap(accountForID)?.name
+        case .person:
+            return value.personID.flatMap(personForID)?.name
+        case .formula:
+            let result = lineItemFormulaDisplay(
+                parentField: parentField,
+                childObject: childObject,
+                childField: childField,
+                draftID: draft.id
+            )
+            return result.isError ? nil : result.text.flowNilIfBlank
+        }
     }
 
     @ViewBuilder
@@ -1367,7 +1707,7 @@ struct FlowRecordEditorView: View {
         } icon: {
             Image(systemName: field.kind.icon)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(.tertiary)
+                .foregroundStyle(field.kind.tint)
                 .frame(width: 18)
         }
     }
@@ -2183,6 +2523,12 @@ struct FieldEditorPresentation: Identifiable {
     let field: CustomFlowFieldItem?
 }
 
+struct RecordDetailPresentation: Identifiable {
+    let id = UUID()
+    let objectType: CustomFlowObjectTypeItem
+    let record: CustomFlowRecordItem
+}
+
 struct RecordEditorPresentation: Identifiable {
     let id = UUID()
     let objectType: CustomFlowObjectTypeItem
@@ -2281,6 +2627,15 @@ private struct CustomFlowLineItemDraft: Identifiable {
                 )
             }
         )
+    }
+}
+
+private struct CustomFlowLineItemSelection: Identifiable {
+    let parentFieldID: UUID
+    let draftID: UUID
+
+    var id: String {
+        "\(parentFieldID.uuidString)-\(draftID.uuidString)"
     }
 }
 
@@ -2392,6 +2747,29 @@ extension CustomFlowFieldKind {
         case .category: "tag.fill"
         case .account: "wallet.pass.fill"
         case .person: "person.fill"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .text:
+            Color(hex: "#4D86F7")
+        case .number, .formula:
+            Color(hex: "#8D5CF6")
+        case .money, .account:
+            Color(hex: "#1B8A5A")
+        case .dateTime:
+            Color(hex: "#0A6FAE")
+        case .checkbox:
+            Color(hex: "#2F9E7C")
+        case .choice, .lineItem:
+            Color(hex: "#E06B4E")
+        case .relation, .person:
+            Color(hex: "#5C8C69")
+        case .notes:
+            Color(hex: "#A67C55")
+        case .category:
+            Color(hex: "#B7791F")
         }
     }
 }

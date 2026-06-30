@@ -92,6 +92,26 @@
         }
       }
     },
+    "%lld items" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%lld items"
+          }
+        }
+      }
+    },
+    "1 item" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "1 item"
+          }
+        }
+      }
+    },
     "%@ · %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2460,6 +2480,16 @@
     "Counts the days between two dates." : {
 
     },
+    "Created" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Created"
+          }
+        }
+      }
+    },
     "Create a case when a bill or payment will settle over time." : {
 
     },
@@ -3171,6 +3201,9 @@
           }
         }
       }
+    },
+    "Edit Line Item" : {
+
     },
     "Edit Account" : {
       "localizations" : {
@@ -4661,6 +4694,9 @@
     "Line Item" : {
 
     },
+    "Line item" : {
+
+    },
     "Line items" : {
 
     },
@@ -5298,6 +5334,9 @@
       }
     },
     "No fields" : {
+
+    },
+    "No fields configured." : {
 
     },
     "No flows" : {
@@ -6445,6 +6484,16 @@
     "Record" : {
 
     },
+    "Record Details" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Record Details"
+          }
+        }
+      }
+    },
     "Record payment" : {
 
     },
@@ -6679,6 +6728,9 @@
       }
     },
     "Remove line item" : {
+
+    },
+    "This line item is no longer available." : {
 
     },
     "Rename" : {
@@ -8552,6 +8604,16 @@
     },
     "Uses today's date." : {
 
+    },
+    "Updated" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Updated"
+          }
+        }
+      }
     },
     "Value" : {
 
